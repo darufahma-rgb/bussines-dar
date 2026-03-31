@@ -1,0 +1,17 @@
+I want to extend the existing system with a set of high-impact features that help me focus, close deals faster, and understand my business better. These features should stay simple, practical, and directly useful in daily operations.
+
+First, I want a “Daily Focus” feature. Every day, the system should help me identify which customers I should prioritize. This should include things like hot leads, overdue follow-ups, and high-value opportunities. The system can either automatically suggest 3–5 priority customers or allow me to mark them manually. I want to open the app and immediately know who I need to act on today.
+
+Second, I want a visual sales pipeline. Instead of only seeing statuses as text, I want a board-style view (like columns) where customers are grouped by their stage such as New Lead, Warm, Hot, Negotiation, and Closed. I should be able to move customers between stages easily, ideally with drag-and-drop or a simple action. This should help me clearly see where leads are stuck.
+
+Third, I want simple revenue and opportunity tracking. For each customer or deal, I want to optionally assign an estimated value. Then the system should show total potential revenue (from open leads) and actual revenue (from closed deals). This should not be complex accounting, just a simple way to understand how much money is in play.
+
+Fourth, I want to track where customers come from. Each customer should have a “source” field such as Instagram, WhatsApp, referral, or others. Later, I want to be able to filter and see which sources bring the most leads or conversions.
+
+Fifth, I want to track lost reasons. When a deal is marked as lost, I want to select or write a reason such as price too high, no response, not interested, or others. Over time, I want to see patterns of why I am losing customers.
+
+Sixth, I want a “Customer Memory” section inside each customer profile. This is different from normal notes. This should store personal or behavioral insights about the customer, such as communication style, preferences, or special conditions. This should help me interact better and increase trust.
+
+Please integrate all of these features into the existing system in a clean and consistent way. Do not overcomplicate the UI. Keep everything simple, fast, and easy to use.
+
+The goal of this upgrade is to make the system not just store data, but actively help me focus, prioritize, and improve my closing performance every day.
