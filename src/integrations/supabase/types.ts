@@ -14,7 +14,143 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      businesses: {
+        Row: {
+          color: string
+          created_at: string
+          id: string
+          name: string
+        }
+        Insert: {
+          color?: string
+          created_at?: string
+          id?: string
+          name: string
+        }
+        Update: {
+          color?: string
+          created_at?: string
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      customer_businesses: {
+        Row: {
+          business_id: string
+          customer_id: string
+          id: string
+        }
+        Insert: {
+          business_id: string
+          customer_id: string
+          id?: string
+        }
+        Update: {
+          business_id?: string
+          customer_id?: string
+          id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "customer_businesses_business_id_fkey"
+            columns: ["business_id"]
+            isOneToOne: false
+            referencedRelation: "businesses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "customer_businesses_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      customers: {
+        Row: {
+          created_at: string
+          email: string | null
+          id: string
+          name: string
+          phone: string | null
+          source: string | null
+          status: Database["public"]["Enums"]["customer_status"]
+          tags: string[] | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name: string
+          phone?: string | null
+          source?: string | null
+          status?: Database["public"]["Enums"]["customer_status"]
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          email?: string | null
+          id?: string
+          name?: string
+          phone?: string | null
+          source?: string | null
+          status?: Database["public"]["Enums"]["customer_status"]
+          tags?: string[] | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      interactions: {
+        Row: {
+          amount: number | null
+          content: string
+          created_at: string
+          currency: string | null
+          customer_id: string
+          follow_up_date: string | null
+          id: string
+          is_completed: boolean | null
+          type: Database["public"]["Enums"]["interaction_type"]
+          updated_at: string
+        }
+        Insert: {
+          amount?: number | null
+          content: string
+          created_at?: string
+          currency?: string | null
+          customer_id: string
+          follow_up_date?: string | null
+          id?: string
+          is_completed?: boolean | null
+          type: Database["public"]["Enums"]["interaction_type"]
+          updated_at?: string
+        }
+        Update: {
+          amount?: number | null
+          content?: string
+          created_at?: string
+          currency?: string | null
+          customer_id?: string
+          follow_up_date?: string | null
+          id?: string
+          is_completed?: boolean | null
+          type?: Database["public"]["Enums"]["interaction_type"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interactions_customer_id_fkey"
+            columns: ["customer_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +159,8 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      customer_status: "new" | "warm" | "hot" | "closed"
+      interaction_type: "note" | "transaction" | "follow_up" | "quick_capture"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +287,9 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      customer_status: ["new", "warm", "hot", "closed"],
+      interaction_type: ["note", "transaction", "follow_up", "quick_capture"],
+    },
   },
 } as const
