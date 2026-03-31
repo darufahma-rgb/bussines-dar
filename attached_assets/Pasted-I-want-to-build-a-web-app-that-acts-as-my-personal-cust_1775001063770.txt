@@ -1,0 +1,25 @@
+I want to build a web app that acts as my personal customer management system across multiple businesses. I run several businesses such as Temantiket, SYMP Studio, AIGYPT, and others, so I do not want separate systems for each one. I want one central system where all customer data can be stored, tracked, and reviewed clearly.
+
+The first priority is to build the core operational system first, without making it too complicated. I want this version to be usable immediately in my daily workflow.
+
+Please build the app with these goals:
+
+First, the system must support multiple business units. Every customer record should belong to a business unit such as Temantiket, SYMP, AIGYPT, or others, but still live inside one central app. I want to be able to filter by business later.
+
+Second, I need a customer database. Each customer should have a profile containing basic information such as full name, phone number, email if available, city or location, business unit, status, tags, and notes. Status should support something like New Lead, Warm Lead, Hot Lead, Negotiation, Closed Won, and Closed Lost.
+
+Third, I need a simple but powerful customer detail page. On this page, I want to see the customer’s profile and a full timeline of activity. The timeline should combine notes, follow-up history, and transactions in chronological order so I can quickly understand what happened with that customer.
+
+Fourth, I need manual input forms. I want to be able to manually add a customer, manually add a note, manually record a transaction, and manually set a follow-up date.
+
+Fifth, I need a very fast “Quick Capture” input. This is important. I want a page or component where I can type naturally like I’m writing in chat, for example: “Rina asked about Umrah package for December, 2 people, flexible budget, seems serious.” For now, the system can save this as a raw note linked to a customer or as a quick activity record. At this stage, I do not need advanced AI extraction yet. I just want the habit of fast capture to be possible.
+
+Sixth, I need a follow-up management page. It should clearly show follow-ups for today, overdue follow-ups, and upcoming follow-ups, because this system must help me not miss important customer actions.
+
+Seventh, I need a dashboard that is simple and useful. It should show total customers, total active leads, follow-ups due today, and recent activity. Keep it practical and clean.
+
+For data structure, please create a clean backend structure with tables or models for customers, notes, transactions, and follow-ups. Make it easy to extend later for AI features.
+
+For design, keep the interface clean, modern, minimal, and mobile-friendly. I care more about speed, clarity, and usability than visual complexity.
+
+Important: this first version should feel like a lightweight business operating tool that I can actually use every day, not like a bloated CRM.
