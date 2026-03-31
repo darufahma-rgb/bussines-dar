@@ -1,15 +1,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import type { Database } from "@/integrations/supabase/types";
 
-type CustomerStatus = Database["public"]["Enums"]["customer_status"];
+type CustomerStatus = "new" | "warm" | "hot" | "closed";
 
 export default function NewCustomer() {
   const navigate = useNavigate();
@@ -23,44 +22,28 @@ export default function NewCustomer() {
 
   const { data: businesses } = useQuery({
     queryKey: ["businesses"],
-    queryFn: async () => {
-      const { data } = await supabase.from("businesses").select("*").order("name");
-      return data ?? [];
-    },
+    queryFn: () => api.businesses.list(),
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
     setSaving(true);
-
-    const { data: customer, error } = await supabase
-      .from("customers")
-      .insert({
+    try {
+      const { id } = await api.customers.create({
         name: name.trim(),
-        email: email.trim() || null,
-        phone: phone.trim() || null,
+        email: email.trim() || undefined,
+        phone: phone.trim() || undefined,
         status,
-      })
-      .select("id")
-      .single();
-
-    if (error || !customer) {
-      toast.error("Failed to create customer");
-      setSaving(false);
-      return;
+        businessIds: selectedBiz,
+      });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      toast.success("Customer created!");
+      navigate(`/customers/${id}`);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to create customer");
     }
-
-    if (selectedBiz.length > 0) {
-      await supabase.from("customer_businesses").insert(
-        selectedBiz.map((bizId) => ({ customer_id: customer.id, business_id: bizId }))
-      );
-    }
-
-    queryClient.invalidateQueries({ queryKey: ["customers"] });
-    queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
-    toast.success("Customer created!");
-    navigate(`/customers/${customer.id}`);
     setSaving(false);
   };
 
@@ -106,7 +89,7 @@ export default function NewCustomer() {
         <div className="space-y-2">
           <label className="text-sm font-medium">Businesses</label>
           <div className="flex flex-wrap gap-3">
-            {businesses?.map((b) => (
+            {businesses?.map((b: any) => (
               <label key={b.id} className="flex items-center gap-2 text-sm">
                 <Checkbox
                   checked={selectedBiz.includes(b.id)}

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Zap } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -15,10 +15,7 @@ export default function QuickCapture() {
 
   const { data: customers } = useQuery({
     queryKey: ["customers-list"],
-    queryFn: async () => {
-      const { data } = await supabase.from("customers").select("id, name").order("name");
-      return data ?? [];
-    },
+    queryFn: () => api.customers.list(),
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -27,32 +24,24 @@ export default function QuickCapture() {
 
     setSaving(true);
     try {
-      if (customerId) {
-        await supabase.from("interactions").insert({
-          customer_id: customerId,
-          type: "quick_capture" as const,
+      if (customerId && customerId !== "__new__") {
+        await api.interactions.create({
+          customerId,
+          type: "quick_capture",
           content: text.trim(),
         });
         toast.success("Captured!");
       } else {
-        // Try to extract a name from the text (first word before common patterns)
         const nameMatch = text.match(/^(\w+)/);
         const name = nameMatch ? nameMatch[1] : "Unknown";
 
-        const { data: customer } = await supabase
-          .from("customers")
-          .insert({ name })
-          .select("id")
-          .single();
-
-        if (customer) {
-          await supabase.from("interactions").insert({
-            customer_id: customer.id,
-            type: "quick_capture" as const,
-            content: text.trim(),
-          });
-          toast.success(`New customer "${name}" created with note!`);
-        }
+        const { id: newCustomerId } = await api.customers.create({ name });
+        await api.interactions.create({
+          customerId: newCustomerId,
+          type: "quick_capture",
+          content: text.trim(),
+        });
+        toast.success(`New customer "${name}" created with note!`);
       }
 
       setText("");
@@ -60,7 +49,7 @@ export default function QuickCapture() {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["customers-list"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
-      queryClient.invalidateQueries({ queryKey: ["interactions"] });
+      queryClient.invalidateQueries({ queryKey: ["recent-captures"] });
     } catch {
       toast.error("Failed to save");
     }
@@ -76,7 +65,7 @@ export default function QuickCapture() {
         </SelectTrigger>
         <SelectContent>
           <SelectItem value="__new__">+ New customer</SelectItem>
-          {customers?.map((c) => (
+          {customers?.map((c: any) => (
             <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
           ))}
         </SelectContent>

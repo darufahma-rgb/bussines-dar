@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Link } from "react-router-dom";
 import StatusBadge from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
@@ -12,45 +12,41 @@ export default function FollowUps() {
 
   const { data: followUps } = useQuery({
     queryKey: ["all-follow-ups"],
-    queryFn: async () => {
-      const { data } = await supabase
-        .from("interactions")
-        .select("*, customers(id, name, status)")
-        .eq("type", "follow_up")
-        .eq("is_completed", false)
-        .order("follow_up_date");
-      return data ?? [];
-    },
+    queryFn: () => api.interactions.followUps(true),
   });
 
   const handleComplete = async (id: string) => {
-    await supabase.from("interactions").update({ is_completed: true }).eq("id", id);
-    queryClient.invalidateQueries({ queryKey: ["all-follow-ups"] });
-    queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
-    toast.success("Done!");
+    try {
+      await api.interactions.complete(id);
+      queryClient.invalidateQueries({ queryKey: ["all-follow-ups"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      toast.success("Done!");
+    } catch {
+      toast.error("Failed to mark complete");
+    }
   };
 
-  const overdue = followUps?.filter((f) => f.follow_up_date && isPast(parseISO(f.follow_up_date)) && !isToday(parseISO(f.follow_up_date))) ?? [];
-  const today = followUps?.filter((f) => f.follow_up_date && isToday(parseISO(f.follow_up_date))) ?? [];
-  const upcoming = followUps?.filter((f) => f.follow_up_date && isFuture(parseISO(f.follow_up_date)) && !isToday(parseISO(f.follow_up_date))) ?? [];
-  const noDate = followUps?.filter((f) => !f.follow_up_date) ?? [];
+  const overdue = followUps?.filter((f: any) => f.followUpDate && isPast(parseISO(f.followUpDate)) && !isToday(parseISO(f.followUpDate))) ?? [];
+  const today = followUps?.filter((f: any) => f.followUpDate && isToday(parseISO(f.followUpDate))) ?? [];
+  const upcoming = followUps?.filter((f: any) => f.followUpDate && isFuture(parseISO(f.followUpDate)) && !isToday(parseISO(f.followUpDate))) ?? [];
+  const noDate = followUps?.filter((f: any) => !f.followUpDate) ?? [];
 
-  const Section = ({ title, items, color }: { title: string; items: typeof followUps; color: string }) => (
-    items && items.length > 0 ? (
+  const Section = ({ title, items, color }: { title: string; items: any[]; color: string }) => (
+    items.length > 0 ? (
       <div>
         <h3 className={`text-sm font-medium mb-2 ${color}`}>{title} ({items.length})</h3>
         <div className="border rounded-lg divide-y">
-          {items.map((f) => (
+          {items.map((f: any) => (
             <div key={f.id} className="flex items-center justify-between p-3">
-              <Link to={`/customers/${f.customer_id}`} className="flex-1 min-w-0 hover:underline">
-                <p className="text-sm font-medium">{(f.customers as any)?.name}</p>
+              <Link to={`/customers/${f.customerId}`} className="flex-1 min-w-0 hover:underline">
+                <p className="text-sm font-medium">{f.customers?.name}</p>
                 <p className="text-xs text-muted-foreground line-clamp-1">{f.content}</p>
               </Link>
               <div className="flex items-center gap-2 shrink-0">
-                <StatusBadge status={(f.customers as any)?.status} />
-                {f.follow_up_date && (
+                <StatusBadge status={f.customers?.status} />
+                {f.followUpDate && (
                   <span className="text-xs font-mono text-muted-foreground">
-                    {format(parseISO(f.follow_up_date), "MMM d")}
+                    {format(parseISO(f.followUpDate), "MMM d")}
                   </span>
                 )}
                 <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => handleComplete(f.id)}>

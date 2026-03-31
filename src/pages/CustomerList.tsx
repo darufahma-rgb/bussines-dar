@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { api } from "@/lib/api";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import StatusBadge from "@/components/StatusBadge";
@@ -8,9 +8,6 @@ import BusinessBadge from "@/components/BusinessBadge";
 import { Link } from "react-router-dom";
 import { Search } from "lucide-react";
 import { format, parseISO } from "date-fns";
-import type { Database } from "@/integrations/supabase/types";
-
-type CustomerStatus = Database["public"]["Enums"]["customer_status"];
 
 export default function CustomerList() {
   const [search, setSearch] = useState("");
@@ -19,34 +16,12 @@ export default function CustomerList() {
 
   const { data: businesses } = useQuery({
     queryKey: ["businesses"],
-    queryFn: async () => {
-      const { data } = await supabase.from("businesses").select("*").order("name");
-      return data ?? [];
-    },
+    queryFn: () => api.businesses.list(),
   });
 
   const { data: customers, isLoading } = useQuery({
     queryKey: ["customers", search, statusFilter, bizFilter],
-    queryFn: async () => {
-      let query = supabase
-        .from("customers")
-        .select("*, customer_businesses(business_id, businesses(id, name))")
-        .order("updated_at", { ascending: false });
-
-      if (search) query = query.ilike("name", `%${search}%`);
-      if (statusFilter !== "all") query = query.eq("status", statusFilter as CustomerStatus);
-
-      const { data } = await query;
-      let result = data ?? [];
-
-      if (bizFilter !== "all") {
-        result = result.filter((c: any) =>
-          c.customer_businesses?.some((cb: any) => cb.business_id === bizFilter)
-        );
-      }
-
-      return result;
-    },
+    queryFn: () => api.customers.list({ search, status: statusFilter, businessId: bizFilter }),
   });
 
   return (
@@ -84,7 +59,7 @@ export default function CustomerList() {
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Business</SelectItem>
-            {businesses?.map((b) => (
+            {businesses?.map((b: any) => (
               <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
             ))}
           </SelectContent>
@@ -117,7 +92,7 @@ export default function CustomerList() {
               <div className="flex items-center gap-3 shrink-0">
                 <StatusBadge status={c.status} />
                 <span className="text-xs text-muted-foreground font-mono">
-                  {format(parseISO(c.updated_at), "MMM d")}
+                  {format(parseISO(c.updatedAt), "MMM d")}
                 </span>
               </div>
             </Link>
