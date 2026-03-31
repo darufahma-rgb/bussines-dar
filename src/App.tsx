@@ -11,6 +11,8 @@ import CustomerList from "@/pages/CustomerList";
 import CustomerDetail from "@/pages/CustomerDetail";
 import NewCustomer from "@/pages/NewCustomer";
 import FollowUps from "@/pages/FollowUps";
+import Weekly from "@/pages/Weekly";
+import Monthly from "@/pages/Monthly";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +40,8 @@ function AppLayout() {
           <Route path="/customers/new" element={<NewCustomer />} />
           <Route path="/customers/:id" element={<CustomerDetail />} />
           <Route path="/follow-ups" element={<FollowUps />} />
+          <Route path="/weekly" element={<Weekly />} />
+          <Route path="/monthly" element={<Monthly />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
       </main>

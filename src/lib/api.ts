@@ -60,4 +60,20 @@ export const api = {
     complete: (id: string) =>
       request(`/interactions/${id}`, { method: "PATCH", body: JSON.stringify({ isCompleted: true }) }),
   },
+  ai: {
+    parseCapture: (text: string, businesses: any[]) =>
+      request("/ai/parse-capture", { method: "POST", body: JSON.stringify({ text, businesses }) }),
+    customerSummary: (id: string) => request(`/ai/customer-summary/${id}`),
+    generateReply: (data: { customerMessage: string; tone: string; customerId?: string }) =>
+      request("/ai/reply", { method: "POST", body: JSON.stringify(data) }),
+    nextAction: (id: string) => request(`/ai/next-action/${id}`),
+    weeklyInsight: (stats: any) =>
+      request("/ai/weekly-insight", { method: "POST", body: JSON.stringify({ stats }) }),
+    monthlyInsight: (data: { current: any; previous: any; byBusiness: any[] }) =>
+      request("/ai/monthly-insight", { method: "POST", body: JSON.stringify(data) }),
+  },
+  stats: {
+    weekly: () => request("/stats/weekly"),
+    monthly: () => request("/stats/monthly"),
+  },
 };

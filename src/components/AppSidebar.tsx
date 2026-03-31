@@ -1,17 +1,21 @@
-import { LayoutDashboard, Users, CalendarCheck, Zap, LogOut, Plus } from "lucide-react";
-import { NavLink, useLocation } from "react-router-dom";
+import { LayoutDashboard, Users, CalendarCheck, LogOut, Plus, BarChart2, CalendarDays } from "lucide-react";
+import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 
 const navItems = [
-  { to: "/", icon: LayoutDashboard, label: "Dashboard" },
-  { to: "/customers", icon: Users, label: "Customers" },
-  { to: "/customers/new", icon: Plus, label: "Add Customer" },
-  { to: "/follow-ups", icon: CalendarCheck, label: "Follow-ups" },
+  { to: "/", icon: LayoutDashboard, label: "Dashboard", end: true },
+  { to: "/customers", icon: Users, label: "Customers", end: false },
+  { to: "/customers/new", icon: Plus, label: "Add Customer", end: true },
+  { to: "/follow-ups", icon: CalendarCheck, label: "Follow-ups", end: true },
+];
+
+const insightItems = [
+  { to: "/weekly", icon: CalendarDays, label: "Weekly", end: true },
+  { to: "/monthly", icon: BarChart2, label: "Monthly", end: true },
 ];
 
 export default function AppSidebar() {
-  const location = useLocation();
   const { signOut, user } = useAuth();
 
   return (
@@ -26,7 +30,30 @@ export default function AppSidebar() {
           <NavLink
             key={item.to}
             to={item.to}
-            end={item.to === "/"}
+            end={item.end}
+            className={({ isActive }) =>
+              cn(
+                "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",
+                isActive
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+              )
+            }
+          >
+            <item.icon className="h-4 w-4 shrink-0" />
+            {item.label}
+          </NavLink>
+        ))}
+
+        <div className="pt-3 pb-1">
+          <p className="px-3 text-xs font-medium text-sidebar-foreground/50 uppercase tracking-wider">Insights</p>
+        </div>
+
+        {insightItems.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.end}
             className={({ isActive }) =>
               cn(
                 "flex items-center gap-3 px-3 py-2 rounded-md text-sm transition-colors",

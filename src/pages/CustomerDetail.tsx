@@ -10,7 +10,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
-import { ArrowLeft, MessageSquare, DollarSign, CalendarCheck, Zap, Check, Trash2 } from "lucide-react";
+import {
+  ArrowLeft, MessageSquare, DollarSign, CalendarCheck, Zap,
+  Check, Trash2, Sparkles, Loader2, Copy, RefreshCw, ChevronDown, ChevronUp,
+} from "lucide-react";
 
 type InteractionType = "note" | "transaction" | "follow_up" | "quick_capture";
 type CustomerStatus = "new" | "warm" | "hot" | "closed";
@@ -21,7 +24,6 @@ const typeIcons: Record<InteractionType, any> = {
   follow_up: CalendarCheck,
   quick_capture: Zap,
 };
-
 const typeLabels: Record<InteractionType, string> = {
   note: "Note",
   transaction: "Transaction",
@@ -29,15 +31,47 @@ const typeLabels: Record<InteractionType, string> = {
   quick_capture: "Quick Capture",
 };
 
+function AIPanel({ label, children }: { label: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(true);
+  return (
+    <div className="bg-card border rounded-lg overflow-hidden">
+      <button
+        type="button"
+        className="w-full flex items-center justify-between p-3 text-sm font-medium hover:bg-muted/40 transition-colors"
+        onClick={() => setOpen(!open)}
+      >
+        <span className="flex items-center gap-2">
+          <Sparkles className="h-3.5 w-3.5 text-violet-500" />
+          {label}
+        </span>
+        {open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+      </button>
+      {open && <div className="px-3 pb-3">{children}</div>}
+    </div>
+  );
+}
+
 export default function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+
   const [addType, setAddType] = useState<InteractionType>("note");
   const [content, setContent] = useState("");
   const [amount, setAmount] = useState("");
   const [followUpDate, setFollowUpDate] = useState("");
   const [saving, setSaving] = useState(false);
+
+  const [summary, setSummary] = useState<string | null>(null);
+  const [loadingSummary, setLoadingSummary] = useState(false);
+
+  const [replyMessage, setReplyMessage] = useState("");
+  const [replyTone, setReplyTone] = useState("professional");
+  const [reply, setReply] = useState<string | null>(null);
+  const [loadingReply, setLoadingReply] = useState(false);
+
+  const [nextAction, setNextAction] = useState<any>(null);
+  const [loadingNext, setLoadingNext] = useState(false);
 
   const { data: customer } = useQuery({
     queryKey: ["customer", id],
@@ -56,22 +90,12 @@ export default function CustomerDetail() {
     if (!content.trim() || !id) return;
     setSaving(true);
     try {
-      await api.interactions.create({
-        customerId: id,
-        type: addType,
-        content: content.trim(),
-        amount: amount || undefined,
-        followUpDate: followUpDate || undefined,
-      });
-      setContent("");
-      setAmount("");
-      setFollowUpDate("");
+      await api.interactions.create({ customerId: id, type: addType, content: content.trim(), amount: amount || undefined, followUpDate: followUpDate || undefined });
+      setContent(""); setAmount(""); setFollowUpDate("");
       queryClient.invalidateQueries({ queryKey: ["interactions", id] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       toast.success("Added!");
-    } catch {
-      toast.error("Failed to add");
-    }
+    } catch { toast.error("Failed to add"); }
     setSaving(false);
   };
 
@@ -82,9 +106,7 @@ export default function CustomerDetail() {
       queryClient.invalidateQueries({ queryKey: ["customer", id] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       toast.success("Status updated");
-    } catch {
-      toast.error("Failed to update status");
-    }
+    } catch { toast.error("Failed"); }
   };
 
   const handleComplete = async (interactionId: string) => {
@@ -94,9 +116,7 @@ export default function CustomerDetail() {
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       queryClient.invalidateQueries({ queryKey: ["today-follow-ups"] });
       toast.success("Marked complete");
-    } catch {
-      toast.error("Failed to mark complete");
-    }
+    } catch { toast.error("Failed"); }
   };
 
   const handleDelete = async () => {
@@ -106,15 +126,49 @@ export default function CustomerDetail() {
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       toast.success("Customer deleted");
       navigate("/customers");
-    } catch {
-      toast.error("Failed to delete customer");
-    }
+    } catch { toast.error("Failed"); }
+  };
+
+  const handleGetSummary = async () => {
+    if (!id) return;
+    setLoadingSummary(true);
+    try {
+      const result = await api.ai.customerSummary(id);
+      setSummary(result.summary);
+    } catch { toast.error("Could not generate summary"); }
+    setLoadingSummary(false);
+  };
+
+  const handleGenerateReply = async () => {
+    if (!replyMessage.trim() || !id) return;
+    setLoadingReply(true);
+    try {
+      const result = await api.ai.generateReply({ customerMessage: replyMessage, tone: replyTone, customerId: id });
+      setReply(result.reply);
+    } catch { toast.error("Could not generate reply"); }
+    setLoadingReply(false);
+  };
+
+  const handleNextAction = async () => {
+    if (!id) return;
+    setLoadingNext(true);
+    try {
+      const result = await api.ai.nextAction(id);
+      setNextAction(result);
+    } catch { toast.error("Could not generate suggestion"); }
+    setLoadingNext(false);
+  };
+
+  const urgencyColors: Record<string, string> = {
+    high: "text-red-500 bg-red-50 border-red-200",
+    medium: "text-yellow-600 bg-yellow-50 border-yellow-200",
+    low: "text-green-600 bg-green-50 border-green-200",
   };
 
   if (!customer) return <div className="p-8 text-center text-muted-foreground">Loading...</div>;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5 max-w-2xl">
       <div className="flex items-start justify-between">
         <div>
           <button onClick={() => navigate(-1)} className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 mb-2">
@@ -129,7 +183,7 @@ export default function CustomerDetail() {
             {customer.phone && <span className="text-xs text-muted-foreground font-mono">{customer.phone}</span>}
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 shrink-0">
           <Select value={customer.status} onValueChange={(v) => handleStatusChange(v as CustomerStatus)}>
             <SelectTrigger className="w-28 h-8 text-xs">
               <SelectValue />
@@ -147,7 +201,97 @@ export default function CustomerDetail() {
         </div>
       </div>
 
+      <AIPanel label="Customer Summary">
+        {summary ? (
+          <div className="space-y-2">
+            <p className="text-sm leading-relaxed">{summary}</p>
+            <button onClick={handleGetSummary} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+              <RefreshCw className="h-3 w-3" /> Refresh
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            <p className="text-xs text-muted-foreground">Get a quick AI-generated overview of who this customer is, what they want, and their current status.</p>
+            <Button size="sm" variant="outline" className="w-fit h-7 text-xs gap-1" onClick={handleGetSummary} disabled={loadingSummary}>
+              {loadingSummary ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+              {loadingSummary ? "Generating..." : "Generate Summary"}
+            </Button>
+          </div>
+        )}
+      </AIPanel>
+
+      <AIPanel label="Next Action Suggestion">
+        {nextAction ? (
+          <div className="space-y-2">
+            <div className={`text-xs font-medium px-2 py-1 rounded border w-fit ${urgencyColors[nextAction.urgency] || urgencyColors.low}`}>
+              {nextAction.urgency?.toUpperCase()} PRIORITY
+            </div>
+            <p className="text-sm font-medium">{nextAction.action}</p>
+            <p className="text-xs text-muted-foreground">{nextAction.reason}</p>
+            {nextAction.suggestedDate && (
+              <p className="text-xs font-mono text-muted-foreground">Suggested date: {nextAction.suggestedDate}</p>
+            )}
+            <button onClick={handleNextAction} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mt-1">
+              <RefreshCw className="h-3 w-3" /> Refresh
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-2">
+            <p className="text-xs text-muted-foreground">Get an AI recommendation for the single best next step with this customer.</p>
+            <Button size="sm" variant="outline" className="w-fit h-7 text-xs gap-1" onClick={handleNextAction} disabled={loadingNext}>
+              {loadingNext ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+              {loadingNext ? "Thinking..." : "Suggest Next Action"}
+            </Button>
+          </div>
+        )}
+      </AIPanel>
+
+      <AIPanel label="Reply Generator">
+        <div className="space-y-2">
+          <Textarea
+            placeholder='Paste the customer message you received...'
+            value={replyMessage}
+            onChange={(e) => setReplyMessage(e.target.value)}
+            rows={2}
+            className="text-sm"
+          />
+          <div className="flex items-center gap-2">
+            <Select value={replyTone} onValueChange={setReplyTone}>
+              <SelectTrigger className="w-36 h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="casual">Casual & Warm</SelectItem>
+                <SelectItem value="professional">Professional</SelectItem>
+                <SelectItem value="persuasive">Persuasive</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={handleGenerateReply} disabled={loadingReply || !replyMessage.trim()}>
+              {loadingReply ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+              {loadingReply ? "Writing..." : "Generate Reply"}
+            </Button>
+          </div>
+          {reply && (
+            <div className="bg-muted/50 border rounded p-3 space-y-2">
+              <p className="text-sm whitespace-pre-wrap leading-relaxed">{reply}</p>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => { navigator.clipboard.writeText(reply); toast.success("Copied!"); }}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                >
+                  <Copy className="h-3 w-3" /> Copy
+                </button>
+                <button onClick={handleGenerateReply} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+                  <RefreshCw className="h-3 w-3" /> Try again
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      </AIPanel>
+
       <form onSubmit={handleAddInteraction} className="bg-card border rounded-lg p-4 space-y-3">
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Add to Timeline</p>
         <div className="flex gap-2">
           <Select value={addType} onValueChange={(v) => setAddType(v as InteractionType)}>
             <SelectTrigger className="w-36 h-8 text-xs">
@@ -166,13 +310,7 @@ export default function CustomerDetail() {
             <Input type="date" value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} className="w-40 h-8 text-xs" />
           )}
         </div>
-        <Textarea
-          placeholder="Write something..."
-          value={content}
-          onChange={(e) => setContent(e.target.value)}
-          rows={2}
-          className="text-sm"
-        />
+        <Textarea placeholder="Write something..." value={content} onChange={(e) => setContent(e.target.value)} rows={2} className="text-sm" />
         <Button type="submit" size="sm" disabled={saving || !content.trim()}>Add</Button>
       </form>
 
@@ -181,40 +319,28 @@ export default function CustomerDetail() {
         {!interactions?.length ? (
           <p className="text-sm text-muted-foreground p-4">No interactions yet.</p>
         ) : (
-          <div className="space-y-0 border rounded-lg divide-y">
+          <div className="border rounded-lg divide-y">
             {interactions.map((i: any) => {
               const Icon = typeIcons[i.type as InteractionType];
               return (
                 <div key={i.id} className="p-3 flex gap-3">
-                  <div className="mt-0.5">
-                    <Icon className="h-4 w-4 text-muted-foreground" />
-                  </div>
+                  <div className="mt-0.5"><Icon className="h-4 w-4 text-muted-foreground" /></div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-medium text-muted-foreground">{typeLabels[i.type as InteractionType]}</span>
-                      <span className="text-xs text-muted-foreground font-mono">
-                        {format(parseISO(i.createdAt), "MMM d, h:mm a")}
-                      </span>
+                      <span className="text-xs text-muted-foreground font-mono">{format(parseISO(i.createdAt), "MMM d, h:mm a")}</span>
                       {i.type === "follow_up" && !i.isCompleted && (
                         <button onClick={() => handleComplete(i.id)} className="text-xs text-status-closed hover:underline flex items-center gap-0.5">
                           <Check className="h-3 w-3" /> Done
                         </button>
                       )}
                       {i.type === "follow_up" && i.isCompleted && (
-                        <span className="text-xs text-status-closed">✓ Completed</span>
+                        <span className="text-xs text-green-600">✓ Completed</span>
                       )}
                     </div>
                     <p className="text-sm mt-0.5 whitespace-pre-wrap">{i.content}</p>
-                    {i.amount && (
-                      <p className="text-sm font-mono font-medium mt-0.5">
-                        {i.currency} {Number(i.amount).toLocaleString()}
-                      </p>
-                    )}
-                    {i.followUpDate && (
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        Follow-up: {format(parseISO(i.followUpDate), "MMM d, yyyy")}
-                      </p>
-                    )}
+                    {i.amount && <p className="text-sm font-mono font-medium mt-0.5">{i.currency} {Number(i.amount).toLocaleString()}</p>}
+                    {i.followUpDate && <p className="text-xs text-muted-foreground mt-0.5">Follow-up: {format(parseISO(i.followUpDate), "MMM d, yyyy")}</p>}
                   </div>
                 </div>
               );
