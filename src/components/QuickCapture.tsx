@@ -1,7 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { Zap, Sparkles, X, Check, Loader2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
+import { Sparkles, X, Check, Loader2, Send } from "lucide-react";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -22,19 +20,26 @@ export default function QuickCapture() {
   const [saving, setSaving] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [parsed, setParsed] = useState<ParsedCapture | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const queryClient = useQueryClient();
 
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key === "k") {
         e.preventDefault();
-        inputRef.current?.focus();
+        textareaRef.current?.focus();
       }
     };
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, []);
+
+  const autoResize = () => {
+    const ta = textareaRef.current;
+    if (!ta) return;
+    ta.style.height = "auto";
+    ta.style.height = Math.min(Math.max(ta.scrollHeight, 80), 220) + "px";
+  };
 
   const { data: businesses } = useQuery({
     queryKey: ["businesses"],
@@ -58,8 +63,7 @@ export default function QuickCapture() {
     setParsing(false);
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = async () => {
     if (!text.trim()) return;
     setSaving(true);
     try {
@@ -87,120 +91,142 @@ export default function QuickCapture() {
       }
 
       setText("");
+      if (textareaRef.current) textareaRef.current.style.height = "80px";
       setCustomerId("");
       setParsed(null);
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["customers-list"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       queryClient.invalidateQueries({ queryKey: ["recent-captures"] });
+      queryClient.invalidateQueries({ queryKey: ["customers-pipeline"] });
+      queryClient.invalidateQueries({ queryKey: ["daily-focus"] });
     } catch {
       toast.error("Gagal menyimpan, coba lagi");
     }
     setSaving(false);
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      handleSubmit();
+    }
+  };
+
   const clearParsed = () => setParsed(null);
 
   return (
     <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
-      <form onSubmit={handleSubmit}>
-        <div className="flex items-center gap-2.5 px-4 py-3">
-          <div className="h-7 w-7 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
-            <Zap className="h-3.5 w-3.5 text-amber-500" />
-          </div>
-          <Select value={customerId} onValueChange={setCustomerId}>
-            <SelectTrigger className="w-36 h-8 text-xs border-0 bg-muted/60 hover:bg-muted focus:ring-0">
-              <SelectValue placeholder="Customer baru" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="__new__">+ Customer baru</SelectItem>
-              {customers?.map((c: any) => (
-                <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-          <Input
-            ref={inputRef}
-            value={text}
-            onChange={(e) => { setText(e.target.value); if (parsed) setParsed(null); }}
-            placeholder='e.g. "Cia tanya paket Umrah Desember, 2 orang" — Ctrl+K'
-            className="flex-1 h-8 text-sm border-0 bg-transparent focus-visible:ring-0 px-0 placeholder:text-muted-foreground/60"
-            data-testid="input-quick-capture"
-          />
-          {text.trim() && !customerId && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              className="h-8 text-xs gap-1.5 shrink-0 border-violet-200 text-violet-700 hover:bg-violet-50"
-              onClick={handleAIParse}
-              disabled={parsing}
-            >
-              {parsing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-              {parsing ? "Memproses..." : "AI Parse"}
-            </Button>
-          )}
-          <Button
-            type="submit"
-            size="sm"
-            disabled={saving || !text.trim()}
-            className="h-8 text-xs shrink-0"
-          >
-            {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : "Capture"}
-          </Button>
+      {/* Header bar */}
+      <div className="flex items-center gap-2.5 px-4 pt-4 pb-2">
+        <div className="h-7 w-7 rounded-lg bg-violet-50 flex items-center justify-center shrink-0">
+          <Sparkles className="h-3.5 w-3.5 text-violet-500" />
         </div>
+        <span className="text-sm font-semibold text-foreground flex-1">Quick Capture AI</span>
+        <Select value={customerId} onValueChange={setCustomerId}>
+          <SelectTrigger className="w-40 h-8 text-xs border border-border bg-muted/40 focus:ring-0">
+            <SelectValue placeholder="Customer baru" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__new__">+ Customer baru</SelectItem>
+            {customers?.map((c: any) => (
+              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-        {parsed && (
-          <div className="border-t border-border bg-violet-50/60 px-4 py-3 space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-violet-700 flex items-center gap-1.5">
-                <Sparkles className="h-3 w-3" /> AI mengekstrak — periksa sebelum menyimpan
-              </span>
-              <button type="button" onClick={clearParsed} className="text-muted-foreground hover:text-foreground transition-colors">
-                <X className="h-3.5 w-3.5" />
-              </button>
-            </div>
-            <div className="flex flex-wrap gap-1.5 text-xs">
-              {parsed.name && (
-                <span className="flex items-center gap-1 bg-white border border-border rounded-lg px-2.5 py-1 shadow-sm">
-                  <span className="text-muted-foreground">Nama:</span>
-                  <span className="font-semibold">{parsed.name}</span>
-                </span>
-              )}
-              {parsed.status && (
-                <span className="flex items-center gap-1 bg-white border border-border rounded-lg px-2.5 py-1 shadow-sm">
-                  <span className="text-muted-foreground">Status:</span>
-                  <span className="font-semibold capitalize">{parsed.status}</span>
-                </span>
-              )}
-              {parsed.interest && (
-                <span className="flex items-center gap-1 bg-white border border-border rounded-lg px-2.5 py-1 shadow-sm max-w-xs">
-                  <span className="text-muted-foreground shrink-0">Tertarik:</span>
-                  <span className="font-semibold truncate">{parsed.interest}</span>
-                </span>
-              )}
-              {parsed.followUpDate && (
-                <span className="flex items-center gap-1 bg-white border border-border rounded-lg px-2.5 py-1 shadow-sm">
-                  <span className="text-muted-foreground">Follow-up:</span>
-                  <span className="font-semibold font-mono">{parsed.followUpDate}</span>
-                </span>
-              )}
-              {parsed.businessIds && parsed.businessIds.length > 0 && (
-                <span className="flex items-center gap-1 bg-white border border-border rounded-lg px-2.5 py-1 shadow-sm">
-                  <span className="text-muted-foreground">Bisnis:</span>
-                  <span className="font-semibold">
-                    {parsed.businessIds.map((id: string) => businesses?.find((b: any) => b.id === id)?.name).filter(Boolean).join(", ")}
-                  </span>
-                </span>
-              )}
-            </div>
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              <Check className="h-3 w-3 text-emerald-500 shrink-0" />
-              Sudah oke? Tekan <strong className="text-foreground">Capture</strong> untuk menyimpan, atau edit teks di atas.
-            </p>
-          </div>
+      {/* Large textarea */}
+      <div className="px-4 pb-3">
+        <textarea
+          ref={textareaRef}
+          value={text}
+          onChange={(e) => { setText(e.target.value); autoResize(); if (parsed) setParsed(null); }}
+          onKeyDown={handleKeyDown}
+          placeholder={`Ketik info customer secara natural...\nContoh: "Budi tanya paket Umrah Desember, 2 orang, WA 081234567890, follow-up besok"\n\nTekan AI Parse untuk ekstrak otomatis, atau Ctrl+Enter untuk simpan langsung.`}
+          rows={4}
+          className="w-full resize-none text-sm text-foreground placeholder:text-muted-foreground/60 bg-muted/30 rounded-xl border border-border px-4 py-3 focus:outline-none focus:ring-2 focus:ring-violet-300/50 focus:border-violet-300 leading-relaxed transition"
+          style={{ minHeight: "80px" }}
+          data-testid="input-quick-capture"
+        />
+      </div>
+
+      {/* Action bar */}
+      <div className="flex items-center gap-2 px-4 pb-4">
+        <span className="text-[11px] text-muted-foreground flex-1 hidden sm:block">Ctrl+Enter simpan · Ctrl+K fokus</span>
+        {text.trim() && !customerId && (
+          <button
+            type="button"
+            onClick={handleAIParse}
+            disabled={parsing}
+            className="flex items-center gap-1.5 h-8 px-4 rounded-xl border border-violet-200 text-violet-700 text-xs font-semibold hover:bg-violet-50 disabled:opacity-60 transition-colors"
+          >
+            {parsing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+            {parsing ? "Memproses..." : "AI Parse"}
+          </button>
         )}
-      </form>
+        <button
+          type="button"
+          onClick={handleSubmit}
+          disabled={saving || !text.trim()}
+          className="flex items-center gap-1.5 h-8 px-4 rounded-xl bg-primary text-white text-xs font-semibold hover:opacity-90 disabled:opacity-40 transition"
+        >
+          {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+          {saving ? "Menyimpan..." : "Capture"}
+        </button>
+      </div>
+
+      {/* AI parse result */}
+      {parsed && (
+        <div className="border-t border-border bg-violet-50/60 px-4 py-3 space-y-2.5">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-medium text-violet-700 flex items-center gap-1.5">
+              <Sparkles className="h-3 w-3" /> AI mengekstrak — periksa sebelum menyimpan
+            </span>
+            <button type="button" onClick={clearParsed} className="text-muted-foreground hover:text-foreground transition-colors">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="flex flex-wrap gap-1.5 text-xs">
+            {parsed.name && (
+              <span className="flex items-center gap-1 bg-white border border-border rounded-lg px-2.5 py-1 shadow-sm">
+                <span className="text-muted-foreground">Nama:</span>
+                <span className="font-semibold">{parsed.name}</span>
+              </span>
+            )}
+            {parsed.status && (
+              <span className="flex items-center gap-1 bg-white border border-border rounded-lg px-2.5 py-1 shadow-sm">
+                <span className="text-muted-foreground">Status:</span>
+                <span className="font-semibold capitalize">{parsed.status}</span>
+              </span>
+            )}
+            {parsed.interest && (
+              <span className="flex items-center gap-1 bg-white border border-border rounded-lg px-2.5 py-1 shadow-sm max-w-xs">
+                <span className="text-muted-foreground shrink-0">Tertarik:</span>
+                <span className="font-semibold truncate">{parsed.interest}</span>
+              </span>
+            )}
+            {parsed.followUpDate && (
+              <span className="flex items-center gap-1 bg-white border border-border rounded-lg px-2.5 py-1 shadow-sm">
+                <span className="text-muted-foreground">Follow-up:</span>
+                <span className="font-semibold font-mono">{parsed.followUpDate}</span>
+              </span>
+            )}
+            {parsed.businessIds && parsed.businessIds.length > 0 && (
+              <span className="flex items-center gap-1 bg-white border border-border rounded-lg px-2.5 py-1 shadow-sm">
+                <span className="text-muted-foreground">Bisnis:</span>
+                <span className="font-semibold">
+                  {parsed.businessIds.map((id: string) => businesses?.find((b: any) => b.id === id)?.name).filter(Boolean).join(", ")}
+                </span>
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-muted-foreground flex items-center gap-1">
+            <Check className="h-3 w-3 text-emerald-500 shrink-0" />
+            Sudah oke? Tekan <strong className="text-foreground">Capture</strong> untuk menyimpan.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
