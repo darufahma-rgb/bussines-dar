@@ -3,10 +3,24 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Users, Flame, CalendarCheck, AlertTriangle, Sparkles, Loader2, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import PageGuide from "@/components/PageGuide";
 import { format, parseISO } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import { Link } from "react-router-dom";
+import { Skeleton } from "@/components/ui/skeleton";
+
+const typeLabels: Record<string, string> = {
+  note: "Catatan",
+  transaction: "Transaksi",
+  follow_up: "Follow-up",
+  quick_capture: "Capture",
+};
+
+const typeStyles: Record<string, string> = {
+  note: "bg-blue-50 text-blue-700",
+  transaction: "bg-emerald-50 text-emerald-700",
+  follow_up: "bg-amber-50 text-amber-700",
+  quick_capture: "bg-violet-50 text-violet-700",
+};
 
 export default function Weekly() {
   const [insight, setInsight] = useState<string | null>(null);
@@ -30,64 +44,61 @@ export default function Weekly() {
   };
 
   const statCards = [
-    { label: "Lead Baru", value: stats?.newLeads ?? 0, icon: Users, color: "text-blue-500", bg: "bg-blue-50" },
-    { label: "Lead Panas", value: stats?.hotLeads ?? 0, icon: Flame, color: "text-amber-500", bg: "bg-amber-50" },
-    { label: "Deal Berhasil", value: stats?.closedDeals ?? 0, icon: TrendingUp, color: "text-green-500", bg: "bg-green-50" },
-    { label: "Follow-up Terlewat", value: stats?.missedFollowUps ?? 0, icon: AlertTriangle, color: "text-red-500", bg: "bg-red-50" },
+    { label: "Lead Baru", value: stats?.newLeads ?? 0, icon: Users, iconBg: "bg-blue-50", iconColor: "text-blue-500" },
+    { label: "Lead Panas", value: stats?.hotLeads ?? 0, icon: Flame, iconBg: "bg-amber-50", iconColor: "text-amber-500" },
+    { label: "Deal Berhasil", value: stats?.closedDeals ?? 0, icon: TrendingUp, iconBg: "bg-emerald-50", iconColor: "text-emerald-500" },
+    { label: "Follow-up Terlewat", value: stats?.missedFollowUps ?? 0, icon: AlertTriangle, iconBg: "bg-red-50", iconColor: "text-red-500" },
   ];
 
-  const typeLabels: Record<string, string> = {
-    note: "Catatan",
-    transaction: "Transaksi",
-    follow_up: "Follow-up",
-    quick_capture: "Capture",
-  };
-
-  const typeColors: Record<string, string> = {
-    note: "bg-blue-100 text-blue-700",
-    transaction: "bg-green-100 text-green-700",
-    follow_up: "bg-yellow-100 text-yellow-700",
-    quick_capture: "bg-purple-100 text-purple-700",
-  };
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl">
       <div>
-        <h2 className="text-xl font-semibold">Laporan Mingguan</h2>
-        <p className="text-sm text-muted-foreground">Ringkasan aktivitas 7 hari terakhir</p>
+        <h2 className="text-xl font-bold text-foreground">Laporan Mingguan</h2>
+        <p className="text-sm text-muted-foreground mt-0.5">Ringkasan aktivitas 7 hari terakhir</p>
       </div>
 
-      <PageGuide steps={[
-        { icon: "📊", title: "Statistik Minggu Ini", desc: "Lihat berapa lead baru masuk, hot lead, deal yang berhasil ditutup, dan follow-up yang terlewat dalam 7 hari terakhir." },
-        { icon: "✨", title: "AI Weekly Insight", desc: "Klik 'Buat Insight' untuk mendapatkan analisis AI tentang performa minggu ini — apa yang berjalan baik, apa yang perlu diperbaiki, dan rekomendasi untuk minggu depan." },
-        { icon: "📋", title: "Aktivitas Minggu Ini", desc: "Daftar semua interaksi yang terjadi minggu ini: note, follow-up, quick capture, dan transaksi. Klik nama customer untuk membuka profilnya." },
-      ]} />
-
       {isLoading ? (
-        <div className="text-sm text-muted-foreground text-center py-12">Memuat data...</div>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="bg-white border border-border rounded-2xl p-5 card-shadow space-y-3">
+              <Skeleton className="h-4 w-24" />
+              <Skeleton className="h-9 w-12" />
+            </div>
+          ))}
+        </div>
       ) : (
         <>
+          {/* Stat cards */}
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {statCards.map((s) => (
-              <div key={s.label} className="bg-white border border-border rounded-xl p-4 card-shadow">
+              <div key={s.label} className="bg-white border border-border rounded-2xl p-5 card-shadow">
                 <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-medium text-muted-foreground">{s.label}</span>
-                  <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${s.bg}`}>
-                    <s.icon className={`h-4 w-4 ${s.color}`} />
+                  <span className="text-xs font-medium text-muted-foreground leading-tight">{s.label}</span>
+                  <div className={`h-9 w-9 rounded-xl flex items-center justify-center ${s.iconBg}`}>
+                    <s.icon className={`h-4 w-4 ${s.iconColor}`} />
                   </div>
                 </div>
-                <p className="text-3xl font-bold font-mono">{s.value}</p>
+                <p className="text-4xl font-bold font-mono leading-none text-foreground">{s.value}</p>
               </div>
             ))}
           </div>
 
-          <div className="bg-white border border-border rounded-xl p-4 card-shadow space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-sm">Insight Mingguan AI</h3>
+          {/* AI Insight */}
+          <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-xl bg-violet-50 flex items-center justify-center">
+                  <Sparkles className="h-4 w-4 text-violet-500" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm text-foreground">Insight Mingguan AI</h3>
+                  <p className="text-xs text-muted-foreground">Analisis performa 7 hari terakhir</p>
+                </div>
+              </div>
               <Button
                 size="sm"
                 variant="outline"
-                className="h-7 text-xs gap-1"
+                className="h-8 text-xs gap-1.5"
                 onClick={handleGetInsight}
                 disabled={loadingInsight}
               >
@@ -95,27 +106,40 @@ export default function Weekly() {
                 {loadingInsight ? "Berpikir..." : insight ? "Perbarui" : "Buat Insight"}
               </Button>
             </div>
-            {insight ? (
-              <p className="text-sm leading-relaxed text-foreground">{insight}</p>
-            ) : (
-              <p className="text-sm text-muted-foreground">Klik "Buat Insight" untuk mendapatkan ringkasan AI tentang minggu ini — apa yang berjalan baik, apa yang perlu diperhatikan, dan apa yang harus difokuskan.</p>
-            )}
+            <div className="px-5 py-4">
+              {insight ? (
+                <p className="text-sm leading-relaxed text-foreground">{insight}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Klik "Buat Insight" untuk mendapatkan ringkasan AI tentang minggu ini — apa yang berjalan baik, apa yang perlu diperhatikan, dan apa yang harus difokuskan.
+                </p>
+              )}
+            </div>
           </div>
 
-          <div className="bg-white border border-border rounded-xl p-4 card-shadow">
-            <h3 className="font-semibold text-sm mb-3">Aktivitas Minggu Ini</h3>
+          {/* Activity log */}
+          <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
+            <div className="px-5 py-4 border-b border-border">
+              <h3 className="font-semibold text-sm text-foreground">Aktivitas Minggu Ini</h3>
+              {stats?.weekInteractions?.length > 0 && (
+                <p className="text-xs text-muted-foreground mt-0.5">{stats.weekInteractions.length} interaksi</p>
+              )}
+            </div>
             {!stats?.weekInteractions?.length ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">Belum ada aktivitas minggu ini.</p>
+              <div className="py-12 text-center px-5">
+                <p className="text-sm font-medium text-foreground mb-1">Belum ada aktivitas</p>
+                <p className="text-xs text-muted-foreground">Belum ada interaksi yang tercatat minggu ini.</p>
+              </div>
             ) : (
-              <div className="divide-y">
+              <div className="divide-y divide-border">
                 {stats.weekInteractions.map((i: any) => (
-                  <div key={i.id} className="flex items-start gap-3 py-2.5">
-                    <span className={`text-xs px-1.5 py-0.5 rounded font-medium shrink-0 ${typeColors[i.type] || "bg-gray-100 text-gray-700"}`}>
+                  <div key={i.id} className="flex items-start gap-3 px-5 py-3.5">
+                    <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-lg shrink-0 mt-0.5 ${typeStyles[i.type] || "bg-slate-50 text-slate-700"}`}>
                       {typeLabels[i.type] || i.type}
                     </span>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <Link to={`/customers/${i.customerId}`} className="text-xs font-medium hover:underline">
+                        <Link to={`/customers/${i.customerId}`} className="text-sm font-semibold text-foreground hover:text-primary transition-colors hover:underline underline-offset-2">
                           {i.customerName}
                         </Link>
                         <span className="text-xs text-muted-foreground font-mono shrink-0">

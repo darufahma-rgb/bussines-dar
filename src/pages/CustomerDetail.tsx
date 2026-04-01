@@ -4,7 +4,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import StatusBadge from "@/components/StatusBadge";
 import BusinessBadge from "@/components/BusinessBadge";
-import PageGuide from "@/components/PageGuide";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -15,65 +14,101 @@ import { id as idLocale } from "date-fns/locale";
 import {
   ArrowLeft, MessageSquare, DollarSign, CalendarCheck, Zap,
   Check, Trash2, Sparkles, Loader2, Copy, RefreshCw, ChevronDown, ChevronUp,
-  Brain, Edit2, X,
+  Brain, Edit2, X, AlertTriangle,
 } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 type InteractionType = "note" | "transaction" | "follow_up" | "quick_capture";
 type CustomerStatus = "new" | "warm" | "hot" | "negotiation" | "closed" | "lost";
 
-const typeIcons: Record<InteractionType, any> = {
-  note: MessageSquare, transaction: DollarSign, follow_up: CalendarCheck, quick_capture: Zap,
-};
-const typeLabels: Record<InteractionType, string> = {
-  note: "Catatan", transaction: "Transaksi", follow_up: "Follow-up", quick_capture: "Quick Capture",
+const typeConfig: Record<InteractionType, { icon: any; label: string; bg: string; color: string }> = {
+  note:          { icon: MessageSquare, label: "Catatan",      bg: "bg-blue-50",    color: "text-blue-600" },
+  transaction:   { icon: DollarSign,   label: "Transaksi",    bg: "bg-emerald-50", color: "text-emerald-600" },
+  follow_up:     { icon: CalendarCheck,label: "Follow-up",   bg: "bg-amber-50",   color: "text-amber-600" },
+  quick_capture: { icon: Zap,          label: "Quick Capture",bg: "bg-violet-50",  color: "text-violet-600" },
 };
 
 const LOST_PRESETS = ["Harga terlalu tinggi", "Tidak ada respons", "Tidak berminat", "Pilih kompetitor", "Waktu tidak tepat", "Anggaran dipotong"];
 
+const urgencyConfig: Record<string, { label: string; className: string }> = {
+  high:   { label: "Prioritas Tinggi",  className: "bg-red-50 text-red-700 ring-1 ring-red-200" },
+  medium: { label: "Prioritas Sedang",  className: "bg-amber-50 text-amber-700 ring-1 ring-amber-200" },
+  low:    { label: "Prioritas Rendah",  className: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200" },
+};
+
 function LostReasonModal({ onConfirm, onCancel }: { onConfirm: (r: string) => void; onCancel: () => void }) {
   const [reason, setReason] = useState("");
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-background border rounded-xl shadow-xl w-full max-w-sm p-5 space-y-4">
-        <h3 className="font-semibold">Kenapa ini gagal?</h3>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+        <h3 className="font-semibold text-foreground">Kenapa ini gagal?</h3>
         <div className="flex flex-wrap gap-2">
           {LOST_PRESETS.map((p) => (
-            <button key={p} onClick={() => setReason(p)}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${reason === p ? "bg-foreground text-background border-foreground" : "hover:bg-muted"}`}>
+            <button
+              key={p}
+              onClick={() => setReason(p)}
+              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${reason === p ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:bg-muted hover:text-foreground"}`}
+            >
               {p}
             </button>
           ))}
         </div>
-        <input className="w-full border rounded-md px-3 py-2 text-sm" placeholder="Atau tulis alasan lain..."
-          value={reason} onChange={(e) => setReason(e.target.value)} />
-        <div className="flex gap-2 justify-end">
-          <button onClick={onCancel} className="text-sm text-muted-foreground hover:text-foreground px-3 py-1.5">Batal</button>
-          <button onClick={() => onConfirm(reason)}
-            className="text-sm bg-foreground text-background px-4 py-1.5 rounded-md">Konfirmasi</button>
+        <input
+          className="w-full border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+          placeholder="Atau tulis alasan lain..."
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+        />
+        <div className="flex gap-2 justify-end pt-1">
+          <button onClick={onCancel} className="text-sm text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg transition-colors">
+            Batal
+          </button>
+          <button
+            onClick={() => onConfirm(reason)}
+            className="text-sm bg-foreground text-background px-4 py-1.5 rounded-xl hover:opacity-90 transition-opacity"
+          >
+            Konfirmasi
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-function AIPanel({ label, children }: { label: string; children: React.ReactNode }) {
-  const [open, setOpen] = useState(true);
+function AISection({
+  title,
+  icon: Icon = Sparkles,
+  defaultOpen = false,
+  children,
+}: {
+  title: string;
+  icon?: React.ElementType;
+  defaultOpen?: boolean;
+  children: React.ReactNode;
+}) {
+  const [open, setOpen] = useState(defaultOpen);
   return (
-    <div className="bg-white border border-border rounded-xl card-shadow overflow-hidden">
-      <button type="button"
-        className="w-full flex items-center justify-between p-3 text-sm font-medium hover:bg-muted/40 transition-colors"
-        onClick={() => setOpen(!open)}>
-        <span className="flex items-center gap-2">
-          <Sparkles className="h-3.5 w-3.5 text-violet-500" />{label}
+    <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
+      <button
+        type="button"
+        className="w-full flex items-center justify-between px-5 py-4 text-sm font-semibold hover:bg-muted/30 transition-colors text-left"
+        onClick={() => setOpen(!open)}
+      >
+        <span className="flex items-center gap-2.5">
+          <div className="h-7 w-7 rounded-lg bg-violet-50 flex items-center justify-center">
+            <Icon className="h-3.5 w-3.5 text-violet-500" />
+          </div>
+          {title}
         </span>
-        {open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+        {open
+          ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+          : <ChevronDown className="h-4 w-4 text-muted-foreground" />
+        }
       </button>
-      {open && <div className="px-3 pb-3">{children}</div>}
+      {open && <div className="px-5 pb-5 pt-1">{children}</div>}
     </div>
   );
 }
-
-const SOURCE_OPTIONS = ["Instagram", "WhatsApp", "Referral", "Website", "TikTok", "Email", "Cold Outreach", "Event", "Other"];
 
 export default function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
@@ -126,7 +161,10 @@ export default function CustomerDetail() {
     if (!content.trim() || !id) return;
     setSaving(true);
     try {
-      await api.interactions.create({ customerId: id, type: addType, content: content.trim(), amount: amount || undefined, followUpDate: followUpDate || undefined });
+      await api.interactions.create({
+        customerId: id, type: addType, content: content.trim(),
+        amount: amount || undefined, followUpDate: followUpDate || undefined,
+      });
       setContent(""); setAmount(""); setFollowUpDate("");
       queryClient.invalidateQueries({ queryKey: ["interactions", id] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
@@ -146,11 +184,8 @@ export default function CustomerDetail() {
 
   const handleStatusSelect = (v: string) => {
     const status = v as CustomerStatus;
-    if (status === "lost") {
-      setPendingStatus("lost");
-    } else {
-      handleStatusChange(status);
-    }
+    if (status === "lost") setPendingStatus("lost");
+    else handleStatusChange(status);
   };
 
   const handleSaveMemory = async () => {
@@ -206,7 +241,10 @@ export default function CustomerDetail() {
   const handleGenerateReply = async () => {
     if (!replyMessage.trim() || !id) return;
     setLoadingReply(true);
-    try { const r = await api.ai.generateReply({ customerMessage: replyMessage, tone: replyTone, customerId: id }); setReply(r.reply); }
+    try {
+      const r = await api.ai.generateReply({ customerMessage: replyMessage, tone: replyTone, customerId: id });
+      setReply(r.reply);
+    }
     catch { toast.error("Gagal membuat balasan"); }
     setLoadingReply(false);
   };
@@ -219,13 +257,19 @@ export default function CustomerDetail() {
     setLoadingNext(false);
   };
 
-  const urgencyColors: Record<string, string> = {
-    high: "text-red-500 bg-red-50 border-red-200",
-    medium: "text-yellow-600 bg-yellow-50 border-yellow-200",
-    low: "text-green-600 bg-green-50 border-green-200",
-  };
+  if (!customer) {
+    return (
+      <div className="space-y-5 max-w-2xl animate-pulse">
+        <div className="h-5 w-20 bg-muted rounded-lg" />
+        <div className="h-8 w-48 bg-muted rounded-lg" />
+        <div className="h-32 bg-muted rounded-2xl" />
+        <div className="h-20 bg-muted rounded-2xl" />
+        <div className="h-24 bg-muted rounded-2xl" />
+      </div>
+    );
+  }
 
-  if (!customer) return <div className="p-8 text-center text-muted-foreground">Memuat data...</div>;
+  const avatarInitials = customer.name.slice(0, 2).toUpperCase();
 
   return (
     <div className="space-y-5 max-w-2xl">
@@ -236,235 +280,403 @@ export default function CustomerDetail() {
         />
       )}
 
-      <div className="flex items-start justify-between">
-        <div>
-          <button onClick={() => navigate(-1)} className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 mb-2">
-            <ArrowLeft className="h-3 w-3" /> Kembali
-          </button>
-          <h2 className="text-xl font-semibold">{customer.name}</h2>
-          <div className="flex items-center gap-2 mt-1 flex-wrap">
-            {customer.customer_businesses?.map((cb: any) => (
-              <BusinessBadge key={cb.business_id} name={cb.businesses?.name} />
-            ))}
-            {customer.source && (
-              <span className="text-xs bg-muted text-muted-foreground rounded px-2 py-0.5">via {customer.source}</span>
-            )}
-            {customer.email && <span className="text-xs text-muted-foreground">{customer.email}</span>}
-            {customer.phone && <span className="text-xs text-muted-foreground font-mono">{customer.phone}</span>}
+      {/* Header */}
+      <div>
+        <button
+          onClick={() => navigate(-1)}
+          className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1.5 mb-4 transition-colors group"
+        >
+          <ArrowLeft className="h-3.5 w-3.5 group-hover:-translate-x-0.5 transition-transform" />
+          Kembali
+        </button>
+
+        <div className="bg-white border border-border rounded-2xl card-shadow p-5">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex items-start gap-4 min-w-0">
+              <div className="h-14 w-14 rounded-2xl bg-primary/10 flex items-center justify-center text-xl font-bold text-primary shrink-0 shadow-sm">
+                {avatarInitials}
+              </div>
+              <div className="min-w-0">
+                <h2 className="text-xl font-bold text-foreground leading-tight">{customer.name}</h2>
+                <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+                  {customer.customer_businesses?.map((cb: any) => (
+                    <BusinessBadge key={cb.business_id} name={cb.businesses?.name} />
+                  ))}
+                  {customer.source && (
+                    <span className="text-xs bg-muted text-muted-foreground rounded-lg px-2 py-0.5 font-medium">
+                      via {customer.source}
+                    </span>
+                  )}
+                </div>
+                {(customer.email || customer.phone) && (
+                  <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                    {customer.email && (
+                      <span className="text-xs text-muted-foreground">{customer.email}</span>
+                    )}
+                    {customer.phone && (
+                      <span className="text-xs text-muted-foreground font-mono">{customer.phone}</span>
+                    )}
+                  </div>
+                )}
+                {customer.estimatedValue && (
+                  <p className="text-sm font-mono font-bold text-emerald-600 mt-1.5">
+                    IDR {Number(customer.estimatedValue).toLocaleString()}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              <Select value={customer.status} onValueChange={handleStatusSelect}>
+                <SelectTrigger className="w-32 h-8 text-xs bg-white">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="new">Lead Baru</SelectItem>
+                  <SelectItem value="warm">Hangat</SelectItem>
+                  <SelectItem value="hot">Panas</SelectItem>
+                  <SelectItem value="negotiation">Negosiasi</SelectItem>
+                  <SelectItem value="closed">Berhasil</SelectItem>
+                  <SelectItem value="lost">Gagal</SelectItem>
+                </SelectContent>
+              </Select>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleDelete}
+                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-red-50"
+                title="Hapus customer"
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+              </Button>
+            </div>
           </div>
-          {customer.estimatedValue && (
-            <p className="text-sm font-mono text-green-600 mt-1">IDR {Number(customer.estimatedValue).toLocaleString()}</p>
-          )}
+
           {customer.status === "lost" && customer.lostReason && (
-            <p className="text-xs text-red-500 mt-1">Alasan gagal: {customer.lostReason}</p>
+            <div className="flex items-center gap-2 mt-4 px-3 py-2 bg-red-50 rounded-xl border border-red-100">
+              <AlertTriangle className="h-3.5 w-3.5 text-red-500 shrink-0" />
+              <p className="text-xs text-red-600">Alasan gagal: <strong>{customer.lostReason}</strong></p>
+            </div>
           )}
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          <Select value={customer.status} onValueChange={handleStatusSelect}>
-            <SelectTrigger className="w-32 h-8 text-xs">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="new">Lead Baru</SelectItem>
-              <SelectItem value="warm">Hangat</SelectItem>
-              <SelectItem value="hot">Panas</SelectItem>
-              <SelectItem value="negotiation">Negosiasi</SelectItem>
-              <SelectItem value="closed">Berhasil</SelectItem>
-              <SelectItem value="lost">Gagal</SelectItem>
-            </SelectContent>
-          </Select>
-          <Button variant="ghost" size="sm" onClick={handleDelete} className="text-destructive h-8">
-            <Trash2 className="h-3 w-3" />
-          </Button>
         </div>
       </div>
 
-      <PageGuide steps={[
-        { icon: "🔄", title: "Ubah Status", desc: "Gunakan dropdown di pojok kanan atas untuk memindahkan customer ke tahap yang sesuai: New → Warm → Hot → Negotiation → Closed Won / Lost." },
-        { icon: "🧠", title: "Customer Memory", desc: "Catatan permanen tentang customer ini (preferensi, konteks penting, dll). Diedit manual dan dipakai AI sebagai konteks saat generate summary." },
-        { icon: "✨", title: "AI Summary & Next Action", desc: "Klik 'Generate' untuk mendapatkan ringkasan situasi customer dan rekomendasi langkah selanjutnya dari AI berdasarkan riwayat interaksi." },
-        { icon: "📝", title: "Tambah Interaksi", desc: "Log Note (catatan umum), Transaction (nominal deal), atau Follow-up (dengan tanggal). Follow-up akan muncul di halaman Follow-ups." },
-        { icon: "🗑️", title: "Hapus Customer", desc: "Tombol merah di pojok kanan atas akan menghapus seluruh data customer ini beserta semua interaksinya secara permanen." },
-      ]} />
-
-      <div className="bg-white border border-border rounded-xl card-shadow overflow-hidden">
-        <div className="flex items-center justify-between p-3">
-          <span className="text-sm font-medium flex items-center gap-2">
-            <Brain className="h-3.5 w-3.5 text-indigo-500" /> Customer Memory
-          </span>
+      {/* Customer Memory */}
+      <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+          <div className="flex items-center gap-2.5">
+            <div className="h-7 w-7 rounded-lg bg-indigo-50 flex items-center justify-center">
+              <Brain className="h-3.5 w-3.5 text-indigo-500" />
+            </div>
+            <h3 className="font-semibold text-sm text-foreground">Customer Memory</h3>
+          </div>
           {!editingMemory && (
             <button
               onClick={() => { setMemoryText(customer.memory || ""); setEditingMemory(true); }}
-              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
             >
-              <Edit2 className="h-3 w-3" /> {customer.memory ? "Edit" : "Tambah"}
+              <Edit2 className="h-3 w-3" />
+              {customer.memory ? "Edit" : "Tambah"}
             </button>
           )}
         </div>
-        <div className="px-3 pb-3">
+        <div className="px-5 py-4">
           {editingMemory ? (
-            <div className="space-y-2">
+            <div className="space-y-3">
               <Textarea
                 value={memoryText}
                 onChange={(e) => setMemoryText(e.target.value)}
                 placeholder="Gaya komunikasi, preferensi, konteks penting, catatan personal..."
                 rows={3}
-                className="text-sm"
+                className="text-sm bg-muted/30 border-border focus-visible:ring-primary/20"
+                autoFocus
               />
               <div className="flex gap-2">
-                <Button size="sm" className="h-7 text-xs" onClick={handleSaveMemory} disabled={savingMemory}>
-                  {savingMemory ? <Loader2 className="h-3 w-3 animate-spin" /> : "Simpan"}
+                <Button size="sm" className="h-8 text-xs" onClick={handleSaveMemory} disabled={savingMemory}>
+                  {savingMemory ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3 mr-1" />}
+                  Simpan
                 </Button>
-                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditingMemory(false)}>Batal</Button>
+                <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={() => setEditingMemory(false)}>
+                  Batal
+                </Button>
               </div>
             </div>
           ) : customer.memory ? (
-            <p className="text-sm whitespace-pre-wrap text-foreground/80">{customer.memory}</p>
+            <p className="text-sm whitespace-pre-wrap text-foreground/80 leading-relaxed">{customer.memory}</p>
           ) : (
-            <p className="text-sm text-muted-foreground italic">Belum ada memori. Simpan gaya komunikasi, preferensi, atau catatan personal tentang customer ini.</p>
+            <p className="text-sm text-muted-foreground italic">
+              Simpan gaya komunikasi, preferensi, atau catatan personal di sini. AI akan menggunakannya sebagai konteks.
+            </p>
           )}
         </div>
       </div>
 
-      <AIPanel label="Ringkasan Customer">
+      {/* AI Panels */}
+      <AISection title="Ringkasan Customer" defaultOpen={!!summary}>
         {summary ? (
-          <div className="space-y-2">
-            <p className="text-sm leading-relaxed">{summary}</p>
-            <button onClick={handleGetSummary} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+          <div className="space-y-3">
+            <p className="text-sm leading-relaxed text-foreground">{summary}</p>
+            <button
+              onClick={handleGetSummary}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
               <RefreshCw className="h-3 w-3" /> Perbarui
             </button>
           </div>
         ) : (
-          <div className="flex flex-col gap-2">
-            <p className="text-xs text-muted-foreground">Dapatkan ringkasan singkat customer berdasarkan AI.</p>
-            <Button size="sm" variant="outline" className="w-fit h-7 text-xs gap-1" onClick={handleGetSummary} disabled={loadingSummary}>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Dapatkan ringkasan singkat situasi customer ini berdasarkan riwayat interaksi, memory, dan status pipeline.
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 text-xs h-8"
+              onClick={handleGetSummary}
+              disabled={loadingSummary}
+            >
               {loadingSummary ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
               {loadingSummary ? "Menghasilkan..." : "Buat Ringkasan"}
             </Button>
           </div>
         )}
-      </AIPanel>
+      </AISection>
 
-      <AIPanel label="Saran Tindakan Berikutnya">
+      <AISection title="Saran Tindakan Berikutnya" defaultOpen={!!nextAction}>
         {nextAction ? (
-          <div className="space-y-2">
-            <div className={`text-xs font-medium px-2 py-1 rounded border w-fit ${urgencyColors[nextAction.urgency] || urgencyColors.low}`}>
-              PRIORITAS {nextAction.urgency === "high" ? "TINGGI" : nextAction.urgency === "medium" ? "SEDANG" : "RENDAH"}
-            </div>
-            <p className="text-sm font-medium">{nextAction.action}</p>
-            <p className="text-xs text-muted-foreground">{nextAction.reason}</p>
+          <div className="space-y-3">
+            <span className={cn("text-[11px] font-semibold px-2.5 py-1 rounded-full", urgencyConfig[nextAction.urgency]?.className ?? urgencyConfig.low.className)}>
+              {urgencyConfig[nextAction.urgency]?.label ?? "Prioritas Rendah"}
+            </span>
+            <p className="text-sm font-semibold text-foreground">{nextAction.action}</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">{nextAction.reason}</p>
             {nextAction.suggestedDate && (
-              <p className="text-xs font-mono text-muted-foreground">Disarankan: {nextAction.suggestedDate}</p>
+              <p className="text-xs font-mono text-muted-foreground">
+                Disarankan: <span className="font-semibold text-foreground">{nextAction.suggestedDate}</span>
+              </p>
             )}
-            <button onClick={handleNextAction} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mt-1">
+            <button
+              onClick={handleNextAction}
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
               <RefreshCw className="h-3 w-3" /> Perbarui
             </button>
           </div>
         ) : (
-          <div className="flex flex-col gap-2">
-            <p className="text-xs text-muted-foreground">Dapatkan langkah terbaik untuk memajukan deal ini.</p>
-            <Button size="sm" variant="outline" className="w-fit h-7 text-xs gap-1" onClick={handleNextAction} disabled={loadingNext}>
+          <div className="space-y-3">
+            <p className="text-xs text-muted-foreground leading-relaxed">
+              Dapatkan langkah terbaik untuk memajukan deal ini — prioritas, tindakan, dan waktu yang tepat.
+            </p>
+            <Button
+              size="sm"
+              variant="outline"
+              className="gap-1.5 text-xs h-8"
+              onClick={handleNextAction}
+              disabled={loadingNext}
+            >
               {loadingNext ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
               {loadingNext ? "Berpikir..." : "Saran Tindakan"}
             </Button>
           </div>
         )}
-      </AIPanel>
+      </AISection>
 
-      <AIPanel label="Generator Balasan">
-        <div className="space-y-2">
-          <Textarea placeholder='Tempelkan pesan customer di sini...' value={replyMessage} onChange={(e) => setReplyMessage(e.target.value)} rows={2} className="text-sm" />
-          <div className="flex items-center gap-2">
+      <AISection title="Generator Balasan">
+        <div className="space-y-3">
+          <Textarea
+            placeholder="Tempelkan pesan customer di sini..."
+            value={replyMessage}
+            onChange={(e) => setReplyMessage(e.target.value)}
+            rows={2}
+            className="text-sm bg-muted/30 border-border focus-visible:ring-primary/20"
+          />
+          <div className="flex items-center gap-2 flex-wrap">
             <Select value={replyTone} onValueChange={setReplyTone}>
-              <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectTrigger className="w-36 h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
               <SelectContent>
                 <SelectItem value="casual">Santai & Hangat</SelectItem>
                 <SelectItem value="professional">Profesional</SelectItem>
                 <SelectItem value="persuasive">Persuasif</SelectItem>
               </SelectContent>
             </Select>
-            <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={handleGenerateReply} disabled={loadingReply || !replyMessage.trim()}>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs gap-1.5"
+              onClick={handleGenerateReply}
+              disabled={loadingReply || !replyMessage.trim()}
+            >
               {loadingReply ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
               {loadingReply ? "Menulis..." : "Buat Balasan"}
             </Button>
           </div>
           {reply && (
-            <div className="bg-muted/50 border rounded p-3 space-y-2">
-              <p className="text-sm whitespace-pre-wrap leading-relaxed">{reply}</p>
-              <div className="flex items-center gap-2">
-                <button onClick={() => { navigator.clipboard.writeText(reply); toast.success("Tersalin!"); }}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+            <div className="bg-muted/40 border border-border rounded-xl p-4 space-y-3">
+              <p className="text-sm whitespace-pre-wrap leading-relaxed text-foreground">{reply}</p>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => { navigator.clipboard.writeText(reply); toast.success("Tersalin!"); }}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
                   <Copy className="h-3 w-3" /> Salin
                 </button>
-                <button onClick={handleGenerateReply} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
+                <button
+                  onClick={handleGenerateReply}
+                  className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                >
                   <RefreshCw className="h-3 w-3" /> Coba lagi
                 </button>
               </div>
             </div>
           )}
         </div>
-      </AIPanel>
+      </AISection>
 
-      <form onSubmit={handleAddInteraction} className="bg-white border border-border rounded-xl card-shadow p-4 space-y-3">
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Tambah ke Timeline</p>
+      {/* Add Interaction Form */}
+      <div className="bg-white border border-border rounded-2xl card-shadow p-5 space-y-4">
+        <h3 className="font-semibold text-sm text-foreground">Tambah ke Timeline</h3>
+
+        {/* Type selector tabs */}
         <div className="flex gap-2 flex-wrap">
-          <Select value={addType} onValueChange={(v) => setAddType(v as InteractionType)}>
-            <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectItem value="note">📝 Catatan</SelectItem>
-              <SelectItem value="transaction">💰 Transaksi</SelectItem>
-              <SelectItem value="follow_up">📅 Follow-up</SelectItem>
-            </SelectContent>
-          </Select>
+          {(["note", "transaction", "follow_up"] as InteractionType[]).map((t) => {
+            const cfg = typeConfig[t];
+            const isActive = addType === t;
+            return (
+              <button
+                key={t}
+                type="button"
+                onClick={() => setAddType(t)}
+                className={cn(
+                  "flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 rounded-xl border transition-all",
+                  isActive
+                    ? `${cfg.bg} ${cfg.color} border-transparent shadow-sm`
+                    : "border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+                )}
+              >
+                <cfg.icon className="h-3 w-3" />
+                {cfg.label}
+              </button>
+            );
+          })}
+        </div>
+
+        <form onSubmit={handleAddInteraction} className="space-y-3">
           {addType === "transaction" && (
-            <Input placeholder="Jumlah" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-32 h-8 text-xs" />
+            <Input
+              placeholder="Jumlah (IDR)"
+              type="number"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              className="h-9 text-sm"
+            />
           )}
           {addType === "follow_up" && (
-            <Input type="date" value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} className="w-40 h-8 text-xs" />
+            <Input
+              type="date"
+              value={followUpDate}
+              onChange={(e) => setFollowUpDate(e.target.value)}
+              className="h-9 text-sm w-44"
+            />
           )}
-        </div>
-        <Textarea placeholder="Tulis sesuatu..." value={content} onChange={(e) => setContent(e.target.value)} rows={2} className="text-sm" />
-        <Button type="submit" size="sm" disabled={saving || !content.trim()}>Tambah</Button>
-      </form>
+          <Textarea
+            placeholder={
+              addType === "note" ? "Catatan interaksi atau perkembangan terbaru..."
+              : addType === "transaction" ? "Deskripsi transaksi..."
+              : "Apa yang perlu di-follow up?"
+            }
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            rows={2}
+            className="text-sm bg-muted/20 border-border focus-visible:ring-primary/20"
+          />
+          <Button
+            type="submit"
+            size="sm"
+            disabled={saving || !content.trim()}
+            className="gap-1.5 text-xs h-8"
+          >
+            {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Check className="h-3 w-3" />}
+            Tambah
+          </Button>
+        </form>
+      </div>
 
-      <div className="space-y-2">
-        <h3 className="font-semibold text-sm">Timeline</h3>
+      {/* Timeline */}
+      <div>
+        <h3 className="font-semibold text-sm text-foreground mb-3">
+          Timeline
+          {interactions?.length ? (
+            <span className="ml-2 text-xs font-normal text-muted-foreground">({interactions.length} entri)</span>
+          ) : null}
+        </h3>
+
         {!interactions?.length ? (
-          <p className="text-sm text-muted-foreground p-4">Belum ada interaksi.</p>
+          <div className="bg-white border border-border rounded-2xl card-shadow py-12 text-center">
+            <p className="text-sm text-muted-foreground">Belum ada interaksi. Tambahkan catatan pertama di atas.</p>
+          </div>
         ) : (
-          <div className="bg-white border border-border rounded-xl card-shadow divide-y divide-border">
-            {interactions.map((i: any) => {
-              const Icon = typeIcons[i.type as InteractionType];
-              return (
-                <div key={i.id} className="p-3.5 flex gap-3">
-                  <div className="mt-0.5"><Icon className="h-4 w-4 text-muted-foreground" /></div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <span className="text-xs font-medium text-muted-foreground">{typeLabels[i.type as InteractionType]}</span>
-                      <span className="text-xs text-muted-foreground font-mono">{format(parseISO(i.createdAt), "d MMM, HH:mm", { locale: idLocale })}</span>
-                      {i.type === "follow_up" && !i.isCompleted && (
-                        <button onClick={() => handleComplete(i.id)} className="text-xs text-status-closed hover:underline flex items-center gap-0.5">
-                          <Check className="h-3 w-3" /> Selesai
-                        </button>
-                      )}
-                      {i.type === "follow_up" && i.isCompleted && (
-                        <span className="text-xs text-green-600">✓ Selesai</span>
-                      )}
-                      <button
-                        onClick={() => handleDeleteInteraction(i.id)}
-                        className="ml-auto text-muted-foreground/40 hover:text-red-500 transition-colors"
-                        title="Hapus interaksi"
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
+          <div className="relative">
+            <div className="absolute left-[28px] top-0 bottom-0 w-px bg-border" />
+            <div className="space-y-0">
+              {interactions.map((item: any, idx: number) => {
+                const cfg = typeConfig[item.type as InteractionType] ?? typeConfig.note;
+                const Icon = cfg.icon;
+                const isLast = idx === interactions.length - 1;
+                return (
+                  <div key={item.id} className={`relative flex gap-4 pb-4 ${isLast ? "pb-0" : ""}`}>
+                    <div className={`z-10 h-7 w-7 rounded-xl flex items-center justify-center shrink-0 mt-1 ring-2 ring-background ${cfg.bg}`}>
+                      <Icon className={`h-3.5 w-3.5 ${cfg.color}`} />
                     </div>
-                    <p className="text-sm mt-0.5 whitespace-pre-wrap">{i.content}</p>
-                    {i.amount && <p className="text-sm font-mono font-medium mt-0.5">{i.currency} {Number(i.amount).toLocaleString()}</p>}
-                    {i.followUpDate && <p className="text-xs text-muted-foreground mt-0.5">Follow-up: {format(parseISO(i.followUpDate), "d MMM yyyy", { locale: idLocale })}</p>}
+                    <div className="flex-1 bg-white border border-border rounded-2xl p-4 card-shadow min-w-0">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.color}`}>
+                            {cfg.label}
+                          </span>
+                          <span className="text-xs text-muted-foreground font-mono">
+                            {format(parseISO(item.createdAt), "d MMM, HH:mm", { locale: idLocale })}
+                          </span>
+                          {item.type === "follow_up" && !item.isCompleted && (
+                            <button
+                              onClick={() => handleComplete(item.id)}
+                              className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 transition-colors font-medium"
+                            >
+                              <Check className="h-3 w-3" /> Selesai
+                            </button>
+                          )}
+                          {item.type === "follow_up" && item.isCompleted && (
+                            <span className="flex items-center gap-1 text-xs text-emerald-600 font-medium">
+                              <Check className="h-3 w-3" /> Selesai
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          onClick={() => handleDeleteInteraction(item.id)}
+                          className="text-muted-foreground/30 hover:text-red-500 transition-colors shrink-0"
+                          title="Hapus"
+                        >
+                          <X className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                      <p className="text-sm mt-2 whitespace-pre-wrap leading-relaxed text-foreground">{item.content}</p>
+                      {item.amount && (
+                        <p className="text-sm font-mono font-bold text-emerald-600 mt-1.5">
+                          IDR {Number(item.amount).toLocaleString()}
+                        </p>
+                      )}
+                      {item.followUpDate && !item.isCompleted && (
+                        <p className="text-xs text-amber-600 font-medium mt-1.5 flex items-center gap-1">
+                          <CalendarCheck className="h-3 w-3" />
+                          Follow-up: {format(parseISO(item.followUpDate), "d MMMM yyyy", { locale: idLocale })}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
         )}
       </div>

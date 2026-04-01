@@ -4,18 +4,23 @@ import { Link } from "react-router-dom";
 import { useState } from "react";
 import { toast } from "sonner";
 import BusinessBadge from "@/components/BusinessBadge";
-import PageGuide from "@/components/PageGuide";
-import { ChevronRight, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 
 type CustomerStatus = "new" | "warm" | "hot" | "negotiation" | "closed" | "lost";
 
-const STAGES: { key: CustomerStatus; label: string; color: string; bg: string; border: string }[] = [
-  { key: "new",         label: "Lead Baru",  color: "text-blue-600",   bg: "bg-blue-50",   border: "border-blue-200" },
-  { key: "warm",        label: "Hangat",     color: "text-yellow-600", bg: "bg-yellow-50", border: "border-yellow-200" },
-  { key: "hot",         label: "Panas",      color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-200" },
-  { key: "negotiation", label: "Negosiasi",  color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-200" },
-  { key: "closed",      label: "Berhasil",   color: "text-green-600",  bg: "bg-green-50",  border: "border-green-200" },
-  { key: "lost",        label: "Gagal",      color: "text-gray-500",   bg: "bg-gray-50",   border: "border-gray-200" },
+const STAGES: {
+  key: CustomerStatus;
+  label: string;
+  headerBg: string;
+  headerText: string;
+  dot: string;
+}[] = [
+  { key: "new",         label: "Lead Baru",  headerBg: "bg-blue-50",    headerText: "text-blue-700",   dot: "bg-blue-500" },
+  { key: "warm",        label: "Hangat",     headerBg: "bg-amber-50",   headerText: "text-amber-700",  dot: "bg-amber-500" },
+  { key: "hot",         label: "Panas",      headerBg: "bg-orange-50",  headerText: "text-orange-700", dot: "bg-orange-500" },
+  { key: "negotiation", label: "Negosiasi",  headerBg: "bg-violet-50",  headerText: "text-violet-700", dot: "bg-violet-500" },
+  { key: "closed",      label: "Berhasil",   headerBg: "bg-emerald-50", headerText: "text-emerald-700", dot: "bg-emerald-500" },
+  { key: "lost",        label: "Gagal",      headerBg: "bg-slate-50",   headerText: "text-slate-500",  dot: "bg-slate-400" },
 ];
 
 const NEXT: Record<CustomerStatus, CustomerStatus | null> = {
@@ -26,31 +31,37 @@ function LostReasonModal({ onConfirm, onCancel }: { onConfirm: (reason: string) 
   const [reason, setReason] = useState("");
   const presets = ["Harga terlalu tinggi", "Tidak ada respons", "Tidak berminat", "Pilih kompetitor", "Waktu tidak tepat"];
   return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-      <div className="bg-background border rounded-xl shadow-xl w-full max-w-sm p-5 space-y-4">
-        <h3 className="font-semibold">Kenapa ini gagal?</h3>
+    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+        <h3 className="font-semibold text-foreground">Kenapa ini gagal?</h3>
         <div className="flex flex-wrap gap-2">
           {presets.map((p) => (
             <button
               key={p}
               onClick={() => setReason(p)}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${reason === p ? "bg-foreground text-background border-foreground" : "hover:bg-muted"}`}
+              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${
+                reason === p
+                  ? "bg-foreground text-background border-foreground"
+                  : "border-border text-muted-foreground hover:bg-muted hover:text-foreground"
+              }`}
             >
               {p}
             </button>
           ))}
         </div>
         <input
-          className="w-full border rounded-md px-3 py-2 text-sm"
+          className="w-full border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
           placeholder="Atau tulis alasan lain..."
           value={reason}
           onChange={(e) => setReason(e.target.value)}
         />
-        <div className="flex gap-2 justify-end">
-          <button onClick={onCancel} className="text-sm text-muted-foreground hover:text-foreground px-3 py-1.5">Batal</button>
+        <div className="flex gap-2 justify-end pt-1">
+          <button onClick={onCancel} className="text-sm text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg transition-colors">
+            Batal
+          </button>
           <button
             onClick={() => onConfirm(reason)}
-            className="text-sm bg-foreground text-background px-4 py-1.5 rounded-md"
+            className="text-sm bg-foreground text-background px-4 py-1.5 rounded-lg hover:opacity-90 transition-opacity"
           >
             Konfirmasi
           </button>
@@ -102,7 +113,7 @@ export default function Pipeline() {
     .reduce((sum: number, c: any) => sum + Number(c.estimatedValue), 0);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-5">
       {lostTarget && (
         <LostReasonModal
           onConfirm={(reason) => {
@@ -113,63 +124,64 @@ export default function Pipeline() {
         />
       )}
 
-      <div>
-        <h2 className="text-xl font-semibold">Pipeline</h2>
-        <p className="text-sm text-muted-foreground">
-          {isLoading ? "Memuat..." : `${customers?.length ?? 0} customer`}
-          {totalPipeline > 0 && (
-            <span className="ml-2 text-green-600 font-mono">· Pipeline: IDR {totalPipeline.toLocaleString()}</span>
-          )}
-        </p>
-      </div>
-
-      <PageGuide steps={[
-        { icon: "🗂️", title: "Tahap Penjualan", desc: "Setiap kolom mewakili tahap: New Lead → Warm → Hot → Negotiation → Closed Won / Lost. Customer bergerak dari kiri ke kanan seiring proses penjualan." },
-        { icon: "▶️", title: "Pindah Tahap", desc: "Klik tombol panah (→) di kartu customer untuk memindahkannya ke tahap berikutnya. Jika dipindah ke 'Lost', kamu akan diminta memasukkan alasan kenapa gagal." },
-        { icon: "💰", title: "Nilai Pipeline", desc: "Total nilai deal yang sedang berjalan ditampilkan di bagian atas. Pastikan setiap customer sudah diisi Estimated Value di profilnya." },
-        { icon: "👤", title: "Buka Profil", desc: "Klik nama customer di kartu untuk membuka profil lengkapnya dan melihat riwayat interaksi." },
-      ]} />
-
-      <div className="flex items-center justify-between">
-        <div />
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-xl font-bold text-foreground">Pipeline</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {isLoading ? "Memuat..." : `${customers?.length ?? 0} customer`}
+            {totalPipeline > 0 && (
+              <span className="ml-2 text-emerald-600 font-semibold font-mono">
+                · IDR {totalPipeline.toLocaleString()}
+              </span>
+            )}
+          </p>
+        </div>
         <Link
           to="/customers/new"
-          className="text-xs bg-foreground text-background px-3 py-1.5 rounded-md hover:opacity-90 transition-opacity"
+          className="inline-flex items-center gap-1.5 bg-primary text-white text-sm font-medium px-4 py-2 rounded-xl hover:opacity-90 transition-opacity shadow-sm shrink-0"
         >
           + Tambah Customer
         </Link>
       </div>
 
-      <div className="flex gap-3 overflow-x-auto pb-4">
+      <div className="flex gap-3 overflow-x-auto pb-4 -mx-1 px-1">
         {STAGES.map((stage) => {
           const stageCustomers = byStage(stage.key);
           const stageValue = stageCustomers.reduce((sum: number, c: any) => sum + (Number(c.estimatedValue) || 0), 0);
           return (
-            <div key={stage.key} className="flex-shrink-0 w-64">
-              <div className={`flex items-center justify-between px-3 py-2 rounded-t-xl border-b ${stage.bg} ${stage.border} border border-b-0`}>
+            <div key={stage.key} className="flex-shrink-0 w-[220px]">
+              {/* Column header */}
+              <div className={`flex items-center justify-between px-3 py-2.5 rounded-t-2xl ${stage.headerBg} mb-px`}>
                 <div className="flex items-center gap-2">
-                  <span className={`text-xs font-semibold ${stage.color}`}>{stage.label}</span>
-                  <span className="text-xs bg-white/70 text-gray-600 rounded-full px-1.5 py-0.5 font-mono">
+                  <span className={`h-2 w-2 rounded-full ${stage.dot}`} />
+                  <span className={`text-xs font-semibold ${stage.headerText}`}>{stage.label}</span>
+                  <span className="text-[11px] text-muted-foreground font-mono bg-white/60 px-1.5 py-0.5 rounded-full">
                     {stageCustomers.length}
                   </span>
                 </div>
                 {stageValue > 0 && (
-                  <span className="text-xs font-mono text-gray-500">
+                  <span className="text-[10px] font-mono text-muted-foreground">
                     {(stageValue / 1_000_000).toFixed(1)}M
                   </span>
                 )}
               </div>
 
-              <div className={`border ${stage.border} border-t-0 rounded-b-xl min-h-32 divide-y ${stage.border.replace("border-", "divide-")} bg-white`}>
+              {/* Cards */}
+              <div className="bg-white border border-border border-t-0 rounded-b-2xl min-h-[120px] overflow-hidden card-shadow">
                 {stageCustomers.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-6">Kosong</p>
+                  <div className="py-8 text-center">
+                    <p className="text-xs text-muted-foreground/60">Kosong</p>
+                  </div>
                 ) : (
                   stageCustomers.map((c: any) => {
                     const next = NEXT[stage.key];
                     return (
-                      <div key={c.id} className={`p-3 hover:bg-muted/30 transition-colors ${movingId === c.id ? "opacity-50" : ""}`}>
-                        <Link to={`/customers/${c.id}`} className="block">
-                          <p className="text-sm font-medium line-clamp-1 hover:underline">{c.name}</p>
+                      <div
+                        key={c.id}
+                        className={`p-3.5 border-b border-border last:border-b-0 hover:bg-muted/20 transition-colors ${movingId === c.id ? "opacity-40" : ""}`}
+                      >
+                        <Link to={`/customers/${c.id}`} className="block mb-2.5">
+                          <p className="text-sm font-semibold text-foreground line-clamp-1 hover:text-primary transition-colors">{c.name}</p>
                           {c.customer_businesses?.length > 0 && (
                             <div className="flex flex-wrap gap-1 mt-1">
                               {c.customer_businesses.map((cb: any) => (
@@ -178,21 +190,21 @@ export default function Pipeline() {
                             </div>
                           )}
                           {c.estimatedValue && (
-                            <p className="text-xs font-mono text-green-600 mt-1">
+                            <p className="text-xs font-mono text-emerald-600 font-semibold mt-1">
                               IDR {Number(c.estimatedValue).toLocaleString()}
                             </p>
                           )}
                           {c.source && (
-                            <p className="text-xs text-muted-foreground mt-0.5">via {c.source}</p>
+                            <p className="text-[11px] text-muted-foreground mt-0.5">via {c.source}</p>
                           )}
                         </Link>
 
-                        <div className="flex items-center gap-1 mt-2 flex-wrap">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           {next && (
                             <button
                               onClick={() => handleMove(c.id, next)}
                               disabled={movingId === c.id}
-                              className="flex items-center gap-0.5 text-xs text-muted-foreground hover:text-foreground border rounded px-1.5 py-0.5 hover:bg-muted transition-colors"
+                              className="flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-foreground bg-muted/60 hover:bg-muted rounded-lg px-2 py-1 transition-colors"
                             >
                               <ArrowRight className="h-3 w-3" />
                               {STAGES.find((s) => s.key === next)?.label}
@@ -202,7 +214,7 @@ export default function Pipeline() {
                             <button
                               onClick={() => handleMove(c.id, "lost")}
                               disabled={movingId === c.id}
-                              className="text-xs text-red-400 hover:text-red-600 border border-red-200 rounded px-1.5 py-0.5 hover:bg-red-50 transition-colors"
+                              className="text-xs text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg px-2 py-1 transition-colors font-medium"
                             >
                               Gagal
                             </button>

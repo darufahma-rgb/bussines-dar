@@ -26,7 +26,12 @@ Multi-bisnis CRM untuk mengelola customer dari Temantiket, SYMP, AIGYPT, dan Dar
 - AI features: customer summary, reply generator, next-action suggestion, parse capture
 - Collapsed sidebar (localStorage persistent) + mobile drawer
 - Full Indonesian UI (bahasa Indonesia throughout)
-- Navy color scheme (--primary: 222 63% 27%)
+- Premium navy design system (--primary: 222 60% 24%, rounded-2xl cards, card-shadow utilities)
+- Timeline view for CustomerDetail with vertical connector line and icon badges
+- AI panels as collapsible sections (ChevronDown/Up) with violet accent
+- Status badges with ring effect (bg-*/50 + ring-1 ring-*/200)
+- Stat cards with icon badges on Dashboard
+- Type-selector tab buttons in CustomerDetail interaction form
 
 ## Project Structure
 

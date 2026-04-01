@@ -15,11 +15,9 @@ export default function Login() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
-
     const { error } = isSignUp
       ? await signUp(email, password)
       : await signIn(email, password);
-
     if (error) {
       toast.error(error.message);
     } else if (isSignUp) {
@@ -30,17 +28,21 @@ export default function Login() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <div className="w-full max-w-sm">
-        <div className="bg-white border border-border rounded-2xl card-shadow-md p-8 space-y-6">
-          <div className="text-center space-y-3">
-            <div className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center mx-auto">
-              <TrendingUp className="h-6 w-6 text-white" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight">CRM Hub</h1>
-              <p className="text-sm text-muted-foreground mt-1">Kelola semua customer kamu di satu tempat</p>
-            </div>
+      <div className="w-full max-w-[360px]">
+        {/* Brand mark */}
+        <div className="text-center mb-8">
+          <div className="h-14 w-14 rounded-2xl bg-primary flex items-center justify-center mx-auto mb-4 shadow-md">
+            <TrendingUp className="h-7 w-7 text-white" />
           </div>
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">CRM Hub</h1>
+          <p className="text-sm text-muted-foreground mt-1.5">Kelola semua customer kamu di satu tempat</p>
+        </div>
+
+        {/* Card */}
+        <div className="bg-white border border-border rounded-2xl card-shadow-md p-7 space-y-5">
+          <h2 className="text-base font-semibold text-foreground">
+            {isSignUp ? "Buat akun baru" : "Masuk ke akunmu"}
+          </h2>
 
           <form onSubmit={handleSubmit} className="space-y-3">
             <Input
@@ -49,7 +51,7 @@ export default function Login() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
-              className="h-11"
+              className="h-11 bg-muted/40 border-border focus-visible:ring-primary/20"
             />
             <Input
               type="password"
@@ -58,19 +60,28 @@ export default function Login() {
               onChange={(e) => setPassword(e.target.value)}
               required
               minLength={6}
-              className="h-11"
+              className="h-11 bg-muted/40 border-border focus-visible:ring-primary/20"
             />
-            <Button type="submit" className="w-full h-11 text-sm font-semibold" disabled={loading}>
+            <Button
+              type="submit"
+              className="w-full h-11 text-sm font-semibold mt-1"
+              disabled={loading}
+            >
               {loading ? "Loading..." : isSignUp ? "Daftar" : "Masuk"}
             </Button>
           </form>
 
-          <p className="text-center text-sm text-muted-foreground">
-            {isSignUp ? "Sudah punya akun?" : "Belum punya akun?"}{" "}
-            <button onClick={() => setIsSignUp(!isSignUp)} className="text-primary font-semibold hover:underline">
-              {isSignUp ? "Masuk" : "Daftar"}
-            </button>
-          </p>
+          <div className="pt-1 border-t border-border text-center">
+            <p className="text-sm text-muted-foreground">
+              {isSignUp ? "Sudah punya akun?" : "Belum punya akun?"}{" "}
+              <button
+                onClick={() => setIsSignUp(!isSignUp)}
+                className="text-primary font-semibold hover:underline underline-offset-2 transition-colors"
+              >
+                {isSignUp ? "Masuk" : "Daftar"}
+              </button>
+            </p>
+          </div>
         </div>
       </div>
     </div>

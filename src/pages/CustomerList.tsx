@@ -8,11 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import StatusBadge from "@/components/StatusBadge";
 import BusinessBadge from "@/components/BusinessBadge";
-import PageGuide from "@/components/PageGuide";
 import { Link } from "react-router-dom";
-import { Search, Download, Upload, X, CheckCircle, AlertCircle } from "lucide-react";
+import { Search, Download, Upload, X, CheckCircle, AlertCircle, ArrowUpDown, Users, ChevronRight } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type SortKey = "name" | "updatedAt" | "status" | "estimatedValue";
 type SortDir = "asc" | "desc";
@@ -167,9 +167,9 @@ function ImportModal({ open, onClose }: { open: boolean; onClose: () => void }) 
 
         {step === "upload" && (
           <div className="space-y-4">
-            <div className="border-2 border-dashed border-border rounded-xl p-10 text-center">
-              <Upload className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-              <p className="font-medium mb-1">Upload file CSV dari Notion</p>
+            <div className="border-2 border-dashed border-border rounded-2xl p-10 text-center hover:border-primary/40 transition-colors cursor-pointer" onClick={() => fileRef.current?.click()}>
+              <Upload className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
+              <p className="font-semibold mb-1">Upload file CSV dari Notion</p>
               <p className="text-sm text-muted-foreground mb-4">
                 Di Notion: buka database → klik <strong>···</strong> → <strong>Export</strong> → pilih <strong>CSV</strong>
               </p>
@@ -182,7 +182,7 @@ function ImportModal({ open, onClose }: { open: boolean; onClose: () => void }) 
                 id="csv-file-input"
                 data-testid="input-csv-file"
               />
-              <Button onClick={() => fileRef.current?.click()} data-testid="button-choose-file">
+              <Button onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }} data-testid="button-choose-file">
                 Pilih File CSV
               </Button>
             </div>
@@ -238,7 +238,7 @@ function ImportModal({ open, onClose }: { open: boolean; onClose: () => void }) 
             {preview.length > 0 && (
               <div className="space-y-1.5">
                 <p className="text-sm font-medium">Preview ({preview.length} baris pertama):</p>
-                <div className="overflow-x-auto rounded-lg border border-border">
+                <div className="overflow-x-auto rounded-xl border border-border">
                   <table className="text-xs w-full">
                     <thead className="bg-muted/50">
                       <tr>
@@ -288,11 +288,13 @@ function ImportModal({ open, onClose }: { open: boolean; onClose: () => void }) 
         )}
 
         {step === "done" && result && (
-          <div className="py-6 text-center space-y-3">
-            <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
+          <div className="py-8 text-center space-y-3">
+            <div className="h-14 w-14 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto">
+              <CheckCircle className="h-7 w-7 text-emerald-500" />
+            </div>
             <p className="text-lg font-semibold">Import selesai!</p>
             <p className="text-sm text-muted-foreground">
-              <span className="text-green-600 font-medium">{result.imported} customer</span> berhasil diimport
+              <span className="text-emerald-600 font-semibold">{result.imported} customer</span> berhasil diimport
               {result.skipped > 0 && <>, <span className="text-muted-foreground">{result.skipped} dilewati</span> (duplikat / tanpa nama)</>}
             </p>
             <Button onClick={() => { reset(); onClose(); }} data-testid="button-done-import">Selesai</Button>
@@ -334,59 +336,62 @@ export default function CustomerList() {
   }, [customers, sortKey, sortDir]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-2">
+    <div className="space-y-5 max-w-5xl">
+      {/* Header */}
+      <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="text-xl font-semibold">Daftar Customer</h2>
-          <p className="text-sm text-muted-foreground">{customers?.length ?? 0} customer</p>
+          <h2 className="text-xl font-bold text-foreground">Daftar Customer</h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {isLoading ? "Memuat..." : `${customers?.length ?? 0} customer terdaftar`}
+          </p>
         </div>
         <div className="flex items-center gap-2">
           <Button
             variant="outline"
             size="sm"
-            className="gap-1.5 shrink-0"
+            className="gap-1.5 h-9 shrink-0"
             onClick={() => setShowImport(true)}
             data-testid="button-import-csv"
           >
             <Upload className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Import CSV</span>
+            <span className="hidden sm:inline">Import</span>
           </Button>
           <Button
             variant="outline"
             size="sm"
-            className="gap-1.5 shrink-0"
+            className="gap-1.5 h-9 shrink-0"
             onClick={() => sorted.length && exportCSV(sorted)}
             disabled={!sorted.length}
             data-testid="button-export-csv"
           >
             <Download className="h-3.5 w-3.5" />
-            <span className="hidden sm:inline">Export CSV</span>
+            <span className="hidden sm:inline">Export</span>
           </Button>
+          <Link
+            to="/customers/new"
+            className="inline-flex items-center gap-1.5 bg-primary text-white text-sm font-medium px-3 py-2 rounded-xl hover:opacity-90 transition-opacity shadow-sm h-9 shrink-0"
+          >
+            + Tambah
+          </Link>
         </div>
       </div>
 
       <ImportModal open={showImport} onClose={() => setShowImport(false)} />
 
-      <PageGuide steps={[
-        { icon: "🔍", title: "Cari Customer", desc: "Ketik nama customer di kolom pencarian. Filter tambahan tersedia untuk menyaring berdasarkan status (New, Warm, Hot, dll) dan bisnis." },
-        { icon: "↕️", title: "Urutkan Daftar", desc: "Gunakan dropdown Sort untuk mengurutkan berdasarkan tanggal update, nama A-Z, status, atau nilai deal terbesar/terkecil." },
-        { icon: "📤", title: "Import & Export CSV", desc: "Import customer dari file CSV Notion (klik Import CSV), atau ekspor semua customer yang tampil ke spreadsheet." },
-        { icon: "👤", title: "Buka Profil", desc: "Klik baris customer mana saja untuk membuka detail lengkap: riwayat interaksi, AI summary, next action, dan memory." },
-      ]} />
-
+      {/* Filters */}
       <div className="flex flex-wrap gap-2">
-        <div className="relative flex-1 min-w-[160px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <div className="relative flex-1 min-w-[180px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             placeholder="Cari nama customer..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 h-9"
+            className="pl-8 h-9 bg-white text-sm"
             data-testid="input-search-customers"
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-36 h-9" data-testid="select-status-filter">
+          <SelectTrigger className="w-36 h-9 bg-white text-sm" data-testid="select-status-filter">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -400,8 +405,8 @@ export default function CustomerList() {
           </SelectContent>
         </Select>
         <Select value={bizFilter} onValueChange={setBizFilter}>
-          <SelectTrigger className="w-36 h-9" data-testid="select-biz-filter">
-            <SelectValue placeholder="Business" />
+          <SelectTrigger className="w-36 h-9 bg-white text-sm" data-testid="select-biz-filter">
+            <SelectValue placeholder="Bisnis" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Semua Bisnis</SelectItem>
@@ -414,9 +419,9 @@ export default function CustomerList() {
           const [k, d] = v.split("-") as [SortKey, SortDir];
           setSortKey(k); setSortDir(d);
         }}>
-          <SelectTrigger className="w-40 h-9 gap-1" data-testid="select-sort">
-            <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground" />
-            <SelectValue placeholder="Sort by" />
+          <SelectTrigger className="w-44 h-9 bg-white text-sm gap-1" data-testid="select-sort">
+            <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+            <SelectValue placeholder="Urutkan" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="updatedAt-desc">Terbaru Diupdate</SelectItem>
@@ -430,38 +435,66 @@ export default function CustomerList() {
         </Select>
       </div>
 
+      {/* List */}
       {isLoading ? (
-        <div className="space-y-2">
-          {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-14 bg-muted/40 rounded-lg animate-pulse" />
+        <div className="bg-white border border-border rounded-2xl card-shadow divide-y divide-border overflow-hidden">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="flex items-center justify-between px-5 py-4">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-32" />
+                <Skeleton className="h-3 w-20" />
+              </div>
+              <Skeleton className="h-5 w-16 rounded-full" />
+            </div>
           ))}
         </div>
       ) : !sorted.length ? (
-        <div className="text-sm text-muted-foreground p-8 text-center">
-          Belum ada customer. <Link to="/customers/new" className="underline">Tambah customer pertama kamu</Link>
+        <div className="bg-white border border-border rounded-2xl card-shadow py-16 text-center">
+          <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
+            <Users className="h-6 w-6 text-muted-foreground/60" />
+          </div>
+          <p className="text-sm font-semibold text-foreground mb-1">Belum ada customer</p>
+          <p className="text-xs text-muted-foreground mb-4">
+            {search || statusFilter !== "all" || bizFilter !== "all"
+              ? "Tidak ada customer yang cocok dengan filter."
+              : "Tambahkan customer pertama kamu untuk mulai."}
+          </p>
+          <Link
+            to="/customers/new"
+            className="inline-flex items-center gap-1.5 bg-primary text-white text-sm font-medium px-4 py-2 rounded-xl hover:opacity-90 transition-opacity"
+          >
+            + Tambah Customer
+          </Link>
         </div>
       ) : (
-        <div className="bg-white border border-border rounded-xl card-shadow divide-y divide-border">
+        <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
           {sorted.map((c: any) => (
             <Link
               key={c.id}
               to={`/customers/${c.id}`}
-              className="flex items-center justify-between p-3.5 hover:bg-muted/40 transition-colors first:rounded-t-xl last:rounded-b-xl"
+              className="flex items-center justify-between px-5 py-4 hover:bg-muted/30 transition-colors border-b border-border last:border-b-0 group"
               data-testid={`row-customer-${c.id}`}
             >
-              <div className="min-w-0">
-                <p className="font-medium text-sm truncate">{c.name}</p>
-                <div className="flex items-center gap-1.5 mt-1 flex-wrap">
-                  {c.customer_businesses?.map((cb: any) => (
-                    <BusinessBadge key={cb.business_id} name={cb.businesses?.name} />
-                  ))}
-                  {c.source && <span className="text-xs text-muted-foreground">via {c.source}</span>}
-                  {c.phone && <span className="text-xs text-muted-foreground font-mono">{c.phone}</span>}
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <span className="text-xs font-bold text-primary">{c.name.slice(0, 2).toUpperCase()}</span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-sm text-foreground truncate">{c.name}</p>
+                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                      {c.customer_businesses?.map((cb: any) => (
+                        <BusinessBadge key={cb.business_id} name={cb.businesses?.name} />
+                      ))}
+                      {c.source && <span className="text-xs text-muted-foreground">via {c.source}</span>}
+                      {c.phone && <span className="text-xs text-muted-foreground font-mono">{c.phone}</span>}
+                    </div>
+                  </div>
                 </div>
               </div>
-              <div className="flex items-center gap-3 shrink-0">
+              <div className="flex items-center gap-3 shrink-0 ml-3">
                 {c.estimatedValue && (
-                  <span className="text-xs font-mono text-green-600 hidden sm:block">
+                  <span className="text-xs font-mono text-emerald-600 font-semibold hidden sm:block">
                     IDR {Number(c.estimatedValue).toLocaleString()}
                   </span>
                 )}
@@ -469,6 +502,7 @@ export default function CustomerList() {
                 <span className="text-xs text-muted-foreground font-mono hidden xs:block">
                   {format(parseISO(c.updatedAt), "MMM d")}
                 </span>
+                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-muted-foreground transition-colors" />
               </div>
             </Link>
           ))}

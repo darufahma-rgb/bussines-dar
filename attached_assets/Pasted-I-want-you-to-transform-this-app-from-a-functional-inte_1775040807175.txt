@@ -1,0 +1,61 @@
+I want you to transform this app from a functional internal tool into a polished founder-grade business operating system.
+
+Right now the app already has useful pages like dashboard, customers, pipeline, follow-ups, weekly, and monthly review, but the overall product still feels too raw, too builder-generated, and visually weak. I want you to focus first on a complete UI/UX overhaul without changing the core logic too much.
+
+My goal is for this app to feel like a premium command center that I would actually enjoy opening every day. It should feel clean, modern, calm, focused, and professional. Think more “executive founder dashboard” and less “basic admin panel”.
+
+Please improve the following areas carefully:
+
+1. Visual hierarchy
+Make the dashboard easier to scan in 5–10 seconds. I want a stronger structure:
+- top summary / welcome section
+- key stats
+- daily priorities
+- important actions
+- business performance preview
+
+2. Design system consistency
+Unify spacing, border radius, card styles, shadows, text sizes, icon sizing, section padding, and button hierarchy. Right now everything should feel more coherent and intentionally designed.
+
+3. Better dashboard layout
+Redesign the dashboard so it feels premium and useful:
+- stronger hero section
+- clearer stat cards
+- better use of whitespace
+- cleaner daily focus section
+- more readable due follow-up area
+- more elegant recent notes section
+
+4. Better sidebar and topbar
+Make navigation feel more modern and refined. Improve the sidebar, active states, collapse behavior, and topbar so the app feels like a real product, not a template.
+
+5. Customer list and detail page polish
+Improve table readability, filters, spacing, section cards, and visual hierarchy. On the customer detail page, make the profile area, timeline, notes, transactions, and follow-up sections feel much more structured and pleasant to use.
+
+6. Pipeline page polish
+Make the pipeline visually stronger and easier to read. Each stage should feel clearly separated, with cleaner cards and better stage emphasis.
+
+7. Review pages polish
+Improve the weekly and monthly pages so they feel reflective, clear, and premium instead of plain reporting pages.
+
+8. Empty states and loading states
+Add thoughtful empty states, helpful guidance text, and better loading/skeleton states. I want the app to feel alive and intentional even when data is missing.
+
+9. Mobile responsiveness
+Make sure the app still feels usable and elegant on mobile.
+
+10. Visual direction
+Use a refined, minimal, modern style:
+- soft background
+- clean white cards
+- deep navy / slate text
+- subtle shadows
+- generous spacing
+- smooth rounded corners
+- strong typography hierarchy
+- premium SaaS quality, but not flashy
+
+Important:
+Do not add random new features yet. Focus on making the current product feel significantly better in terms of UI, UX, hierarchy, and overall polish.
+
+The result should feel like a serious founder dashboard I can trust and enjoy using every day.

@@ -6,7 +6,6 @@ import { api } from "@/lib/api";
 import { toast } from "sonner";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Badge } from "@/components/ui/badge";
 
 type ParsedCapture = {
   name?: string;
@@ -103,12 +102,14 @@ export default function QuickCapture() {
   const clearParsed = () => setParsed(null);
 
   return (
-    <div className="bg-white border border-border rounded-xl card-shadow overflow-hidden">
+    <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
       <form onSubmit={handleSubmit}>
-        <div className="flex items-center gap-2 p-2">
-          <Zap className="h-4 w-4 text-status-warm shrink-0" />
+        <div className="flex items-center gap-2.5 px-4 py-3">
+          <div className="h-7 w-7 rounded-lg bg-amber-50 flex items-center justify-center shrink-0">
+            <Zap className="h-3.5 w-3.5 text-amber-500" />
+          </div>
           <Select value={customerId} onValueChange={setCustomerId}>
-            <SelectTrigger className="w-36 h-8 text-xs">
+            <SelectTrigger className="w-36 h-8 text-xs border-0 bg-muted/60 hover:bg-muted focus:ring-0">
               <SelectValue placeholder="Customer baru" />
             </SelectTrigger>
             <SelectContent>
@@ -122,8 +123,8 @@ export default function QuickCapture() {
             ref={inputRef}
             value={text}
             onChange={(e) => { setText(e.target.value); if (parsed) setParsed(null); }}
-            placeholder='e.g. "Cia asked about Umrah package for Dec, 2 pax"'
-            className="flex-1 h-8 text-sm border-0 bg-transparent focus-visible:ring-0 px-0"
+            placeholder='e.g. "Cia tanya paket Umrah Desember, 2 orang" — Ctrl+K'
+            className="flex-1 h-8 text-sm border-0 bg-transparent focus-visible:ring-0 px-0 placeholder:text-muted-foreground/60"
             data-testid="input-quick-capture"
           />
           {text.trim() && !customerId && (
@@ -131,7 +132,7 @@ export default function QuickCapture() {
               type="button"
               variant="outline"
               size="sm"
-              className="h-8 text-xs gap-1 shrink-0"
+              className="h-8 text-xs gap-1.5 shrink-0 border-violet-200 text-violet-700 hover:bg-violet-50"
               onClick={handleAIParse}
               disabled={parsing}
             >
@@ -139,58 +140,63 @@ export default function QuickCapture() {
               {parsing ? "Memproses..." : "AI Parse"}
             </Button>
           )}
-          <Button type="submit" size="sm" disabled={saving || !text.trim()} className="h-8 text-xs shrink-0">
+          <Button
+            type="submit"
+            size="sm"
+            disabled={saving || !text.trim()}
+            className="h-8 text-xs shrink-0"
+          >
             {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : "Capture"}
           </Button>
         </div>
 
         {parsed && (
-          <div className="border-t bg-muted/30 px-3 py-2.5 space-y-2">
+          <div className="border-t border-border bg-violet-50/60 px-4 py-3 space-y-2.5">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
+              <span className="text-xs font-medium text-violet-700 flex items-center gap-1.5">
                 <Sparkles className="h-3 w-3" /> AI mengekstrak — periksa sebelum menyimpan
               </span>
-              <button type="button" onClick={clearParsed} className="text-muted-foreground hover:text-foreground">
+              <button type="button" onClick={clearParsed} className="text-muted-foreground hover:text-foreground transition-colors">
                 <X className="h-3.5 w-3.5" />
               </button>
             </div>
-            <div className="flex flex-wrap gap-2 text-xs">
+            <div className="flex flex-wrap gap-1.5 text-xs">
               {parsed.name && (
-                <span className="flex items-center gap-1 bg-background border rounded px-2 py-1">
+                <span className="flex items-center gap-1 bg-white border border-border rounded-lg px-2.5 py-1 shadow-sm">
                   <span className="text-muted-foreground">Nama:</span>
-                  <span className="font-medium">{parsed.name}</span>
+                  <span className="font-semibold">{parsed.name}</span>
                 </span>
               )}
               {parsed.status && (
-                <span className="flex items-center gap-1 bg-background border rounded px-2 py-1">
+                <span className="flex items-center gap-1 bg-white border border-border rounded-lg px-2.5 py-1 shadow-sm">
                   <span className="text-muted-foreground">Status:</span>
-                  <Badge variant="outline" className="text-xs py-0 h-4">{parsed.status}</Badge>
+                  <span className="font-semibold capitalize">{parsed.status}</span>
                 </span>
               )}
               {parsed.interest && (
-                <span className="flex items-center gap-1 bg-background border rounded px-2 py-1 max-w-xs">
+                <span className="flex items-center gap-1 bg-white border border-border rounded-lg px-2.5 py-1 shadow-sm max-w-xs">
                   <span className="text-muted-foreground shrink-0">Tertarik:</span>
-                  <span className="font-medium truncate">{parsed.interest}</span>
+                  <span className="font-semibold truncate">{parsed.interest}</span>
                 </span>
               )}
               {parsed.followUpDate && (
-                <span className="flex items-center gap-1 bg-background border rounded px-2 py-1">
+                <span className="flex items-center gap-1 bg-white border border-border rounded-lg px-2.5 py-1 shadow-sm">
                   <span className="text-muted-foreground">Follow-up:</span>
-                  <span className="font-medium font-mono">{parsed.followUpDate}</span>
+                  <span className="font-semibold font-mono">{parsed.followUpDate}</span>
                 </span>
               )}
               {parsed.businessIds && parsed.businessIds.length > 0 && (
-                <span className="flex items-center gap-1 bg-background border rounded px-2 py-1">
+                <span className="flex items-center gap-1 bg-white border border-border rounded-lg px-2.5 py-1 shadow-sm">
                   <span className="text-muted-foreground">Bisnis:</span>
-                  <span className="font-medium">
+                  <span className="font-semibold">
                     {parsed.businessIds.map((id: string) => businesses?.find((b: any) => b.id === id)?.name).filter(Boolean).join(", ")}
                   </span>
                 </span>
               )}
             </div>
-            <p className="text-xs text-muted-foreground">
-              <Check className="h-3 w-3 inline mr-1 text-green-500" />
-              Sudah oke? Tekan <strong>Capture</strong> untuk menyimpan, atau edit teks di atas.
+            <p className="text-xs text-muted-foreground flex items-center gap-1">
+              <Check className="h-3 w-3 text-emerald-500 shrink-0" />
+              Sudah oke? Tekan <strong className="text-foreground">Capture</strong> untuk menyimpan, atau edit teks di atas.
             </p>
           </div>
         )}

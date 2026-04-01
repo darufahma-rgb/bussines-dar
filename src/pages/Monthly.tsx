@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Sparkles, Loader2, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import PageGuide from "@/components/PageGuide";
+import { Skeleton } from "@/components/ui/skeleton";
 
 function Delta({ current, previous }: { current: number; previous: number }) {
   const diff = current - previous;
@@ -11,11 +11,11 @@ function Delta({ current, previous }: { current: number; previous: number }) {
   const isDown = diff < 0;
   return (
     <div className="flex items-center gap-1 text-xs">
-      {isUp && <TrendingUp className="h-3 w-3 text-green-500" />}
+      {isUp && <TrendingUp className="h-3 w-3 text-emerald-500" />}
       {isDown && <TrendingDown className="h-3 w-3 text-red-500" />}
       {!isUp && !isDown && <Minus className="h-3 w-3 text-muted-foreground" />}
-      <span className={isUp ? "text-green-600" : isDown ? "text-red-500" : "text-muted-foreground"}>
-        {isUp ? "+" : ""}{diff} vs bln lalu
+      <span className={`font-medium ${isUp ? "text-emerald-600" : isDown ? "text-red-500" : "text-muted-foreground"}`}>
+        {isUp ? "+" : ""}{diff}
       </span>
     </div>
   );
@@ -59,26 +59,37 @@ export default function Monthly() {
   const prevMonthName = new Date(now.getFullYear(), now.getMonth() - 1, 1).toLocaleString("id-ID", { month: "long", year: "numeric" });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-4xl">
       <div>
-        <h2 className="text-xl font-semibold">Laporan Bulanan</h2>
-        <p className="text-sm text-muted-foreground capitalize">{currentMonthName} vs {prevMonthName}</p>
+        <h2 className="text-xl font-bold text-foreground">Laporan Bulanan</h2>
+        <p className="text-sm text-muted-foreground mt-0.5 capitalize">{currentMonthName} vs {prevMonthName}</p>
       </div>
 
-      <PageGuide steps={[
-        { icon: "📈", title: "Perbandingan Bulan", desc: "Bandingkan performa bulan ini vs bulan lalu: customer baru, deal closed, interaksi total, dan follow-up. Panah hijau = naik, merah = turun." },
-        { icon: "🏢", title: "Performa per Bisnis", desc: "Lihat breakdown customer per bisnis — berapa yang aktif dan berapa deal yang closed bulan ini." },
-        { icon: "✨", title: "AI Monthly Insight", desc: "Klik 'Buat Insight' untuk mendapatkan analisis mendalam dari AI tentang tren bulan ini dan rekomendasi strategi bulan depan." },
-      ]} />
-
       {isLoading ? (
-        <div className="text-sm text-muted-foreground text-center py-12">Memuat data...</div>
+        <div className="grid md:grid-cols-2 gap-4">
+          {[...Array(2)].map((_, i) => (
+            <div key={i} className="bg-white border border-border rounded-2xl p-5 card-shadow space-y-3">
+              <Skeleton className="h-4 w-32" />
+              {[...Array(5)].map((_, j) => (
+                <div key={j} className="flex justify-between">
+                  <Skeleton className="h-4 w-28" />
+                  <Skeleton className="h-4 w-12" />
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
       ) : (
         <>
+          {/* Month comparison */}
           <div className="grid md:grid-cols-2 gap-4">
-            <div className="bg-white border border-border rounded-xl p-4 card-shadow space-y-3">
-              <h3 className="text-sm font-semibold">Bulan Ini</h3>
-              <div className="space-y-2.5">
+            {/* This month */}
+            <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
+              <div className="px-5 py-4 border-b border-border bg-primary/5">
+                <h3 className="font-semibold text-sm text-primary capitalize">{currentMonthName}</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">Bulan berjalan</p>
+              </div>
+              <div className="px-5 py-4 space-y-3.5">
                 {STAT_ROWS.map(({ label, key }) => (
                   <div key={key} className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">{label}</span>
@@ -87,51 +98,67 @@ export default function Monthly() {
                         current={stats?.current?.[key] ?? 0}
                         previous={stats?.previous?.[key] ?? 0}
                       />
-                      <span className="text-sm font-semibold font-mono w-8 text-right">{stats?.current?.[key] ?? 0}</span>
+                      <span className="text-sm font-bold font-mono w-8 text-right text-foreground">
+                        {stats?.current?.[key] ?? 0}
+                      </span>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            <div className="bg-white border border-border rounded-xl p-4 card-shadow space-y-3">
-              <h3 className="text-sm font-semibold capitalize">Bulan Lalu — {prevMonthName}</h3>
-              <div className="space-y-2.5">
+            {/* Last month */}
+            <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
+              <div className="px-5 py-4 border-b border-border bg-muted/40">
+                <h3 className="font-semibold text-sm text-muted-foreground capitalize">{prevMonthName}</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">Bulan lalu</p>
+              </div>
+              <div className="px-5 py-4 space-y-3.5">
                 {STAT_ROWS.map(({ label, key }) => (
                   <div key={key} className="flex items-center justify-between">
                     <span className="text-sm text-muted-foreground">{label}</span>
-                    <span className="text-sm font-semibold font-mono text-muted-foreground">{stats?.previous?.[key] ?? 0}</span>
+                    <span className="text-sm font-bold font-mono text-muted-foreground">
+                      {stats?.previous?.[key] ?? 0}
+                    </span>
                   </div>
                 ))}
               </div>
             </div>
           </div>
 
-          <div className="bg-white border border-border rounded-xl p-4 card-shadow space-y-3">
-            <h3 className="text-sm font-semibold">Performa per Bisnis</h3>
+          {/* Business performance */}
+          <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
+            <div className="px-5 py-4 border-b border-border">
+              <h3 className="font-semibold text-sm text-foreground">Performa per Bisnis</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Breakdown customer dan aktivitas</p>
+            </div>
             {!stats?.byBusiness?.length ? (
-              <p className="text-sm text-muted-foreground">Belum ada data bisnis.</p>
+              <div className="py-10 text-center px-5">
+                <p className="text-sm text-muted-foreground">Belum ada data bisnis.</p>
+              </div>
             ) : (
-              <div className="divide-y">
+              <div className="divide-y divide-border">
                 {stats.byBusiness
                   .sort((a: any, b: any) => b.totalInteractions - a.totalInteractions)
                   .map((biz: any) => (
-                  <div key={biz.id} className="py-3 flex items-center gap-3">
+                  <div key={biz.id} className="px-5 py-4 flex items-center gap-4">
                     <div
-                      className="h-3 w-3 rounded-full shrink-0"
+                      className="h-3 w-3 rounded-full shrink-0 ring-2 ring-white shadow-sm"
                       style={{ backgroundColor: biz.color || "#6B7280" }}
                     />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium">{biz.name}</p>
-                      <p className="text-xs text-muted-foreground">{biz.totalCustomers} total customer</p>
+                      <p className="text-sm font-semibold text-foreground">{biz.name}</p>
+                      <p className="text-xs text-muted-foreground">{biz.totalCustomers} customer total</p>
                     </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-sm font-semibold font-mono">{biz.totalInteractions}</p>
-                      <p className="text-xs text-muted-foreground">interaksi</p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-sm font-semibold font-mono">{biz.newCustomers}</p>
-                      <p className="text-xs text-muted-foreground">lead baru</p>
+                    <div className="flex items-center gap-6 shrink-0">
+                      <div className="text-right">
+                        <p className="text-sm font-bold font-mono text-foreground">{biz.totalInteractions}</p>
+                        <p className="text-[10px] text-muted-foreground">interaksi</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-sm font-bold font-mono text-foreground">{biz.newCustomers}</p>
+                        <p className="text-[10px] text-muted-foreground">lead baru</p>
+                      </div>
                     </div>
                   </div>
                 ))}
@@ -139,13 +166,22 @@ export default function Monthly() {
             )}
           </div>
 
-          <div className="bg-white border border-border rounded-xl p-4 card-shadow space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-sm">Insight Bulanan AI</h3>
+          {/* AI Monthly Insight */}
+          <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+              <div className="flex items-center gap-2.5">
+                <div className="h-8 w-8 rounded-xl bg-violet-50 flex items-center justify-center">
+                  <Sparkles className="h-4 w-4 text-violet-500" />
+                </div>
+                <div>
+                  <h3 className="font-semibold text-sm text-foreground">Insight Bulanan AI</h3>
+                  <p className="text-xs text-muted-foreground">Analisis tren dan rekomendasi</p>
+                </div>
+              </div>
               <Button
                 size="sm"
                 variant="outline"
-                className="h-7 text-xs gap-1"
+                className="h-8 text-xs gap-1.5"
                 onClick={handleGetInsight}
                 disabled={loadingInsight}
               >
@@ -153,11 +189,15 @@ export default function Monthly() {
                 {loadingInsight ? "Berpikir..." : insight ? "Perbarui" : "Buat Insight"}
               </Button>
             </div>
-            {insight ? (
-              <p className="text-sm leading-relaxed text-foreground">{insight}</p>
-            ) : (
-              <p className="text-sm text-muted-foreground">Klik "Buat Insight" untuk mendapatkan analisis AI bulanan — apa yang membaik, apa yang belum, dan apa yang perlu diprioritaskan bulan depan.</p>
-            )}
+            <div className="px-5 py-4">
+              {insight ? (
+                <p className="text-sm leading-relaxed text-foreground">{insight}</p>
+              ) : (
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Klik "Buat Insight" untuk mendapatkan analisis AI bulanan — apa yang membaik, apa yang belum, dan apa yang perlu diprioritaskan bulan depan.
+                </p>
+              )}
+            </div>
           </div>
         </>
       )}

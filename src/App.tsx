@@ -16,7 +16,7 @@ import Pipeline from "@/pages/Pipeline";
 import Weekly from "@/pages/Weekly";
 import Monthly from "@/pages/Monthly";
 import NotFound from "@/pages/NotFound";
-import { Menu, Bell, PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { Menu, PanelLeftClose, PanelLeftOpen, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 
@@ -54,19 +54,17 @@ function TopBar({
   };
 
   return (
-    <div className="sticky top-0 z-40 bg-white border-b border-border px-3 sm:px-5 py-3 flex items-center justify-between gap-3">
-      <div className="flex items-center gap-2 min-w-0">
-        {/* Mobile hamburger */}
+    <div className="sticky top-0 z-40 bg-white/90 backdrop-blur-sm border-b border-border px-4 sm:px-6 h-14 flex items-center justify-between gap-3">
+      <div className="flex items-center gap-2.5 min-w-0">
         <button
           onClick={onMobileMenuClick}
           className="md:hidden flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0"
           aria-label="Buka menu"
           data-testid="button-mobile-menu"
         >
-          <Menu className="h-5 w-5" />
+          <Menu className="h-[18px] w-[18px]" />
         </button>
 
-        {/* Desktop collapse toggle */}
         <button
           onClick={onToggleCollapse}
           className="hidden md:flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0"
@@ -74,22 +72,19 @@ function TopBar({
           data-testid="button-toggle-sidebar"
         >
           {sidebarCollapsed
-            ? <PanelLeftOpen className="h-4 w-4" />
-            : <PanelLeftClose className="h-4 w-4" />
+            ? <PanelLeftOpen className="h-[15px] w-[15px]" />
+            : <PanelLeftClose className="h-[15px] w-[15px]" />
           }
         </button>
 
         <div className="min-w-0">
-          <h1 className="font-semibold text-foreground text-sm sm:text-base leading-tight truncate">{getTitle()}</h1>
-          <p className="text-[11px] text-muted-foreground hidden sm:block capitalize">{today}</p>
+          <h1 className="font-semibold text-foreground text-sm sm:text-[15px] leading-tight truncate">{getTitle()}</h1>
+          <p className="text-[11px] text-muted-foreground hidden sm:block capitalize leading-tight mt-0.5">{today}</p>
         </div>
       </div>
 
-      <div className="flex items-center gap-1.5 shrink-0">
-        <button className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors">
-          <Bell className="h-4 w-4" />
-        </button>
-        <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
+      <div className="flex items-center gap-2 shrink-0">
+        <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center shadow-sm">
           <span className="text-[11px] font-bold text-white">{initials}</span>
         </div>
       </div>
@@ -115,11 +110,15 @@ function AppLayout() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="flex flex-col items-center gap-3">
-          <div className="h-10 w-10 rounded-xl bg-primary flex items-center justify-center">
-            <span className="text-white font-bold text-sm">CR</span>
+        <div className="flex flex-col items-center gap-4">
+          <div className="h-12 w-12 rounded-2xl bg-primary flex items-center justify-center shadow-md">
+            <TrendingUp className="h-6 w-6 text-white" />
           </div>
-          <p className="text-sm text-muted-foreground">Memuat...</p>
+          <div className="flex items-center gap-2">
+            <div className="h-1.5 w-1.5 rounded-full bg-primary/40 animate-bounce" style={{ animationDelay: "0ms" }} />
+            <div className="h-1.5 w-1.5 rounded-full bg-primary/40 animate-bounce" style={{ animationDelay: "150ms" }} />
+            <div className="h-1.5 w-1.5 rounded-full bg-primary/40 animate-bounce" style={{ animationDelay: "300ms" }} />
+          </div>
         </div>
       </div>
     );
@@ -141,7 +140,7 @@ function AppLayout() {
           onToggleCollapse={toggleCollapse}
         />
         <main className="flex-1 overflow-y-auto">
-          <div className="p-3 sm:p-5 max-w-screen-xl mx-auto">
+          <div className="p-4 sm:p-6 max-w-screen-xl mx-auto">
             <Routes>
               <Route path="/" element={<Dashboard />} />
               <Route path="/customers" element={<CustomerList />} />
