@@ -1,18 +1,69 @@
 import { useState, useRef, useEffect } from "react";
 import { api } from "@/lib/api";
-import { Sparkles, Send, Loader2, Bot, User, Trash2 } from "lucide-react";
+import { Sparkles, Send, Loader2, Bot, User, Trash2, UserPlus, MessageSquarePlus, ExternalLink } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router-dom";
 
 interface Message {
   role: "user" | "assistant";
   content: string;
+  actions?: Action[];
+}
+
+interface Action {
+  type: "create_customer" | "add_interaction";
+  customerId: string;
+  name?: string;
+  status?: string;
+  customerName?: string;
+  interactionType?: string;
+  content?: string;
 }
 
 const STARTERS = [
-  "Siapa customer yang paling aktif minggu ini?",
-  "Berikan saran follow-up untuk customer yang statusnya warm.",
-  "Apa strategi terbaik untuk menutup deal yang sudah lama di pipeline?",
-  "Rangkum kondisi pipeline bisnis saat ini.",
+  "Siapa customer yang butuh follow-up sekarang?",
+  "Tambahkan customer baru: Andi, tertarik paket Umrah Desember, 2 orang, WhatsApp 081234567890",
+  "Bagaimana kondisi pipeline bisnis saat ini?",
+  "Berikan saran untuk menutup lebih banyak deal bulan ini.",
 ];
+
+function ActionCard({ action }: { action: Action }) {
+  if (action.type === "create_customer") {
+    return (
+      <Link
+        to={`/customers/${action.customerId}`}
+        className="flex items-center gap-3 mt-2 px-3 py-2.5 bg-emerald-50 border border-emerald-200 rounded-xl hover:bg-emerald-100 transition-colors group"
+      >
+        <div className="h-7 w-7 rounded-lg bg-emerald-100 flex items-center justify-center shrink-0">
+          <UserPlus className="h-3.5 w-3.5 text-emerald-600" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold text-emerald-800">Customer baru dibuat</p>
+          <p className="text-xs text-emerald-600 truncate">{action.name} · {action.status}</p>
+        </div>
+        <ExternalLink className="h-3.5 w-3.5 text-emerald-400 group-hover:text-emerald-600 shrink-0 transition-colors" />
+      </Link>
+    );
+  }
+  if (action.type === "add_interaction") {
+    return (
+      <Link
+        to={`/customers/${action.customerId}`}
+        className="flex items-center gap-3 mt-2 px-3 py-2.5 bg-blue-50 border border-blue-200 rounded-xl hover:bg-blue-100 transition-colors group"
+      >
+        <div className="h-7 w-7 rounded-lg bg-blue-100 flex items-center justify-center shrink-0">
+          <MessageSquarePlus className="h-3.5 w-3.5 text-blue-600" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-semibold text-blue-800">Interaksi ditambahkan</p>
+          <p className="text-xs text-blue-600 truncate">{action.customerName} · {action.interactionType}</p>
+        </div>
+        <ExternalLink className="h-3.5 w-3.5 text-blue-400 group-hover:text-blue-600 shrink-0 transition-colors" />
+      </Link>
+    );
+  }
+  return null;
+}
 
 export default function AiChat() {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -20,6 +71,7 @@ export default function AiChat() {
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -44,8 +96,20 @@ export default function AiChat() {
     setLoading(true);
 
     try {
-      const { reply } = await api.ai.chat(next.map((m) => ({ role: m.role, content: m.content })));
-      setMessages([...next, { role: "assistant", content: reply }]);
+      const { reply, actions } = await api.ai.chat(
+        next.map((m) => ({ role: m.role, content: m.content }))
+      );
+
+      setMessages([...next, { role: "assistant", content: reply, actions: actions || [] }]);
+
+      if (actions && actions.length > 0) {
+        queryClient.invalidateQueries({ queryKey: ["customers"] });
+        queryClient.invalidateQueries({ queryKey: ["customers-list"] });
+        queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+        queryClient.invalidateQueries({ queryKey: ["customers-pipeline"] });
+        queryClient.invalidateQueries({ queryKey: ["daily-focus"] });
+        queryClient.invalidateQueries({ queryKey: ["recent-captures"] });
+      }
     } catch {
       setMessages([...next, { role: "assistant", content: "Maaf, terjadi kesalahan. Coba lagi ya." }]);
     } finally {
@@ -68,11 +132,11 @@ export default function AiChat() {
       <div className="flex items-center justify-between mb-4 shrink-0">
         <div className="flex items-center gap-3">
           <div className="h-9 w-9 rounded-xl bg-violet-100 flex items-center justify-center">
-            <Sparkles className="h-4.5 w-4.5 text-violet-600" />
+            <Sparkles className="h-[18px] w-[18px] text-violet-600" />
           </div>
           <div>
             <h2 className="font-semibold text-foreground text-sm leading-tight">Asisten AI</h2>
-            <p className="text-xs text-muted-foreground">Tahu semua tentang bisnis kamu</p>
+            <p className="text-xs text-muted-foreground">Terhubung ke semua data CRM · bisa tambah customer otomatis</p>
           </div>
         </div>
         {!isEmpty && (
@@ -94,9 +158,9 @@ export default function AiChat() {
               <Sparkles className="h-7 w-7 text-violet-500" />
             </div>
             <div>
-              <p className="font-semibold text-foreground">Tanya apa saja tentang bisnismu</p>
+              <p className="font-semibold text-foreground">Tanya apa saja, atau minta AI tambahkan data</p>
               <p className="text-sm text-muted-foreground mt-1">
-                Asisten tahu data customer, pipeline, dan bisa bantu strategi penjualan.
+                AI tahu semua customer, pipeline, follow-up, dan bisa langsung tambah customer baru ke CRM.
               </p>
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 w-full max-w-lg mt-2">
@@ -128,14 +192,23 @@ export default function AiChat() {
                     : <Bot className="h-3.5 w-3.5" />
                   }
                 </div>
-                <div
-                  className={`max-w-[78%] px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
-                    msg.role === "user"
-                      ? "bg-primary text-white rounded-tr-sm"
-                      : "bg-muted/60 text-foreground rounded-tl-sm"
-                  }`}
-                >
-                  {msg.content}
+                <div className={`max-w-[78%] ${msg.role === "user" ? "items-end" : "items-start"} flex flex-col gap-1`}>
+                  <div
+                    className={`px-4 py-3 rounded-2xl text-sm leading-relaxed whitespace-pre-wrap ${
+                      msg.role === "user"
+                        ? "bg-primary text-white rounded-tr-sm"
+                        : "bg-muted/60 text-foreground rounded-tl-sm"
+                    }`}
+                  >
+                    {msg.content}
+                  </div>
+                  {msg.actions && msg.actions.length > 0 && (
+                    <div className="w-full space-y-1">
+                      {msg.actions.map((action, ai) => (
+                        <ActionCard key={ai} action={action} />
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ))}
@@ -146,7 +219,7 @@ export default function AiChat() {
                 </div>
                 <div className="px-4 py-3 rounded-2xl rounded-tl-sm bg-muted/60 flex items-center gap-1.5">
                   <Loader2 className="h-3.5 w-3.5 text-muted-foreground animate-spin" />
-                  <span className="text-sm text-muted-foreground">Sedang berpikir...</span>
+                  <span className="text-sm text-muted-foreground">Memproses...</span>
                 </div>
               </div>
             )}
@@ -163,7 +236,7 @@ export default function AiChat() {
             value={input}
             onChange={(e) => { setInput(e.target.value); autoResize(); }}
             onKeyDown={handleKeyDown}
-            placeholder="Tanya sesuatu tentang bisnis atau customer kamu... (Enter untuk kirim)"
+            placeholder='Tanya atau ketik perintah — misal "Tambah customer baru: Budi, tertarik umroh, WA 0812..."'
             rows={1}
             className="flex-1 resize-none text-sm bg-transparent border-0 outline-none text-foreground placeholder:text-muted-foreground/70 leading-relaxed py-0.5"
             style={{ minHeight: "24px" }}
@@ -180,7 +253,7 @@ export default function AiChat() {
           </button>
         </div>
         <p className="text-center text-[11px] text-muted-foreground/60 mt-2">
-          Shift+Enter untuk baris baru · Enter untuk kirim
+          Shift+Enter untuk baris baru · Enter untuk kirim · AI bisa langsung tambah data ke CRM
         </p>
       </div>
     </div>

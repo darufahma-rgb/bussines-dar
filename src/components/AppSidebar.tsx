@@ -16,19 +16,36 @@ interface AppSidebarProps {
   onMobileClose: () => void;
 }
 
-const mainItems = [
-  { to: "/", icon: LayoutDashboard, label: "Dasbor", end: true, hasBadge: false },
-  { to: "/customers", icon: Users, label: "Customer", end: false, hasBadge: false },
-  { to: "/pipeline", icon: Kanban, label: "Pipeline", end: true, hasBadge: false },
-  { to: "/follow-ups", icon: CalendarCheck, label: "Follow-ups", end: true, hasBadge: true },
-  { to: "/customers/new", icon: Plus, label: "Tambah Customer", end: true, hasBadge: false },
-  { to: "/chat", icon: Sparkles, label: "Chat AI", end: true, hasBadge: false },
-];
-
-const insightItems = [
-  { to: "/weekly", icon: CalendarDays, label: "Mingguan", end: true },
-  { to: "/monthly", icon: BarChart2, label: "Bulanan", end: true },
-  { to: "/yearly", icon: CalendarRange, label: "Tahunan", end: true },
+const navSections = [
+  {
+    label: "Utama",
+    items: [
+      { to: "/", icon: LayoutDashboard, label: "Dasbor", end: true, hasBadge: false },
+    ],
+  },
+  {
+    label: "Customer",
+    items: [
+      { to: "/customers", icon: Users, label: "Daftar Customer", end: false, hasBadge: false },
+      { to: "/pipeline", icon: Kanban, label: "Pipeline", end: true, hasBadge: false },
+      { to: "/follow-ups", icon: CalendarCheck, label: "Follow-ups", end: true, hasBadge: true },
+      { to: "/customers/new", icon: Plus, label: "Tambah Customer", end: true, hasBadge: false },
+    ],
+  },
+  {
+    label: "AI & Tools",
+    items: [
+      { to: "/chat", icon: Sparkles, label: "Chat AI", end: true, hasBadge: false },
+    ],
+  },
+  {
+    label: "Laporan",
+    items: [
+      { to: "/weekly", icon: CalendarDays, label: "Mingguan", end: true, hasBadge: false },
+      { to: "/monthly", icon: BarChart2, label: "Bulanan", end: true, hasBadge: false },
+      { to: "/yearly", icon: CalendarRange, label: "Tahunan", end: true, hasBadge: false },
+    ],
+  },
 ];
 
 function NavItem({
@@ -89,6 +106,7 @@ function SidebarContent({
         collapsed ? "w-[60px]" : "w-[210px]"
       )}
     >
+      {/* Brand header */}
       <div className={cn(
         "flex items-center border-b border-border shrink-0 h-14",
         collapsed ? "justify-center" : "px-4 gap-3"
@@ -109,45 +127,57 @@ function SidebarContent({
         )}
       </div>
 
+      {/* Nav sections */}
       <nav className={cn(
-        "flex-1 py-4 overflow-y-auto",
-        collapsed ? "px-[10px] flex flex-col items-center gap-1" : "px-3 space-y-0.5"
+        "flex-1 py-3 overflow-y-auto",
+        collapsed ? "px-[10px] flex flex-col items-center gap-0.5" : "px-3"
       )}>
-        {!collapsed && (
-          <p className="section-label px-2 mb-2.5">Menu</p>
-        )}
-        {mainItems.map((item) => (
-          <NavItem
-            key={item.to}
-            to={item.to}
-            icon={item.icon}
-            label={item.label}
-            end={item.end}
-            badge={item.hasBadge ? overdueCount : null}
-            collapsed={collapsed}
-          />
-        ))}
-
         {collapsed ? (
-          <div className="my-3 w-7 border-t border-border" />
+          /* Collapsed: flat icon list with dividers between sections */
+          <>
+            {navSections.map((section, si) => (
+              <div key={section.label} className={cn("flex flex-col items-center gap-0.5", si > 0 && "mt-1")}>
+                {si > 0 && <div className="my-2 w-7 border-t border-border" />}
+                {section.items.map((item) => (
+                  <NavItem
+                    key={item.to}
+                    to={item.to}
+                    icon={item.icon}
+                    label={item.label}
+                    end={item.end}
+                    badge={item.hasBadge ? overdueCount : null}
+                    collapsed={true}
+                  />
+                ))}
+              </div>
+            ))}
+          </>
         ) : (
-          <div className="pt-4 pb-2">
-            <p className="section-label px-2">Insights</p>
+          /* Expanded: sections with category labels */
+          <div className="space-y-4">
+            {navSections.map((section) => (
+              <div key={section.label}>
+                <p className="section-label px-2 mb-1.5">{section.label}</p>
+                <div className="space-y-0.5">
+                  {section.items.map((item) => (
+                    <NavItem
+                      key={item.to}
+                      to={item.to}
+                      icon={item.icon}
+                      label={item.label}
+                      end={item.end}
+                      badge={item.hasBadge ? overdueCount : null}
+                      collapsed={false}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
           </div>
         )}
-
-        {insightItems.map((item) => (
-          <NavItem
-            key={item.to}
-            to={item.to}
-            icon={item.icon}
-            label={item.label}
-            end={item.end}
-            collapsed={collapsed}
-          />
-        ))}
       </nav>
 
+      {/* Bottom: Profile + Logout */}
       <div className={cn(
         "border-t border-border shrink-0",
         collapsed ? "py-3 flex flex-col items-center gap-1.5" : "px-3 py-3 space-y-0.5"
@@ -179,6 +209,7 @@ function SidebarContent({
           </>
         ) : (
           <>
+            <p className="section-label px-2 mb-1.5">Akun</p>
             <NavLink
               to="/profile"
               className={({ isActive }) => cn(

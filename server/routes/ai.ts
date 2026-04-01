@@ -278,33 +278,220 @@ router.post("/chat", async (req, res) => {
       return res.status(400).json({ error: "messages required" });
     }
 
-    const customerRows = await db
-      .select({ id: customers.id, name: customers.name, status: customers.status })
-      .from(customers)
-      .limit(50);
+    // Load full CRM context
+    const [customerRows, bizRows, overdueRows, recentInteractions] = await Promise.all([
+      db.select({
+        id: customers.id,
+        name: customers.name,
+        status: customers.status,
+        estimatedValue: customers.estimatedValue,
+        phone: customers.phone,
+        email: customers.email,
+        source: customers.source,
+        lostReason: customers.lostReason,
+        createdAt: customers.createdAt,
+      }).from(customers).orderBy(desc(customers.updatedAt)).limit(100),
+      db.select().from(businesses),
+      db.select({
+        id: interactions.id,
+        customerId: interactions.customerId,
+        content: interactions.content,
+        followUpDate: interactions.followUpDate,
+      }).from(interactions).where(
+        and(
+          eq(interactions.type, "follow_up"),
+          eq(interactions.isCompleted, false),
+        )
+      ).limit(20),
+      db.select({
+        id: interactions.id,
+        customerId: interactions.customerId,
+        type: interactions.type,
+        content: interactions.content,
+        amount: interactions.amount,
+        createdAt: interactions.createdAt,
+      }).from(interactions).orderBy(desc(interactions.createdAt)).limit(20),
+    ]);
+
+    const statusCounts = customerRows.reduce((acc: Record<string, number>, c) => {
+      acc[c.status] = (acc[c.status] || 0) + 1;
+      return acc;
+    }, {});
 
     const customerSummary = customerRows
-      .map((c) => `- ${c.name} (${c.status})`)
-      .join("\n") || "Belum ada customer.";
+      .map((c) => `- [${c.id.slice(0, 8)}] ${c.name} | status: ${c.status}${c.estimatedValue ? ` | nilai: Rp${c.estimatedValue}` : ""}${c.phone ? ` | telp: ${c.phone}` : ""}`)
+      .join("\n");
 
-    const response = await getOpenAI().chat.completions.create({
-      model: getAIModel(),
-      messages: [
-        {
-          role: "system",
-          content: `Kamu adalah asisten bisnis AI untuk Darcia Business Hub — sebuah CRM yang mengelola customer dari 4 bisnis: Temantiket, SYMP Studio, Darcia, dan AIGYPT. Jawab dalam Bahasa Indonesia secara ringkas, praktis, dan membantu.
+    const overdueSummary = overdueRows.length
+      ? overdueRows.map((o) => `- customerId ${o.customerId.slice(0, 8)}: "${o.content}" (due: ${o.followUpDate})`).join("\n")
+      : "Tidak ada.";
 
-Data customer saat ini (50 terbaru):
-${customerSummary}
+    const recentSummary = recentInteractions
+      .map((i) => `- customerId ${i.customerId.slice(0, 8)} [${i.type}]: "${i.content}"${i.amount ? ` Rp${i.amount}` : ""}`)
+      .join("\n");
 
-Kamu bisa membantu: analisis pipeline, saran follow-up, strategi penjualan, pertanyaan umum bisnis, dan apapun yang relevan dengan operasional bisnis ini.`,
+    const bizList = bizRows.map((b) => `${b.name} (id: ${b.id})`).join(", ");
+
+    const systemPrompt = `Kamu adalah asisten bisnis AI untuk Darcia Business Hub — CRM yang mengelola customer dari 4 bisnis: Temantiket, SYMP Studio, Darcia, dan AIGYPT.
+Jawab dalam Bahasa Indonesia secara ringkas, praktis, dan membantu.
+
+=== RINGKASAN PIPELINE ===
+${Object.entries(statusCounts).map(([s, c]) => `${s}: ${c} customer`).join(", ")}
+Total: ${customerRows.length} customer
+
+=== DAFTAR CUSTOMER (format: [id_singkat] nama | status | nilai) ===
+${customerSummary || "Belum ada customer."}
+
+=== FOLLOW-UP OVERDUE ===
+${overdueSummary}
+
+=== INTERAKSI TERBARU ===
+${recentSummary || "Belum ada."}
+
+=== BISNIS TERSEDIA ===
+${bizList}
+
+Kamu BISA membuat customer baru atau mencatat interaksi menggunakan tool yang tersedia.
+Gunakan ID customer (8 karakter pertama sudah cukup, sistem akan mencocokkan) saat memanggil tool.`;
+
+    const tools: any[] = [
+      {
+        type: "function",
+        function: {
+          name: "create_customer",
+          description: "Buat customer baru di CRM",
+          parameters: {
+            type: "object",
+            properties: {
+              name: { type: "string", description: "Nama lengkap customer" },
+              status: { type: "string", enum: ["new", "warm", "hot", "negotiation"], description: "Status awal customer" },
+              phone: { type: "string", description: "Nomor telepon (opsional)" },
+              email: { type: "string", description: "Email (opsional)" },
+              source: { type: "string", description: "Sumber lead, e.g. Instagram, WhatsApp, Referral (opsional)" },
+              interest: { type: "string", description: "Apa yang diminati customer (akan disimpan sebagai catatan)" },
+              businessName: { type: "string", description: "Nama bisnis (Temantiket / SYMP Studio / Darcia / AIGYPT)" },
+              followUpDate: { type: "string", description: "Tanggal follow-up format YYYY-MM-DD (opsional)" },
+            },
+            required: ["name"],
+          },
         },
+      },
+      {
+        type: "function",
+        function: {
+          name: "add_interaction",
+          description: "Tambahkan catatan, interaksi, atau follow-up ke customer yang sudah ada",
+          parameters: {
+            type: "object",
+            properties: {
+              customerId: { type: "string", description: "ID customer (minimal 8 karakter pertama)" },
+              type: { type: "string", enum: ["note", "follow_up", "quick_capture"], description: "Tipe interaksi" },
+              content: { type: "string", description: "Isi catatan atau interaksi" },
+              followUpDate: { type: "string", description: "Tanggal follow-up format YYYY-MM-DD (hanya jika type=follow_up)" },
+            },
+            required: ["customerId", "type", "content"],
+          },
+        },
+      },
+    ];
+
+    const openai = getOpenAI();
+    const model = getAIModel();
+
+    const firstResponse = await openai.chat.completions.create({
+      model,
+      messages: [{ role: "system", content: systemPrompt }, ...messages],
+      tools,
+      tool_choice: "auto",
+      max_tokens: 800,
+    });
+
+    const firstMsg = firstResponse.choices[0].message;
+    const toolCalls = firstMsg.tool_calls;
+
+    if (!toolCalls || toolCalls.length === 0) {
+      return res.json({ reply: firstMsg.content?.trim() ?? "" });
+    }
+
+    // Execute tool calls
+    const toolResults: any[] = [];
+    const actions: any[] = [];
+
+    for (const call of toolCalls) {
+      const args = JSON.parse(call.function.arguments);
+      let result = "";
+
+      if (call.function.name === "create_customer") {
+        try {
+          const matchedBiz = args.businessName
+            ? bizRows.find((b) => b.name.toLowerCase().includes(args.businessName.toLowerCase()))
+            : null;
+
+          const [newCustomer] = await db.insert(customers).values({
+            name: args.name,
+            status: args.status || "new",
+            phone: args.phone || null,
+            email: args.email || null,
+            source: args.source || null,
+          }).returning();
+
+          if (matchedBiz) {
+            await db.insert(customerBusinesses).values({ customerId: newCustomer.id, businessId: matchedBiz.id });
+          }
+
+          if (args.interest) {
+            await db.insert(interactions).values({ customerId: newCustomer.id, type: "quick_capture", content: args.interest });
+          }
+
+          if (args.followUpDate) {
+            await db.insert(interactions).values({ customerId: newCustomer.id, type: "follow_up", content: `Follow-up ${args.name}`, followUpDate: args.followUpDate });
+          }
+
+          result = `Customer "${args.name}" berhasil dibuat dengan ID ${newCustomer.id}`;
+          actions.push({ type: "create_customer", customerId: newCustomer.id, name: args.name, status: args.status || "new" });
+        } catch (e: any) {
+          result = `Gagal membuat customer: ${e.message}`;
+        }
+      } else if (call.function.name === "add_interaction") {
+        try {
+          const partialId = args.customerId.slice(0, 8);
+          const matchedCustomer = customerRows.find((c) => c.id.startsWith(partialId));
+          if (!matchedCustomer) {
+            result = `Customer dengan ID "${partialId}" tidak ditemukan`;
+          } else {
+            await db.insert(interactions).values({
+              customerId: matchedCustomer.id,
+              type: args.type,
+              content: args.content,
+              followUpDate: args.followUpDate || null,
+            });
+            result = `Interaksi berhasil ditambahkan ke customer "${matchedCustomer.name}"`;
+            actions.push({ type: "add_interaction", customerId: matchedCustomer.id, customerName: matchedCustomer.name, interactionType: args.type, content: args.content });
+          }
+        } catch (e: any) {
+          result = `Gagal menambahkan interaksi: ${e.message}`;
+        }
+      }
+
+      toolResults.push({ tool_call_id: call.id, role: "tool" as const, content: result });
+    }
+
+    // Second call with tool results
+    const secondResponse = await openai.chat.completions.create({
+      model,
+      messages: [
+        { role: "system", content: systemPrompt },
         ...messages,
+        firstMsg,
+        ...toolResults,
       ],
       max_tokens: 600,
     });
 
-    return res.json({ reply: response.choices[0].message.content?.trim() });
+    return res.json({
+      reply: secondResponse.choices[0].message.content?.trim() ?? "",
+      actions,
+    });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "AI error" });
