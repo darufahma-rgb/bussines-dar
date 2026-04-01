@@ -9,9 +9,9 @@ import { format, isToday, isPast, parseISO } from "date-fns";
 import BusinessBadge from "@/components/BusinessBadge";
 
 const FOCUS_REASON_LABELS: Record<string, { label: string; color: string }> = {
-  overdue_followup: { label: "Overdue follow-up", color: "text-red-500" },
-  hot_lead:         { label: "Hot lead",          color: "text-orange-500" },
-  high_value:       { label: "High value",         color: "text-green-600" },
+  overdue_followup: { label: "Follow-up terlambat", color: "text-red-500" },
+  hot_lead:         { label: "Lead panas",          color: "text-orange-500" },
+  high_value:       { label: "Nilai tinggi",        color: "text-green-600" },
 };
 
 export default function Dashboard() {
@@ -47,13 +47,13 @@ export default function Dashboard() {
 
   const statCards = [
     {
-      label: "Total Customers",
+      label: "Total Customer",
       value: stats?.total ?? 0,
       icon: Users,
       accent: false,
     },
     {
-      label: "Active Leads",
+      label: "Lead Aktif",
       value: stats?.leads ?? 0,
       icon: TrendingUp,
       accent: false,
@@ -124,7 +124,7 @@ export default function Dashboard() {
             <p className="text-xl font-bold font-mono text-blue-600">
               IDR {Number(revenue.pipelineValue).toLocaleString()}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">Open opportunities</p>
+            <p className="text-xs text-muted-foreground mt-1">Peluang aktif</p>
           </div>
           <div className="bg-white border border-border rounded-xl p-4 card-shadow">
             <div className="flex items-center justify-between mb-3">
@@ -136,7 +136,7 @@ export default function Dashboard() {
             <p className="text-xl font-bold font-mono text-green-600">
               IDR {Number(revenue.closedRevenue).toLocaleString()}
             </p>
-            <p className="text-xs text-muted-foreground mt-1">Won deals</p>
+            <p className="text-xs text-muted-foreground mt-1">Deal berhasil</p>
           </div>
         </div>
       )}
@@ -190,7 +190,7 @@ export default function Dashboard() {
 
       <div className="grid lg:grid-cols-2 gap-4">
         <div className="bg-white border border-border rounded-xl p-4 card-shadow">
-          <h3 className="font-semibold text-sm mb-3">Due Follow-ups</h3>
+          <h3 className="font-semibold text-sm mb-3">Follow-up Jatuh Tempo</h3>
           {!dueFollowUps.length ? (
             <div className="py-8 text-center">
               <CalendarCheck className="h-8 w-8 text-green-400 mx-auto mb-2" />
@@ -223,7 +223,7 @@ export default function Dashboard() {
         </div>
 
         <div className="bg-white border border-border rounded-xl p-4 card-shadow">
-          <h3 className="font-semibold text-sm mb-3">Recent Notes</h3>
+          <h3 className="font-semibold text-sm mb-3">Catatan Terbaru</h3>
           {!recentCaptures?.length ? (
             <div className="py-8 text-center">
               <p className="text-sm text-muted-foreground">Belum ada catatan. Pakai Quick Capture!</p>

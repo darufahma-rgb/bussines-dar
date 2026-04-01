@@ -23,8 +23,8 @@ import { id as idLocale } from "date-fns/locale";
 const queryClient = new QueryClient();
 
 const PAGE_TITLES: Record<string, string> = {
-  "/": "Dashboard",
-  "/customers": "Customers",
+  "/": "Dasbor",
+  "/customers": "Daftar Customer",
   "/customers/new": "Tambah Customer",
   "/pipeline": "Pipeline",
   "/follow-ups": "Follow-ups",

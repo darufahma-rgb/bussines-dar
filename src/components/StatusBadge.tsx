@@ -1,12 +1,12 @@
 import { cn } from "@/lib/utils";
 
 const statusConfig: Record<string, { label: string; className: string }> = {
-  new:         { label: "New",         className: "bg-blue-100 text-blue-700" },
-  warm:        { label: "Warm",        className: "bg-yellow-100 text-yellow-700" },
-  hot:         { label: "Hot",         className: "bg-orange-100 text-orange-700" },
-  negotiation: { label: "Negotiation", className: "bg-purple-100 text-purple-700" },
-  closed:      { label: "Closed Won",  className: "bg-green-100 text-green-700" },
-  lost:        { label: "Lost",        className: "bg-gray-100 text-gray-500" },
+  new:         { label: "Baru",      className: "bg-blue-100 text-blue-700" },
+  warm:        { label: "Hangat",    className: "bg-yellow-100 text-yellow-700" },
+  hot:         { label: "Panas",     className: "bg-orange-100 text-orange-700" },
+  negotiation: { label: "Negosiasi", className: "bg-purple-100 text-purple-700" },
+  closed:      { label: "Berhasil",  className: "bg-green-100 text-green-700" },
+  lost:        { label: "Gagal",     className: "bg-gray-100 text-gray-500" },
 };
 
 export default function StatusBadge({ status }: { status: string }) {

@@ -10,12 +10,12 @@ import { ChevronRight, ArrowRight } from "lucide-react";
 type CustomerStatus = "new" | "warm" | "hot" | "negotiation" | "closed" | "lost";
 
 const STAGES: { key: CustomerStatus; label: string; color: string; bg: string; border: string }[] = [
-  { key: "new",         label: "New Lead",    color: "text-blue-600",   bg: "bg-blue-50",   border: "border-blue-200" },
-  { key: "warm",        label: "Warm",        color: "text-yellow-600", bg: "bg-yellow-50", border: "border-yellow-200" },
-  { key: "hot",         label: "Hot",         color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-200" },
-  { key: "negotiation", label: "Negotiation", color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-200" },
-  { key: "closed",      label: "Closed Won",  color: "text-green-600",  bg: "bg-green-50",  border: "border-green-200" },
-  { key: "lost",        label: "Lost",        color: "text-gray-500",   bg: "bg-gray-50",   border: "border-gray-200" },
+  { key: "new",         label: "Lead Baru",  color: "text-blue-600",   bg: "bg-blue-50",   border: "border-blue-200" },
+  { key: "warm",        label: "Hangat",     color: "text-yellow-600", bg: "bg-yellow-50", border: "border-yellow-200" },
+  { key: "hot",         label: "Panas",      color: "text-orange-600", bg: "bg-orange-50", border: "border-orange-200" },
+  { key: "negotiation", label: "Negosiasi",  color: "text-purple-600", bg: "bg-purple-50", border: "border-purple-200" },
+  { key: "closed",      label: "Berhasil",   color: "text-green-600",  bg: "bg-green-50",  border: "border-green-200" },
+  { key: "lost",        label: "Gagal",      color: "text-gray-500",   bg: "bg-gray-50",   border: "border-gray-200" },
 ];
 
 const NEXT: Record<CustomerStatus, CustomerStatus | null> = {
@@ -24,11 +24,11 @@ const NEXT: Record<CustomerStatus, CustomerStatus | null> = {
 
 function LostReasonModal({ onConfirm, onCancel }: { onConfirm: (reason: string) => void; onCancel: () => void }) {
   const [reason, setReason] = useState("");
-  const presets = ["Price too high", "No response", "Not interested", "Went with competitor", "Bad timing"];
+  const presets = ["Harga terlalu tinggi", "Tidak ada respons", "Tidak berminat", "Pilih kompetitor", "Waktu tidak tepat"];
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <div className="bg-background border rounded-xl shadow-xl w-full max-w-sm p-5 space-y-4">
-        <h3 className="font-semibold">Why was this lost?</h3>
+        <h3 className="font-semibold">Kenapa ini gagal?</h3>
         <div className="flex flex-wrap gap-2">
           {presets.map((p) => (
             <button
@@ -42,17 +42,17 @@ function LostReasonModal({ onConfirm, onCancel }: { onConfirm: (reason: string) 
         </div>
         <input
           className="w-full border rounded-md px-3 py-2 text-sm"
-          placeholder="Or write a reason..."
+          placeholder="Atau tulis alasan lain..."
           value={reason}
           onChange={(e) => setReason(e.target.value)}
         />
         <div className="flex gap-2 justify-end">
-          <button onClick={onCancel} className="text-sm text-muted-foreground hover:text-foreground px-3 py-1.5">Cancel</button>
+          <button onClick={onCancel} className="text-sm text-muted-foreground hover:text-foreground px-3 py-1.5">Batal</button>
           <button
             onClick={() => onConfirm(reason)}
             className="text-sm bg-foreground text-background px-4 py-1.5 rounded-md"
           >
-            Confirm
+            Konfirmasi
           </button>
         </div>
       </div>
@@ -82,9 +82,9 @@ export default function Pipeline() {
       queryClient.invalidateQueries({ queryKey: ["customers-pipeline"] });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
-      toast.success("Customer moved");
+      toast.success("Customer berhasil dipindah");
     } catch {
-      toast.error("Failed to move");
+      toast.error("Gagal memindahkan customer");
     }
     setMovingId(null);
   };
@@ -136,7 +136,7 @@ export default function Pipeline() {
           to="/customers/new"
           className="text-xs bg-foreground text-background px-3 py-1.5 rounded-md hover:opacity-90 transition-opacity"
         >
-          + Add Customer
+          + Tambah Customer
         </Link>
       </div>
 
@@ -204,7 +204,7 @@ export default function Pipeline() {
                               disabled={movingId === c.id}
                               className="text-xs text-red-400 hover:text-red-600 border border-red-200 rounded px-1.5 py-0.5 hover:bg-red-50 transition-colors"
                             >
-                              Lost
+                              Gagal
                             </button>
                           )}
                         </div>

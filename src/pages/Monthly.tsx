@@ -146,7 +146,7 @@ export default function Monthly() {
 
           <div className="bg-white border border-border rounded-xl p-4 card-shadow space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-sm">AI Monthly Insight</h3>
+              <h3 className="font-semibold text-sm">Insight Bulanan AI</h3>
               <Button
                 size="sm"
                 variant="outline"
@@ -155,13 +155,13 @@ export default function Monthly() {
                 disabled={loadingInsight}
               >
                 {loadingInsight ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                {loadingInsight ? "Thinking..." : insight ? "Refresh" : "Generate Insight"}
+                {loadingInsight ? "Berpikir..." : insight ? "Perbarui" : "Buat Insight"}
               </Button>
             </div>
             {insight ? (
               <p className="text-sm leading-relaxed text-foreground">{insight}</p>
             ) : (
-              <p className="text-sm text-muted-foreground">Click "Generate Insight" to get an AI-powered monthly analysis — what improved, what didn't, and what to prioritize next month.</p>
+              <p className="text-sm text-muted-foreground">Klik "Buat Insight" untuk mendapatkan analisis AI bulanan — apa yang membaik, apa yang belum, dan apa yang perlu diprioritaskan bulan depan.</p>
             )}
           </div>
         </>

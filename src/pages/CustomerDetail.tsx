@@ -24,17 +24,17 @@ const typeIcons: Record<InteractionType, any> = {
   note: MessageSquare, transaction: DollarSign, follow_up: CalendarCheck, quick_capture: Zap,
 };
 const typeLabels: Record<InteractionType, string> = {
-  note: "Note", transaction: "Transaction", follow_up: "Follow-up", quick_capture: "Quick Capture",
+  note: "Catatan", transaction: "Transaksi", follow_up: "Follow-up", quick_capture: "Quick Capture",
 };
 
-const LOST_PRESETS = ["Price too high", "No response", "Not interested", "Went with competitor", "Bad timing", "Budget cut"];
+const LOST_PRESETS = ["Harga terlalu tinggi", "Tidak ada respons", "Tidak berminat", "Pilih kompetitor", "Waktu tidak tepat", "Anggaran dipotong"];
 
 function LostReasonModal({ onConfirm, onCancel }: { onConfirm: (r: string) => void; onCancel: () => void }) {
   const [reason, setReason] = useState("");
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
       <div className="bg-background border rounded-xl shadow-xl w-full max-w-sm p-5 space-y-4">
-        <h3 className="font-semibold">Why was this lost?</h3>
+        <h3 className="font-semibold">Kenapa ini gagal?</h3>
         <div className="flex flex-wrap gap-2">
           {LOST_PRESETS.map((p) => (
             <button key={p} onClick={() => setReason(p)}
@@ -43,12 +43,12 @@ function LostReasonModal({ onConfirm, onCancel }: { onConfirm: (r: string) => vo
             </button>
           ))}
         </div>
-        <input className="w-full border rounded-md px-3 py-2 text-sm" placeholder="Or write a reason..."
+        <input className="w-full border rounded-md px-3 py-2 text-sm" placeholder="Atau tulis alasan lain..."
           value={reason} onChange={(e) => setReason(e.target.value)} />
         <div className="flex gap-2 justify-end">
-          <button onClick={onCancel} className="text-sm text-muted-foreground hover:text-foreground px-3 py-1.5">Cancel</button>
+          <button onClick={onCancel} className="text-sm text-muted-foreground hover:text-foreground px-3 py-1.5">Batal</button>
           <button onClick={() => onConfirm(reason)}
-            className="text-sm bg-foreground text-background px-4 py-1.5 rounded-md">Confirm</button>
+            className="text-sm bg-foreground text-background px-4 py-1.5 rounded-md">Konfirmasi</button>
         </div>
       </div>
     </div>
@@ -139,8 +139,8 @@ export default function CustomerDetail() {
     try {
       await api.customers.update(id, { status, ...(lostReason !== undefined ? { lostReason } : {}) });
       invalidate();
-      toast.success("Status updated");
-    } catch { toast.error("Failed"); }
+      toast.success("Status diperbarui");
+    } catch { toast.error("Gagal memperbarui status"); }
   };
 
   const handleStatusSelect = (v: string) => {
@@ -159,8 +159,8 @@ export default function CustomerDetail() {
       await api.customers.update(id, { memory: memoryText });
       queryClient.invalidateQueries({ queryKey: ["customer", id] });
       setEditingMemory(false);
-      toast.success("Memory saved");
-    } catch { toast.error("Failed"); }
+      toast.success("Memori tersimpan");
+    } catch { toast.error("Gagal menyimpan memori"); }
     setSavingMemory(false);
   };
 
@@ -170,18 +170,18 @@ export default function CustomerDetail() {
       queryClient.invalidateQueries({ queryKey: ["interactions", id] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       queryClient.invalidateQueries({ queryKey: ["today-follow-ups"] });
-      toast.success("Marked complete");
-    } catch { toast.error("Failed"); }
+      toast.success("Ditandai selesai");
+    } catch { toast.error("Gagal menandai selesai"); }
   };
 
   const handleDelete = async () => {
-    if (!id || !confirm("Delete this customer and all their data?")) return;
+    if (!id || !confirm("Hapus customer ini beserta semua datanya?")) return;
     try {
       await api.customers.delete(id);
       queryClient.invalidateQueries({ queryKey: ["customers"] });
-      toast.success("Customer deleted");
+      toast.success("Customer berhasil dihapus");
       navigate("/customers");
-    } catch { toast.error("Failed"); }
+    } catch { toast.error("Gagal menghapus customer"); }
   };
 
   const handleGetSummary = async () => {
@@ -228,7 +228,7 @@ export default function CustomerDetail() {
       <div className="flex items-start justify-between">
         <div>
           <button onClick={() => navigate(-1)} className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 mb-2">
-            <ArrowLeft className="h-3 w-3" /> Back
+            <ArrowLeft className="h-3 w-3" /> Kembali
           </button>
           <h2 className="text-xl font-semibold">{customer.name}</h2>
           <div className="flex items-center gap-2 mt-1 flex-wrap">
@@ -245,7 +245,7 @@ export default function CustomerDetail() {
             <p className="text-sm font-mono text-green-600 mt-1">IDR {Number(customer.estimatedValue).toLocaleString()}</p>
           )}
           {customer.status === "lost" && customer.lostReason && (
-            <p className="text-xs text-red-500 mt-1">Lost reason: {customer.lostReason}</p>
+            <p className="text-xs text-red-500 mt-1">Alasan gagal: {customer.lostReason}</p>
           )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
@@ -254,12 +254,12 @@ export default function CustomerDetail() {
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="new">New Lead</SelectItem>
-              <SelectItem value="warm">Warm</SelectItem>
-              <SelectItem value="hot">Hot</SelectItem>
-              <SelectItem value="negotiation">Negotiation</SelectItem>
-              <SelectItem value="closed">Closed Won</SelectItem>
-              <SelectItem value="lost">Lost</SelectItem>
+              <SelectItem value="new">Lead Baru</SelectItem>
+              <SelectItem value="warm">Hangat</SelectItem>
+              <SelectItem value="hot">Panas</SelectItem>
+              <SelectItem value="negotiation">Negosiasi</SelectItem>
+              <SelectItem value="closed">Berhasil</SelectItem>
+              <SelectItem value="lost">Gagal</SelectItem>
             </SelectContent>
           </Select>
           <Button variant="ghost" size="sm" onClick={handleDelete} className="text-destructive h-8">
@@ -286,7 +286,7 @@ export default function CustomerDetail() {
               onClick={() => { setMemoryText(customer.memory || ""); setEditingMemory(true); }}
               className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
             >
-              <Edit2 className="h-3 w-3" /> {customer.memory ? "Edit" : "Add"}
+              <Edit2 className="h-3 w-3" /> {customer.memory ? "Edit" : "Tambah"}
             </button>
           )}
         </div>
@@ -296,97 +296,97 @@ export default function CustomerDetail() {
               <Textarea
                 value={memoryText}
                 onChange={(e) => setMemoryText(e.target.value)}
-                placeholder="Communication style, preferences, important context, personal notes..."
+                placeholder="Gaya komunikasi, preferensi, konteks penting, catatan personal..."
                 rows={3}
                 className="text-sm"
               />
               <div className="flex gap-2">
                 <Button size="sm" className="h-7 text-xs" onClick={handleSaveMemory} disabled={savingMemory}>
-                  {savingMemory ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+                  {savingMemory ? <Loader2 className="h-3 w-3 animate-spin" /> : "Simpan"}
                 </Button>
-                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditingMemory(false)}>Cancel</Button>
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditingMemory(false)}>Batal</Button>
               </div>
             </div>
           ) : customer.memory ? (
             <p className="text-sm whitespace-pre-wrap text-foreground/80">{customer.memory}</p>
           ) : (
-            <p className="text-sm text-muted-foreground italic">No memory added yet. Store communication style, preferences, or personal notes about this customer.</p>
+            <p className="text-sm text-muted-foreground italic">Belum ada memori. Simpan gaya komunikasi, preferensi, atau catatan personal tentang customer ini.</p>
           )}
         </div>
       </div>
 
-      <AIPanel label="Customer Summary">
+      <AIPanel label="Ringkasan Customer">
         {summary ? (
           <div className="space-y-2">
             <p className="text-sm leading-relaxed">{summary}</p>
             <button onClick={handleGetSummary} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-              <RefreshCw className="h-3 w-3" /> Refresh
+              <RefreshCw className="h-3 w-3" /> Perbarui
             </button>
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            <p className="text-xs text-muted-foreground">Get a quick AI-generated overview of who this customer is and what they want.</p>
+            <p className="text-xs text-muted-foreground">Dapatkan ringkasan singkat customer berdasarkan AI.</p>
             <Button size="sm" variant="outline" className="w-fit h-7 text-xs gap-1" onClick={handleGetSummary} disabled={loadingSummary}>
               {loadingSummary ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-              {loadingSummary ? "Generating..." : "Generate Summary"}
+              {loadingSummary ? "Menghasilkan..." : "Buat Ringkasan"}
             </Button>
           </div>
         )}
       </AIPanel>
 
-      <AIPanel label="Next Action Suggestion">
+      <AIPanel label="Saran Tindakan Berikutnya">
         {nextAction ? (
           <div className="space-y-2">
             <div className={`text-xs font-medium px-2 py-1 rounded border w-fit ${urgencyColors[nextAction.urgency] || urgencyColors.low}`}>
-              {nextAction.urgency?.toUpperCase()} PRIORITY
+              PRIORITAS {nextAction.urgency === "high" ? "TINGGI" : nextAction.urgency === "medium" ? "SEDANG" : "RENDAH"}
             </div>
             <p className="text-sm font-medium">{nextAction.action}</p>
             <p className="text-xs text-muted-foreground">{nextAction.reason}</p>
             {nextAction.suggestedDate && (
-              <p className="text-xs font-mono text-muted-foreground">Suggested: {nextAction.suggestedDate}</p>
+              <p className="text-xs font-mono text-muted-foreground">Disarankan: {nextAction.suggestedDate}</p>
             )}
             <button onClick={handleNextAction} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mt-1">
-              <RefreshCw className="h-3 w-3" /> Refresh
+              <RefreshCw className="h-3 w-3" /> Perbarui
             </button>
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            <p className="text-xs text-muted-foreground">Get the best next step to move this deal forward.</p>
+            <p className="text-xs text-muted-foreground">Dapatkan langkah terbaik untuk memajukan deal ini.</p>
             <Button size="sm" variant="outline" className="w-fit h-7 text-xs gap-1" onClick={handleNextAction} disabled={loadingNext}>
               {loadingNext ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-              {loadingNext ? "Thinking..." : "Suggest Next Action"}
+              {loadingNext ? "Berpikir..." : "Saran Tindakan"}
             </Button>
           </div>
         )}
       </AIPanel>
 
-      <AIPanel label="Reply Generator">
+      <AIPanel label="Generator Balasan">
         <div className="space-y-2">
-          <Textarea placeholder='Paste the customer message...' value={replyMessage} onChange={(e) => setReplyMessage(e.target.value)} rows={2} className="text-sm" />
+          <Textarea placeholder='Tempelkan pesan customer di sini...' value={replyMessage} onChange={(e) => setReplyMessage(e.target.value)} rows={2} className="text-sm" />
           <div className="flex items-center gap-2">
             <Select value={replyTone} onValueChange={setReplyTone}>
               <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
-                <SelectItem value="casual">Casual & Warm</SelectItem>
-                <SelectItem value="professional">Professional</SelectItem>
-                <SelectItem value="persuasive">Persuasive</SelectItem>
+                <SelectItem value="casual">Santai & Hangat</SelectItem>
+                <SelectItem value="professional">Profesional</SelectItem>
+                <SelectItem value="persuasive">Persuasif</SelectItem>
               </SelectContent>
             </Select>
             <Button size="sm" variant="outline" className="h-8 text-xs gap-1" onClick={handleGenerateReply} disabled={loadingReply || !replyMessage.trim()}>
               {loadingReply ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-              {loadingReply ? "Writing..." : "Generate Reply"}
+              {loadingReply ? "Menulis..." : "Buat Balasan"}
             </Button>
           </div>
           {reply && (
             <div className="bg-muted/50 border rounded p-3 space-y-2">
               <p className="text-sm whitespace-pre-wrap leading-relaxed">{reply}</p>
               <div className="flex items-center gap-2">
-                <button onClick={() => { navigator.clipboard.writeText(reply); toast.success("Copied!"); }}
+                <button onClick={() => { navigator.clipboard.writeText(reply); toast.success("Tersalin!"); }}
                   className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-                  <Copy className="h-3 w-3" /> Copy
+                  <Copy className="h-3 w-3" /> Salin
                 </button>
                 <button onClick={handleGenerateReply} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
-                  <RefreshCw className="h-3 w-3" /> Try again
+                  <RefreshCw className="h-3 w-3" /> Coba lagi
                 </button>
               </div>
             </div>
@@ -395,25 +395,25 @@ export default function CustomerDetail() {
       </AIPanel>
 
       <form onSubmit={handleAddInteraction} className="bg-white border border-border rounded-xl card-shadow p-4 space-y-3">
-        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Add to Timeline</p>
+        <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Tambah ke Timeline</p>
         <div className="flex gap-2 flex-wrap">
           <Select value={addType} onValueChange={(v) => setAddType(v as InteractionType)}>
             <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="note">📝 Note</SelectItem>
-              <SelectItem value="transaction">💰 Transaction</SelectItem>
+              <SelectItem value="note">📝 Catatan</SelectItem>
+              <SelectItem value="transaction">💰 Transaksi</SelectItem>
               <SelectItem value="follow_up">📅 Follow-up</SelectItem>
             </SelectContent>
           </Select>
           {addType === "transaction" && (
-            <Input placeholder="Amount" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-32 h-8 text-xs" />
+            <Input placeholder="Jumlah" type="number" value={amount} onChange={(e) => setAmount(e.target.value)} className="w-32 h-8 text-xs" />
           )}
           {addType === "follow_up" && (
             <Input type="date" value={followUpDate} onChange={(e) => setFollowUpDate(e.target.value)} className="w-40 h-8 text-xs" />
           )}
         </div>
-        <Textarea placeholder="Write something..." value={content} onChange={(e) => setContent(e.target.value)} rows={2} className="text-sm" />
-        <Button type="submit" size="sm" disabled={saving || !content.trim()}>Add</Button>
+        <Textarea placeholder="Tulis sesuatu..." value={content} onChange={(e) => setContent(e.target.value)} rows={2} className="text-sm" />
+        <Button type="submit" size="sm" disabled={saving || !content.trim()}>Tambah</Button>
       </form>
 
       <div className="space-y-2">
@@ -433,11 +433,11 @@ export default function CustomerDetail() {
                       <span className="text-xs text-muted-foreground font-mono">{format(parseISO(i.createdAt), "MMM d, h:mm a")}</span>
                       {i.type === "follow_up" && !i.isCompleted && (
                         <button onClick={() => handleComplete(i.id)} className="text-xs text-status-closed hover:underline flex items-center gap-0.5">
-                          <Check className="h-3 w-3" /> Done
+                          <Check className="h-3 w-3" /> Selesai
                         </button>
                       )}
                       {i.type === "follow_up" && i.isCompleted && (
-                        <span className="text-xs text-green-600">✓ Completed</span>
+                        <span className="text-xs text-green-600">✓ Selesai</span>
                       )}
                     </div>
                     <p className="text-sm mt-0.5 whitespace-pre-wrap">{i.content}</p>

@@ -143,7 +143,7 @@ export default function AppSidebar({ open, onClose }: AppSidebarProps) {
             </button>
           </TooltipTrigger>
           <TooltipContent side="right" className="text-xs">
-            Sign out
+            Keluar
           </TooltipContent>
         </Tooltip>
       </div>
@@ -225,7 +225,7 @@ export default function AppSidebar({ open, onClose }: AppSidebarProps) {
           className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-muted-foreground hover:bg-muted hover:text-foreground w-full transition-colors"
         >
           <LogOut className="h-4 w-4" />
-          Sign out
+          Keluar
         </button>
       </div>
     </aside>

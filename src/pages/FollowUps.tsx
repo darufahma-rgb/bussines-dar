@@ -51,7 +51,7 @@ export default function FollowUps() {
                   </span>
                 )}
                 <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => handleComplete(f.id)}>
-                  <Check className="h-3 w-3 mr-1" /> Done
+                  <Check className="h-3 w-3 mr-1" /> Selesai
                 </Button>
               </div>
             </div>
@@ -76,13 +76,13 @@ export default function FollowUps() {
       ]} />
 
       {!followUps?.length ? (
-        <p className="text-sm text-muted-foreground p-8 text-center">No pending follow-ups. You're all caught up! 🎉</p>
+        <p className="text-sm text-muted-foreground p-8 text-center">Tidak ada follow-up tertunda. Semua sudah beres! 🎉</p>
       ) : (
         <div className="space-y-6">
-          <Section title="⚠️ Overdue" items={overdue} color="text-status-hot" />
-          <Section title="📅 Today" items={today} color="text-status-new" />
-          <Section title="🔜 Upcoming" items={upcoming} color="text-muted-foreground" />
-          <Section title="📌 No date set" items={noDate} color="text-muted-foreground" />
+          <Section title="⚠️ Terlambat" items={overdue} color="text-status-hot" />
+          <Section title="📅 Hari Ini" items={today} color="text-status-new" />
+          <Section title="🔜 Mendatang" items={upcoming} color="text-muted-foreground" />
+          <Section title="📌 Tanpa Tanggal" items={noDate} color="text-muted-foreground" />
         </div>
       )}
     </div>

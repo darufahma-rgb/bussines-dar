@@ -109,10 +109,10 @@ export default function QuickCapture() {
           <Zap className="h-4 w-4 text-status-warm shrink-0" />
           <Select value={customerId} onValueChange={setCustomerId}>
             <SelectTrigger className="w-36 h-8 text-xs">
-              <SelectValue placeholder="New customer" />
+              <SelectValue placeholder="Customer baru" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="__new__">+ New customer</SelectItem>
+              <SelectItem value="__new__">+ Customer baru</SelectItem>
               {customers?.map((c: any) => (
                 <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
               ))}
@@ -136,7 +136,7 @@ export default function QuickCapture() {
               disabled={parsing}
             >
               {parsing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-              {parsing ? "Parsing..." : "AI Parse"}
+              {parsing ? "Memproses..." : "AI Parse"}
             </Button>
           )}
           <Button type="submit" size="sm" disabled={saving || !text.trim()} className="h-8 text-xs shrink-0">
@@ -148,7 +148,7 @@ export default function QuickCapture() {
           <div className="border-t bg-muted/30 px-3 py-2.5 space-y-2">
             <div className="flex items-center justify-between">
               <span className="text-xs font-medium text-muted-foreground flex items-center gap-1">
-                <Sparkles className="h-3 w-3" /> AI extracted — review before saving
+                <Sparkles className="h-3 w-3" /> AI mengekstrak — periksa sebelum menyimpan
               </span>
               <button type="button" onClick={clearParsed} className="text-muted-foreground hover:text-foreground">
                 <X className="h-3.5 w-3.5" />
@@ -157,7 +157,7 @@ export default function QuickCapture() {
             <div className="flex flex-wrap gap-2 text-xs">
               {parsed.name && (
                 <span className="flex items-center gap-1 bg-background border rounded px-2 py-1">
-                  <span className="text-muted-foreground">Name:</span>
+                  <span className="text-muted-foreground">Nama:</span>
                   <span className="font-medium">{parsed.name}</span>
                 </span>
               )}
@@ -169,7 +169,7 @@ export default function QuickCapture() {
               )}
               {parsed.interest && (
                 <span className="flex items-center gap-1 bg-background border rounded px-2 py-1 max-w-xs">
-                  <span className="text-muted-foreground shrink-0">Interested in:</span>
+                  <span className="text-muted-foreground shrink-0">Tertarik:</span>
                   <span className="font-medium truncate">{parsed.interest}</span>
                 </span>
               )}
@@ -181,7 +181,7 @@ export default function QuickCapture() {
               )}
               {parsed.businessIds && parsed.businessIds.length > 0 && (
                 <span className="flex items-center gap-1 bg-background border rounded px-2 py-1">
-                  <span className="text-muted-foreground">Business:</span>
+                  <span className="text-muted-foreground">Bisnis:</span>
                   <span className="font-medium">
                     {parsed.businessIds.map((id: string) => businesses?.find((b: any) => b.id === id)?.name).filter(Boolean).join(", ")}
                   </span>
@@ -190,7 +190,7 @@ export default function QuickCapture() {
             </div>
             <p className="text-xs text-muted-foreground">
               <Check className="h-3 w-3 inline mr-1 text-green-500" />
-              Looks good? Hit <strong>Capture</strong> to save, or edit your text above.
+              Sudah oke? Tekan <strong>Capture</strong> untuk menyimpan, atau edit teks di atas.
             </p>
           </div>
         )}

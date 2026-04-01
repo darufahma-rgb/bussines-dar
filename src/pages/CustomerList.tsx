@@ -80,7 +80,7 @@ export default function CustomerList() {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-2">
         <div>
-          <h2 className="text-xl font-semibold">Customers</h2>
+          <h2 className="text-xl font-semibold">Daftar Customer</h2>
           <p className="text-sm text-muted-foreground">{customers?.length ?? 0} customer</p>
         </div>
         <Button
@@ -107,7 +107,7 @@ export default function CustomerList() {
         <div className="relative flex-1 min-w-[160px]">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by name..."
+            placeholder="Cari nama customer..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9 h-9"
@@ -119,13 +119,13 @@ export default function CustomerList() {
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="new">New Lead</SelectItem>
-            <SelectItem value="warm">Warm</SelectItem>
-            <SelectItem value="hot">Hot</SelectItem>
-            <SelectItem value="negotiation">Negotiation</SelectItem>
-            <SelectItem value="closed">Closed Won</SelectItem>
-            <SelectItem value="lost">Lost</SelectItem>
+            <SelectItem value="all">Semua Status</SelectItem>
+            <SelectItem value="new">Lead Baru</SelectItem>
+            <SelectItem value="warm">Hangat</SelectItem>
+            <SelectItem value="hot">Panas</SelectItem>
+            <SelectItem value="negotiation">Negosiasi</SelectItem>
+            <SelectItem value="closed">Berhasil</SelectItem>
+            <SelectItem value="lost">Gagal</SelectItem>
           </SelectContent>
         </Select>
         <Select value={bizFilter} onValueChange={setBizFilter}>
@@ -133,7 +133,7 @@ export default function CustomerList() {
             <SelectValue placeholder="Business" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Business</SelectItem>
+            <SelectItem value="all">Semua Bisnis</SelectItem>
             {businesses?.map((b: any) => (
               <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
             ))}
@@ -148,13 +148,13 @@ export default function CustomerList() {
             <SelectValue placeholder="Sort by" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="updatedAt-desc">Latest Updated</SelectItem>
-            <SelectItem value="updatedAt-asc">Oldest Updated</SelectItem>
-            <SelectItem value="name-asc">Name A–Z</SelectItem>
-            <SelectItem value="name-desc">Name Z–A</SelectItem>
+            <SelectItem value="updatedAt-desc">Terbaru Diupdate</SelectItem>
+            <SelectItem value="updatedAt-asc">Terlama Diupdate</SelectItem>
+            <SelectItem value="name-asc">Nama A–Z</SelectItem>
+            <SelectItem value="name-desc">Nama Z–A</SelectItem>
             <SelectItem value="status-asc">Status</SelectItem>
-            <SelectItem value="estimatedValue-desc">Highest Value</SelectItem>
-            <SelectItem value="estimatedValue-asc">Lowest Value</SelectItem>
+            <SelectItem value="estimatedValue-desc">Nilai Terbesar</SelectItem>
+            <SelectItem value="estimatedValue-asc">Nilai Terkecil</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -167,7 +167,7 @@ export default function CustomerList() {
         </div>
       ) : !sorted.length ? (
         <div className="text-sm text-muted-foreground p-8 text-center">
-          No customers found. <Link to="/customers/new" className="underline">Add your first customer</Link>
+          Belum ada customer. <Link to="/customers/new" className="underline">Tambah customer pertama kamu</Link>
         </div>
       ) : (
         <div className="bg-white border border-border rounded-xl card-shadow divide-y divide-border">

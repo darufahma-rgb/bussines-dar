@@ -82,7 +82,7 @@ export default function Weekly() {
 
           <div className="bg-white border border-border rounded-xl p-4 card-shadow space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="font-semibold text-sm">AI Weekly Insight</h3>
+              <h3 className="font-semibold text-sm">Insight Mingguan AI</h3>
               <Button
                 size="sm"
                 variant="outline"
@@ -91,20 +91,20 @@ export default function Weekly() {
                 disabled={loadingInsight}
               >
                 {loadingInsight ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                {loadingInsight ? "Thinking..." : insight ? "Refresh" : "Generate Insight"}
+                {loadingInsight ? "Berpikir..." : insight ? "Perbarui" : "Buat Insight"}
               </Button>
             </div>
             {insight ? (
               <p className="text-sm leading-relaxed text-foreground">{insight}</p>
             ) : (
-              <p className="text-sm text-muted-foreground">Click "Generate Insight" to get an AI-powered summary of your week — what's going well, what needs attention, and what to focus on.</p>
+              <p className="text-sm text-muted-foreground">Klik "Buat Insight" untuk mendapatkan ringkasan AI tentang minggu ini — apa yang berjalan baik, apa yang perlu diperhatikan, dan apa yang harus difokuskan.</p>
             )}
           </div>
 
           <div className="bg-white border border-border rounded-xl p-4 card-shadow">
             <h3 className="font-semibold text-sm mb-3">Aktivitas Minggu Ini</h3>
             {!stats?.weekInteractions?.length ? (
-              <p className="text-sm text-muted-foreground py-4 text-center">No activity recorded this week yet.</p>
+              <p className="text-sm text-muted-foreground py-4 text-center">Belum ada aktivitas minggu ini.</p>
             ) : (
               <div className="divide-y">
                 {stats.weekInteractions.map((i: any) => (

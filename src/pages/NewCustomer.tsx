@@ -44,10 +44,10 @@ export default function NewCustomer() {
       });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
-      toast.success("Customer created!");
+      toast.success("Customer berhasil dibuat!");
       navigate(`/customers/${id}`);
     } catch (err: any) {
-      toast.error(err.message || "Failed to create customer");
+      toast.error(err.message || "Gagal membuat customer");
     }
     setSaving(false);
   };
@@ -68,8 +68,8 @@ export default function NewCustomer() {
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Name *</label>
-          <Input value={name} onChange={(e) => setName(e.target.value)} required placeholder="Customer name" />
+          <label className="text-sm font-medium">Nama *</label>
+          <Input value={name} onChange={(e) => setName(e.target.value)} required placeholder="Nama customer" />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
@@ -78,7 +78,7 @@ export default function NewCustomer() {
             <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="email@example.com" />
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Phone</label>
+            <label className="text-sm font-medium">Telepon</label>
             <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+62..." />
           </div>
         </div>
@@ -91,20 +91,20 @@ export default function NewCustomer() {
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="new">New Lead</SelectItem>
-                <SelectItem value="warm">Warm</SelectItem>
-                <SelectItem value="hot">Hot</SelectItem>
-                <SelectItem value="negotiation">Negotiation</SelectItem>
-                <SelectItem value="closed">Closed Won</SelectItem>
-                <SelectItem value="lost">Lost</SelectItem>
+                <SelectItem value="new">Lead Baru</SelectItem>
+                <SelectItem value="warm">Hangat</SelectItem>
+                <SelectItem value="hot">Panas</SelectItem>
+                <SelectItem value="negotiation">Negosiasi</SelectItem>
+                <SelectItem value="closed">Berhasil</SelectItem>
+                <SelectItem value="lost">Gagal</SelectItem>
               </SelectContent>
             </Select>
           </div>
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Source</label>
+            <label className="text-sm font-medium">Sumber</label>
             <Select value={source} onValueChange={setSource}>
               <SelectTrigger className="h-9">
-                <SelectValue placeholder="Where from?" />
+                <SelectValue placeholder="Dari mana?" />
               </SelectTrigger>
               <SelectContent>
                 {SOURCE_OPTIONS.map((s) => (
@@ -124,11 +124,11 @@ export default function NewCustomer() {
             onChange={(e) => setEstimatedValue(e.target.value)}
             placeholder="e.g. 5000000"
           />
-          <p className="text-xs text-muted-foreground">Optional — helps track pipeline revenue</p>
+          <p className="text-xs text-muted-foreground">Opsional — membantu melacak nilai pipeline</p>
         </div>
 
         <div className="space-y-2">
-          <label className="text-sm font-medium">Businesses</label>
+          <label className="text-sm font-medium">Bisnis</label>
           <div className="flex flex-wrap gap-3">
             {businesses?.map((b: any) => (
               <label key={b.id} className="flex items-center gap-2 text-sm cursor-pointer">
@@ -149,9 +149,9 @@ export default function NewCustomer() {
 
         <div className="flex gap-2 pt-2">
           <Button type="submit" disabled={saving || !name.trim()}>
-            {saving ? "Saving..." : "Create Customer"}
+            {saving ? "Menyimpan..." : "Buat Customer"}
           </Button>
-          <Button type="button" variant="ghost" onClick={() => navigate(-1)}>Cancel</Button>
+          <Button type="button" variant="ghost" onClick={() => navigate(-1)}>Batal</Button>
         </div>
       </form>
     </div>
