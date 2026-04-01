@@ -129,8 +129,8 @@ export default function CustomerDetail() {
       setContent(""); setAmount(""); setFollowUpDate("");
       queryClient.invalidateQueries({ queryKey: ["interactions", id] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
-      toast.success("Added!");
-    } catch { toast.error("Failed to add"); }
+      toast.success("Berhasil ditambahkan!");
+    } catch { toast.error("Gagal menambahkan interaksi"); }
     setSaving(false);
   };
 
@@ -188,7 +188,7 @@ export default function CustomerDetail() {
     if (!id) return;
     setLoadingSummary(true);
     try { const r = await api.ai.customerSummary(id); setSummary(r.summary); }
-    catch { toast.error("Could not generate summary"); }
+    catch { toast.error("Gagal membuat ringkasan"); }
     setLoadingSummary(false);
   };
 
@@ -196,7 +196,7 @@ export default function CustomerDetail() {
     if (!replyMessage.trim() || !id) return;
     setLoadingReply(true);
     try { const r = await api.ai.generateReply({ customerMessage: replyMessage, tone: replyTone, customerId: id }); setReply(r.reply); }
-    catch { toast.error("Could not generate reply"); }
+    catch { toast.error("Gagal membuat balasan"); }
     setLoadingReply(false);
   };
 
@@ -204,7 +204,7 @@ export default function CustomerDetail() {
     if (!id) return;
     setLoadingNext(true);
     try { const r = await api.ai.nextAction(id); setNextAction(r); }
-    catch { toast.error("Could not generate suggestion"); }
+    catch { toast.error("Gagal membuat saran tindakan"); }
     setLoadingNext(false);
   };
 
@@ -214,7 +214,7 @@ export default function CustomerDetail() {
     low: "text-green-600 bg-green-50 border-green-200",
   };
 
-  if (!customer) return <div className="p-8 text-center text-muted-foreground">Loading...</div>;
+  if (!customer) return <div className="p-8 text-center text-muted-foreground">Memuat data...</div>;
 
   return (
     <div className="space-y-5 max-w-2xl">

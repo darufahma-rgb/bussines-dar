@@ -21,9 +21,9 @@ export default function FollowUps() {
       await api.interactions.complete(id);
       queryClient.invalidateQueries({ queryKey: ["all-follow-ups"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
-      toast.success("Done!");
+      toast.success("Selesai!");
     } catch {
-      toast.error("Failed to mark complete");
+      toast.error("Gagal menandai selesai");
     }
   };
 

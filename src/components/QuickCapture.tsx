@@ -54,7 +54,7 @@ export default function QuickCapture() {
       const result = await api.ai.parseCapture(text, businesses || []);
       setParsed(result);
     } catch {
-      toast.error("AI parsing failed, saving as plain note");
+      toast.error("AI gagal memproses, simpan sebagai catatan biasa");
     }
     setParsing(false);
   };
@@ -66,7 +66,7 @@ export default function QuickCapture() {
     try {
       if (customerId && customerId !== "__new__") {
         await api.interactions.create({ customerId, type: "quick_capture", content: text.trim() });
-        toast.success("Captured!");
+        toast.success("Tersimpan!");
       } else if (parsed && parsed.name) {
         const { id: newId } = await api.customers.create({
           name: parsed.name,
@@ -78,13 +78,13 @@ export default function QuickCapture() {
         if (parsed.followUpDate) {
           await api.interactions.create({ customerId: newId, type: "follow_up", content: parsed.interest || "Follow up", followUpDate: parsed.followUpDate });
         }
-        toast.success(`Customer "${parsed.name}" created with AI-extracted info!`);
+        toast.success(`Customer "${parsed.name}" berhasil dibuat dari AI!`);
       } else {
         const nameMatch = text.match(/^(\w+)/);
-        const name = nameMatch ? nameMatch[1] : "Unknown";
+        const name = nameMatch ? nameMatch[1] : "Customer Baru";
         const { id: newId } = await api.customers.create({ name });
         await api.interactions.create({ customerId: newId, type: "quick_capture", content: text.trim() });
-        toast.success(`New customer "${name}" created!`);
+        toast.success(`Customer "${name}" berhasil dibuat!`);
       }
 
       setText("");
@@ -95,7 +95,7 @@ export default function QuickCapture() {
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       queryClient.invalidateQueries({ queryKey: ["recent-captures"] });
     } catch {
-      toast.error("Failed to save");
+      toast.error("Gagal menyimpan, coba lagi");
     }
     setSaving(false);
   };

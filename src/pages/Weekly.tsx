@@ -23,21 +23,21 @@ export default function Weekly() {
       const result = await api.ai.weeklyInsight(stats);
       setInsight(result.insight);
     } catch {
-      setInsight("Could not generate insight. Try again later.");
+      setInsight("Gagal membuat insight. Coba lagi nanti.");
     }
     setLoadingInsight(false);
   };
 
   const statCards = [
-    { label: "New Leads", value: stats?.newLeads ?? 0, icon: Users, color: "text-blue-500", bg: "bg-blue-50 dark:bg-blue-950" },
-    { label: "Hot Leads", value: stats?.hotLeads ?? 0, icon: Flame, color: "text-orange-500", bg: "bg-orange-50 dark:bg-orange-950" },
-    { label: "Deals Closed", value: stats?.closedDeals ?? 0, icon: TrendingUp, color: "text-green-500", bg: "bg-green-50 dark:bg-green-950" },
-    { label: "Missed Follow-ups", value: stats?.missedFollowUps ?? 0, icon: AlertTriangle, color: "text-red-500", bg: "bg-red-50 dark:bg-red-950" },
+    { label: "Lead Baru", value: stats?.newLeads ?? 0, icon: Users, color: "text-blue-500", bg: "bg-blue-50" },
+    { label: "Lead Panas", value: stats?.hotLeads ?? 0, icon: Flame, color: "text-amber-500", bg: "bg-amber-50" },
+    { label: "Deal Berhasil", value: stats?.closedDeals ?? 0, icon: TrendingUp, color: "text-green-500", bg: "bg-green-50" },
+    { label: "Follow-up Terlewat", value: stats?.missedFollowUps ?? 0, icon: AlertTriangle, color: "text-red-500", bg: "bg-red-50" },
   ];
 
   const typeLabels: Record<string, string> = {
-    note: "Note",
-    transaction: "Transaction",
+    note: "Catatan",
+    transaction: "Transaksi",
     follow_up: "Follow-up",
     quick_capture: "Capture",
   };
@@ -58,12 +58,12 @@ export default function Weekly() {
 
       <PageGuide steps={[
         { icon: "📊", title: "Statistik Minggu Ini", desc: "Lihat berapa lead baru masuk, hot lead, deal yang berhasil ditutup, dan follow-up yang terlewat dalam 7 hari terakhir." },
-        { icon: "✨", title: "AI Weekly Insight", desc: "Klik 'Generate Insight' untuk mendapatkan analisis AI tentang performa minggu ini — apa yang berjalan baik, apa yang perlu diperbaiki, dan rekomendasi untuk minggu depan." },
+        { icon: "✨", title: "AI Weekly Insight", desc: "Klik 'Buat Insight' untuk mendapatkan analisis AI tentang performa minggu ini — apa yang berjalan baik, apa yang perlu diperbaiki, dan rekomendasi untuk minggu depan." },
         { icon: "📋", title: "Aktivitas Minggu Ini", desc: "Daftar semua interaksi yang terjadi minggu ini: note, follow-up, quick capture, dan transaksi. Klik nama customer untuk membuka profilnya." },
       ]} />
 
       {isLoading ? (
-        <div className="text-sm text-muted-foreground text-center py-12">Loading...</div>
+        <div className="text-sm text-muted-foreground text-center py-12">Memuat data...</div>
       ) : (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
@@ -113,12 +113,12 @@ export default function Weekly() {
                       {typeLabels[i.type] || i.type}
                     </span>
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
                         <Link to={`/customers/${i.customerId}`} className="text-xs font-medium hover:underline">
                           {i.customerName}
                         </Link>
                         <span className="text-xs text-muted-foreground font-mono shrink-0">
-                          {format(parseISO(i.createdAt), "EEE, MMM d")}
+                          {format(parseISO(i.createdAt), "EEE, d MMM")}
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{i.content}</p>
