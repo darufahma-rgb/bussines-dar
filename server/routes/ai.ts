@@ -19,7 +19,7 @@ const openai = new OpenAI({
 });
 
 const AI_MODEL = process.env.OPENROUTER_API_KEY
-  ? (process.env.OPENROUTER_MODEL || "openai/gpt-4o-mini")
+  ? (process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-001")
   : "gpt-4o-mini";
 
 router.post("/parse-capture", async (req, res) => {
