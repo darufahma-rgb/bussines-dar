@@ -1,4 +1,4 @@
-# CRM Hub
+# Darcia Business Hub
 
 A purpose-built multi-business CRM designed as a **Business Operating System** for founders managing multiple brands from a single interface. Built to replace spreadsheets and generic CRMs with a tool that understands multi-business context.
 
@@ -6,7 +6,7 @@ A purpose-built multi-business CRM designed as a **Business Operating System** f
 
 ## What This Is
 
-CRM Hub is an internal operations tool for founders running more than one business. Instead of juggling separate tools per brand, CRM Hub gives you one unified dashboard across all your businesses — with shared customer tracking, pipeline management, AI-assisted follow-ups, and structured review cadences (weekly, monthly, yearly).
+Darcia Business Hub is an internal operations tool for founders running more than one business. Instead of juggling separate tools per brand, it gives you one unified dashboard across all your businesses — with shared customer tracking, pipeline management, AI-assisted follow-ups, and structured review cadences (weekly, monthly, yearly).
 
 Built for: **Temantiket**, **SYMP Studio**, **Darcia**, and **AIGYPT**.
 

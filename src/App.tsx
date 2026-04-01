@@ -52,7 +52,7 @@ function TopBar({
     if (location.pathname.startsWith("/customers/") && location.pathname !== "/customers/new") {
       return "Detail Customer";
     }
-    return PAGE_TITLES[location.pathname] ?? "CRM Hub";
+    return PAGE_TITLES[location.pathname] ?? "Darcia Business Hub";
   };
 
   return (

@@ -17,7 +17,7 @@ function getOpenAI() {
       ? "https://openrouter.ai/api/v1"
       : (process.env.AI_INTEGRATIONS_OPENAI_BASE_URL || "https://api.openai.com/v1"),
     defaultHeaders: process.env.OPENROUTER_API_KEY
-      ? { "HTTP-Referer": "https://crmhub.app", "X-Title": "CRM Hub" }
+      ? { "HTTP-Referer": "https://darciabusinesshub.app", "X-Title": "Darcia Business Hub" }
       : {},
   });
 }

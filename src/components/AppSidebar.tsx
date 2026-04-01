@@ -97,7 +97,7 @@ function SidebarContent({
         </div>
         {!collapsed && (
           <div className="flex-1 min-w-0">
-            <p className="font-bold text-sm leading-tight text-foreground">CRM Hub</p>
+            <p className="font-bold text-sm leading-tight text-foreground">Darcia Business Hub</p>
             <p className="text-[10px] text-muted-foreground truncate leading-tight mt-0.5">{user?.email}</p>
           </div>
         )}

@@ -106,7 +106,7 @@ export default function Login() {
     if (error) {
       toast.error(error.message);
     } else if (isSignUp) {
-      toast.success("Akun berhasil dibuat! Selamat datang di CRM Hub.");
+      toast.success("Akun berhasil dibuat! Selamat datang di Darcia Business Hub.");
     }
     setLoading(false);
   };
@@ -135,7 +135,7 @@ export default function Login() {
           >
             <TrendingUp className="h-5 w-5 text-white" />
           </div>
-          <h1 className="text-lg font-bold text-white tracking-tight">CRM Hub</h1>
+          <h1 className="text-lg font-bold text-white tracking-tight">Darcia Business Hub</h1>
           <p className="text-xs text-white/50 mt-0.5">Business Operating System</p>
         </div>
 
@@ -243,7 +243,7 @@ export default function Login() {
               {isSignUp ? "Buat akun baru" : "Selamat datang"}
             </h1>
             <p className="text-sm text-gray-400 mt-1.5">
-              {isSignUp ? "Isi data untuk membuat akun CRM Hub." : "Masukkan detail akunmu untuk masuk."}
+              {isSignUp ? "Isi data untuk membuat akun Darcia Business Hub." : "Masukkan detail akunmu untuk masuk."}
             </p>
           </div>
 
