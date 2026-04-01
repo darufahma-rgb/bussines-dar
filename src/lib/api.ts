@@ -95,4 +95,11 @@ export const api = {
     weekly: () => request("/stats/weekly"),
     monthly: () => request("/stats/monthly"),
   },
+  import: {
+    customers: (rows: object[], businessName?: string) =>
+      request("/import/customers", {
+        method: "POST",
+        body: JSON.stringify({ rows, businessName }),
+      }),
+  },
 };

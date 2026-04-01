@@ -11,6 +11,7 @@ import customerRoutes from "./routes/customers.js";
 import interactionRoutes from "./routes/interactions.js";
 import aiRoutes from "./routes/ai.js";
 import statsRoutes from "./routes/stats.js";
+import importRoutes from "./routes/import.js";
 
 const app = express();
 const PgSession = connectPgSimple(session);
@@ -57,6 +58,7 @@ app.use("/api/customers", customerRoutes);
 app.use("/api/interactions", interactionRoutes);
 app.use("/api/ai", aiLimiter, aiRoutes);
 app.use("/api/stats", statsRoutes);
+app.use("/api/import", importRoutes);
 
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
