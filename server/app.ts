@@ -14,6 +14,7 @@ const app = express();
 const PgSession = connectPgSimple(session);
 const isProd = process.env.NODE_ENV === "production";
 
+app.set("trust proxy", 1);
 app.use(express.json());
 
 app.use(session({
@@ -25,7 +26,7 @@ app.use(session({
     maxAge: 7 * 24 * 60 * 60 * 1000,
     httpOnly: true,
     secure: isProd,
-    sameSite: isProd ? "none" : "lax",
+    sameSite: "lax",
   },
 }));
 
