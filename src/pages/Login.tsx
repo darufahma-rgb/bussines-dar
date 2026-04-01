@@ -129,12 +129,7 @@ export default function Login() {
 
         {/* brand header — above card */}
         <div className="relative z-10 text-center mb-5">
-          <div
-            className="h-12 w-12 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg overflow-hidden"
-            style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(8px)" }}
-          >
-            <img src="/darcia-logo.png" alt="Darcia" className="h-8 w-8 object-contain" />
-          </div>
+          <img src="/darcia-logo.png" alt="Darcia" className="h-10 w-auto object-contain mx-auto mb-3" />
           <h1 className="text-lg font-bold text-white tracking-tight">Darcia Business Hub</h1>
           <p className="text-xs text-white/50 mt-0.5">Business Operating System</p>
         </div>
@@ -214,6 +209,14 @@ export default function Login() {
             </button>
           </p>
         </div>
+
+        {/* brand logos row — on animated bg */}
+        <div className="relative z-10 flex items-center justify-center gap-6 mt-6">
+          <img src="/darcia-logo.png"    alt="Darcia"      className="h-7 w-7 object-contain opacity-70" />
+          <img src="/temantiket-logo.png" alt="Temantiket" className="h-7 w-7 object-contain opacity-70" style={{ mixBlendMode: "screen" }} />
+          <img src="/symp-logo.png"       alt="SYMP"        className="h-7 w-7 object-contain opacity-70" />
+          <img src="/aigypt-logo.png"     alt="AIGYPT"      className="h-7 w-7 object-contain opacity-70" />
+        </div>
       </div>
 
       {/* ═══════════════════════════════════════
@@ -233,12 +236,7 @@ export default function Login() {
         {/* left form */}
         <div className="relative flex flex-col justify-center bg-white px-8 py-10 w-[400px] shrink-0 z-10">
           <div className="mb-7">
-            <div
-              className="h-11 w-11 rounded-xl flex items-center justify-center mb-5 overflow-hidden"
-              style={{ background: BLUE }}
-            >
-              <img src="/darcia-logo.png" alt="Darcia" className="h-7 w-7 object-contain" />
-            </div>
+            <img src="/darcia-logo.png" alt="Darcia" className="h-10 w-auto object-contain mb-5" style={{ filter: "brightness(0)" }} />
             <h1 className="text-[26px] font-bold text-gray-900 leading-tight">
               {isSignUp ? "Buat akun baru" : "Selamat datang"}
             </h1>
@@ -317,9 +315,16 @@ export default function Login() {
             <p className="text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-1">
               Business Operating System
             </p>
-            <p className="text-white/60 text-xs leading-relaxed">
+            <p className="text-white/60 text-xs leading-relaxed mb-5">
               Kelola semua customer, pipeline, dan review bisnis kamu dalam satu dashboard.
             </p>
+            {/* brand logos */}
+            <div className="flex items-center gap-5">
+              <img src="/darcia-logo.png"    alt="Darcia"      className="h-6 w-6 object-contain opacity-50" />
+              <img src="/temantiket-logo.png" alt="Temantiket" className="h-6 w-6 object-contain opacity-50" style={{ mixBlendMode: "screen" }} />
+              <img src="/symp-logo.png"       alt="SYMP"        className="h-6 w-6 object-contain opacity-50" />
+              <img src="/aigypt-logo.png"     alt="AIGYPT"      className="h-6 w-6 object-contain opacity-50" />
+            </div>
           </div>
         </div>
       </div>
