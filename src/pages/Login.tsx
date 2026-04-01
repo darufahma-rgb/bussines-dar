@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Eye, EyeOff, TrendingUp, Mail, Lock } from "lucide-react";
+import { Eye, EyeOff, TrendingUp, Mail } from "lucide-react";
 
 /* ── Animated blob canvas ── */
-function AnimatedOrb() {
+function AnimatedOrb({ className = "" }: { className?: string }) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const rafRef = useRef<number>(0);
 
@@ -16,14 +16,12 @@ function AnimatedOrb() {
     const resize = () => {
       canvas.width = canvas.offsetWidth * window.devicePixelRatio;
       canvas.height = canvas.offsetHeight * window.devicePixelRatio;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
     };
     resize();
-
     const ro = new ResizeObserver(resize);
     ro.observe(canvas);
-
-    let t = 0;
 
     const orbs = [
       { x: 0.60, y: 0.30, r: 0.70, color: "#1a3bff", speed: 0.00030, phase: 0 },
@@ -35,27 +33,23 @@ function AnimatedOrb() {
     ];
 
     const draw = (ts: number) => {
-      t = ts;
       const W = canvas.offsetWidth;
       const H = canvas.offsetHeight;
       ctx.clearRect(0, 0, W, H);
-
       ctx.fillStyle = "#050d2e";
       ctx.fillRect(0, 0, W, H);
 
       orbs.forEach((orb, i) => {
-        const angle = t * orb.speed + orb.phase;
+        const angle = ts * orb.speed + orb.phase;
         const dx = Math.sin(angle * 1.3 + i) * 0.12;
         const dy = Math.cos(angle * 0.9 + i * 1.7) * 0.12;
         const px = (orb.x + dx) * W;
         const py = (orb.y + dy) * H;
         const radius = orb.r * Math.min(W, H);
-
         const grad = ctx.createRadialGradient(px, py, 0, px, py, radius);
         grad.addColorStop(0, orb.color + "ee");
         grad.addColorStop(0.45, orb.color + "88");
         grad.addColorStop(1, orb.color + "00");
-
         ctx.globalCompositeOperation = "screen";
         ctx.fillStyle = grad;
         ctx.beginPath();
@@ -63,46 +57,32 @@ function AnimatedOrb() {
         ctx.fill();
       });
 
-      /* scanline shimmer */
       ctx.globalCompositeOperation = "source-over";
-      const shimmerGrad = ctx.createLinearGradient(0, 0, W, H);
-      shimmerGrad.addColorStop(0, "rgba(255,255,255,0)");
-      shimmerGrad.addColorStop(
-        0.5 + 0.4 * Math.sin(t * 0.0004),
-        "rgba(120,140,255,0.06)"
-      );
-      shimmerGrad.addColorStop(1, "rgba(255,255,255,0)");
-      ctx.fillStyle = shimmerGrad;
+      const sg = ctx.createLinearGradient(0, 0, W, H);
+      sg.addColorStop(0, "rgba(255,255,255,0)");
+      sg.addColorStop(0.5 + 0.4 * Math.sin(ts * 0.0004), "rgba(120,140,255,0.06)");
+      sg.addColorStop(1, "rgba(255,255,255,0)");
+      ctx.fillStyle = sg;
       ctx.fillRect(0, 0, W, H);
 
       rafRef.current = requestAnimationFrame(draw);
     };
 
     rafRef.current = requestAnimationFrame(draw);
-    return () => {
-      cancelAnimationFrame(rafRef.current);
-      ro.disconnect();
-    };
+    return () => { cancelAnimationFrame(rafRef.current); ro.disconnect(); };
   }, []);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      className="absolute inset-0 w-full h-full"
-      style={{ display: "block" }}
-    />
-  );
+  return <canvas ref={canvasRef} className={`w-full h-full ${className}`} style={{ display: "block" }} />;
 }
 
-/* ── Grid overlay ── */
-function GridOverlay() {
+function GridOverlay({ className = "" }: { className?: string }) {
   return (
     <div
-      className="absolute inset-0 opacity-[0.08] pointer-events-none"
+      className={`absolute inset-0 pointer-events-none ${className}`}
       style={{
-        backgroundImage:
-          "linear-gradient(rgba(160,180,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(160,180,255,1) 1px, transparent 1px)",
-        backgroundSize: "40px 40px",
+        opacity: 0.07,
+        backgroundImage: "linear-gradient(rgba(160,180,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(160,180,255,1) 1px, transparent 1px)",
+        backgroundSize: "36px 36px",
       }}
     />
   );
@@ -131,29 +111,131 @@ export default function Login() {
     setLoading(false);
   };
 
+  const BLUE = "hsl(228 82% 47%)";
+
   return (
-    /* full-screen cobalt background */
-    <div
-      className="min-h-screen flex items-center justify-center p-4 sm:p-8"
-      style={{ background: "hsl(228 82% 47%)" }}
-    >
-      {/* card container */}
+    <div className="min-h-screen flex items-center justify-center" style={{ background: BLUE }}>
+
+      {/* ═══════════════════════════════════════
+          MOBILE layout  (< sm)
+          Animated full-screen bg + compact card
+          ═══════════════════════════════════════ */}
+      <div className="sm:hidden relative w-full min-h-screen flex flex-col items-center justify-center px-5 py-8">
+        {/* animated bg fills the whole mobile screen */}
+        <div className="absolute inset-0 overflow-hidden">
+          <AnimatedOrb className="absolute inset-0" />
+          <GridOverlay />
+        </div>
+
+        {/* brand header — above card */}
+        <div className="relative z-10 text-center mb-5">
+          <div
+            className="h-10 w-10 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg"
+            style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(8px)" }}
+          >
+            <TrendingUp className="h-5 w-5 text-white" />
+          </div>
+          <h1 className="text-lg font-bold text-white tracking-tight">CRM Hub</h1>
+          <p className="text-xs text-white/50 mt-0.5">Business Operating System</p>
+        </div>
+
+        {/* compact white card */}
+        <div
+          className="relative z-10 w-full"
+          style={{
+            maxWidth: "340px",
+            background: "rgba(255,255,255,0.97)",
+            borderRadius: "20px",
+            padding: "24px 22px 20px",
+            boxShadow: "0 20px 60px rgba(0,0,15,0.45)",
+          }}
+        >
+          <h2 className="text-[17px] font-bold text-gray-900 mb-0.5">
+            {isSignUp ? "Buat akun" : "Selamat datang"}
+          </h2>
+          <p className="text-xs text-gray-400 mb-5">
+            {isSignUp ? "Isi data untuk mendaftar." : "Masukkan detail akunmu."}
+          </p>
+
+          <form onSubmit={handleSubmit} className="space-y-2.5">
+            <div className="relative">
+              <input
+                type="email"
+                placeholder="Email"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full h-11 pl-3.5 pr-10 text-sm rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:border-transparent"
+                style={{ "--tw-ring-color": "hsl(228 82% 47% / 0.3)" } as any}
+              />
+              <Mail className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-300 pointer-events-none" />
+            </div>
+
+            <div className="relative">
+              <input
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
+                required
+                minLength={6}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full h-11 pl-3.5 pr-10 text-sm rounded-xl border border-gray-200 bg-gray-50 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:border-transparent"
+                style={{ "--tw-ring-color": "hsl(228 82% 47% / 0.3)" } as any}
+              />
+              <button
+                type="button"
+                tabIndex={-1}
+                onClick={() => setShowPassword((v) => !v)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 hover:text-gray-500 transition-colors"
+              >
+                {showPassword ? <EyeOff className="h-3.5 w-3.5" /> : <Eye className="h-3.5 w-3.5" />}
+              </button>
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full h-11 rounded-xl text-sm font-semibold text-white transition-all active:scale-[0.97] disabled:opacity-70 mt-0.5"
+              style={{ background: BLUE }}
+            >
+              {loading ? "Memuat..." : isSignUp ? "Daftar" : "Masuk"}
+            </button>
+          </form>
+
+          <p className="text-xs text-gray-400 text-center mt-4">
+            {isSignUp ? "Sudah punya akun?" : "Belum punya akun?"}{" "}
+            <button
+              type="button"
+              onClick={() => setIsSignUp((v) => !v)}
+              className="font-semibold"
+              style={{ color: BLUE }}
+            >
+              {isSignUp ? "Masuk" : "Daftar"}
+            </button>
+          </p>
+        </div>
+      </div>
+
+      {/* ═══════════════════════════════════════
+          DESKTOP layout  (≥ sm)
+          Split card: white left + animated right
+          ═══════════════════════════════════════ */}
       <div
-        className="w-full flex overflow-hidden"
+        className="hidden sm:flex w-full overflow-hidden"
         style={{
           maxWidth: "820px",
           minHeight: "500px",
           borderRadius: "28px",
           boxShadow: "0 32px 80px rgba(0,0,20,0.5)",
+          margin: "2rem",
         }}
       >
-        {/* ── LEFT: form ── */}
-        <div className="relative flex flex-col justify-center bg-white px-8 py-10 w-full sm:w-[420px] shrink-0 z-10">
-          {/* brand */}
-          <div className="mb-8">
+        {/* left form */}
+        <div className="relative flex flex-col justify-center bg-white px-8 py-10 w-[400px] shrink-0 z-10">
+          <div className="mb-7">
             <div
               className="h-11 w-11 rounded-xl flex items-center justify-center mb-5"
-              style={{ background: "hsl(228 82% 47%)" }}
+              style={{ background: BLUE }}
             >
               <TrendingUp className="h-5 w-5 text-white" />
             </div>
@@ -161,15 +243,11 @@ export default function Login() {
               {isSignUp ? "Buat akun baru" : "Selamat datang"}
             </h1>
             <p className="text-sm text-gray-400 mt-1.5">
-              {isSignUp
-                ? "Isi data untuk membuat akun CRM Hub."
-                : "Masukkan detail akunmu untuk masuk."}
+              {isSignUp ? "Isi data untuk membuat akun CRM Hub." : "Masukkan detail akunmu untuk masuk."}
             </p>
           </div>
 
-          {/* form */}
           <form onSubmit={handleSubmit} className="space-y-3.5">
-            {/* email */}
             <div className="relative">
               <input
                 type="email"
@@ -183,7 +261,6 @@ export default function Login() {
               <Mail className="absolute right-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-300 pointer-events-none" />
             </div>
 
-            {/* password */}
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
@@ -205,37 +282,37 @@ export default function Login() {
               </button>
             </div>
 
-            {/* submit */}
             <button
               type="submit"
               disabled={loading}
               className="w-full h-12 rounded-xl text-sm font-semibold text-white transition-all active:scale-[0.98] disabled:opacity-70 mt-1"
-              style={{ background: "hsl(228 82% 47%)" }}
+              style={{ background: BLUE }}
             >
               {loading ? "Memuat..." : isSignUp ? "Daftar" : "Masuk"}
             </button>
           </form>
 
-          {/* toggle */}
           <p className="text-sm text-gray-400 text-center mt-6">
             {isSignUp ? "Sudah punya akun?" : "Belum punya akun?"}{" "}
             <button
               type="button"
               onClick={() => setIsSignUp((v) => !v)}
-              className="font-semibold transition-colors hover:opacity-80"
-              style={{ color: "hsl(228 82% 47%)" }}
+              className="font-semibold hover:opacity-80 transition-opacity"
+              style={{ color: BLUE }}
             >
               {isSignUp ? "Masuk" : "Daftar"}
             </button>
           </p>
         </div>
 
-        {/* ── RIGHT: animated panel ── */}
-        <div className="relative hidden sm:block flex-1 overflow-hidden">
-          <AnimatedOrb />
+        {/* right animated panel */}
+        <div className="relative flex-1 overflow-hidden">
+          <AnimatedOrb className="absolute inset-0" />
           <GridOverlay />
-
-          {/* floating label */}
+          <div
+            className="absolute top-0 left-0 w-48 h-48 pointer-events-none"
+            style={{ background: "radial-gradient(circle at top left, rgba(100,130,255,0.25), transparent 70%)" }}
+          />
           <div className="absolute bottom-8 left-8 right-8 z-10">
             <p className="text-[11px] font-semibold text-white/30 uppercase tracking-widest mb-1">
               Business Operating System
@@ -244,15 +321,6 @@ export default function Login() {
               Kelola semua customer, pipeline, dan review bisnis kamu dalam satu dashboard.
             </p>
           </div>
-
-          {/* corner glow */}
-          <div
-            className="absolute top-0 left-0 w-48 h-48 pointer-events-none"
-            style={{
-              background:
-                "radial-gradient(circle at top left, rgba(100,130,255,0.25), transparent 70%)",
-            }}
-          />
         </div>
       </div>
     </div>
