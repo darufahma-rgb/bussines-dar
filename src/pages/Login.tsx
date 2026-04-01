@@ -75,19 +75,6 @@ function AnimatedOrb({ className = "" }: { className?: string }) {
   return <canvas ref={canvasRef} className={`w-full h-full ${className}`} style={{ display: "block" }} />;
 }
 
-function GridOverlay({ className = "" }: { className?: string }) {
-  return (
-    <div
-      className={`absolute inset-0 pointer-events-none ${className}`}
-      style={{
-        opacity: 0.07,
-        backgroundImage: "linear-gradient(rgba(160,180,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(160,180,255,1) 1px, transparent 1px)",
-        backgroundSize: "36px 36px",
-      }}
-    />
-  );
-}
-
 /* ── Main component ── */
 export default function Login() {
   const [email, setEmail] = useState("");
@@ -124,7 +111,6 @@ export default function Login() {
         {/* animated bg fills the whole mobile screen */}
         <div className="absolute inset-0 overflow-hidden">
           <AnimatedOrb className="absolute inset-0" />
-          <GridOverlay />
         </div>
 
         {/* brand header — above card */}
@@ -306,7 +292,6 @@ export default function Login() {
         {/* right animated panel */}
         <div className="relative flex-1 overflow-hidden">
           <AnimatedOrb className="absolute inset-0" />
-          <GridOverlay />
           <div
             className="absolute top-0 left-0 w-48 h-48 pointer-events-none"
             style={{ background: "radial-gradient(circle at top left, rgba(100,130,255,0.25), transparent 70%)" }}
