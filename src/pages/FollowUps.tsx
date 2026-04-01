@@ -6,6 +6,7 @@ import PageGuide from "@/components/PageGuide";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import { format, parseISO, isToday, isPast, isFuture } from "date-fns";
+import { id as idLocale } from "date-fns/locale";
 import { toast } from "sonner";
 
 export default function FollowUps() {
@@ -47,7 +48,7 @@ export default function FollowUps() {
                 <StatusBadge status={f.customers?.status} />
                 {f.followUpDate && (
                   <span className="text-xs font-mono text-muted-foreground">
-                    {format(parseISO(f.followUpDate), "MMM d")}
+                    {format(parseISO(f.followUpDate), "d MMM", { locale: idLocale })}
                   </span>
                 )}
                 <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => handleComplete(f.id)}>

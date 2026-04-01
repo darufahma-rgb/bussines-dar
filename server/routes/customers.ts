@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "../db.js";
 import { customers, customerBusinesses, businesses, interactions } from "../../shared/schema.js";
 import { requireAuth } from "../middleware/auth.js";
-import { eq, ilike, desc, and, inArray, lt, isNotNull, sql, isNull, or } from "drizzle-orm";
+import { eq, ilike, desc, and, inArray, lt, isNotNull, sql, or } from "drizzle-orm";
 import type { CustomerStatus } from "../../shared/schema.js";
 
 const router = Router();
@@ -164,9 +164,27 @@ router.get("/", async (req, res) => {
   try {
     const { search, status, businessId } = req.query as Record<string, string>;
 
+    let customerIds: string[] | null = null;
+
+    if (businessId && businessId !== "all") {
+      const cbRows = await db
+        .select({ customerId: customerBusinesses.customerId })
+        .from(customerBusinesses)
+        .where(eq(customerBusinesses.businessId, businessId));
+      customerIds = cbRows.map((r) => r.customerId);
+      if (customerIds.length === 0) return res.json([]);
+    }
+
     const conditions = [];
-    if (search) conditions.push(ilike(customers.name, `%${search}%`));
+    if (search) {
+      conditions.push(or(
+        ilike(customers.name, `%${search}%`),
+        ilike(customers.email, `%${search}%`),
+        ilike(customers.phone, `%${search}%`),
+      ));
+    }
     if (status && status !== "all") conditions.push(eq(customers.status, status as CustomerStatus));
+    if (customerIds !== null) conditions.push(inArray(customers.id, customerIds));
 
     const rows = await db
       .select()
@@ -174,18 +192,10 @@ router.get("/", async (req, res) => {
       .where(conditions.length ? and(...conditions) : undefined)
       .orderBy(desc(customers.updatedAt));
 
-    const customerIds = rows.map((r) => r.id);
-    const cbRows = await fetchCbRows(customerIds);
+    const ids = rows.map((r) => r.id);
+    const cbRows = await fetchCbRows(ids);
 
-    let result = buildCustomerResponse(rows, cbRows);
-
-    if (businessId && businessId !== "all") {
-      result = result.filter((c) =>
-        c.customer_businesses.some((cb: any) => cb.business_id === businessId)
-      );
-    }
-
-    return res.json(result);
+    return res.json(buildCustomerResponse(rows, cbRows));
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Server error" });

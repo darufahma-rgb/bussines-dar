@@ -5,6 +5,7 @@ import { Users, Flame, CalendarCheck, AlertTriangle, Sparkles, Loader2, Trending
 import { Button } from "@/components/ui/button";
 import PageGuide from "@/components/PageGuide";
 import { format, parseISO } from "date-fns";
+import { id as idLocale } from "date-fns/locale";
 import { Link } from "react-router-dom";
 
 export default function Weekly() {
@@ -118,7 +119,7 @@ export default function Weekly() {
                           {i.customerName}
                         </Link>
                         <span className="text-xs text-muted-foreground font-mono shrink-0">
-                          {format(parseISO(i.createdAt), "EEE, d MMM")}
+                          {format(parseISO(i.createdAt), "EEE, d MMM", { locale: idLocale })}
                         </span>
                       </div>
                       <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{i.content}</p>

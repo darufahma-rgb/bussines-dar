@@ -73,7 +73,7 @@ function parseCSV(text: string): { headers: string[]; rows: string[][] } {
 }
 
 function exportCSV(customers: any[]) {
-  const headers = ["Name", "Email", "Phone", "Status", "Business", "Source", "Estimated Value (IDR)", "Last Updated"];
+  const headers = ["Nama", "Email", "Telepon", "Status", "Bisnis", "Sumber", "Nilai Deal (IDR)", "Terakhir Update"];
   const rows = customers.map((c) => [
     c.name, c.email || "", c.phone || "", c.status,
     c.customer_businesses?.map((cb: any) => cb.businesses?.name).filter(Boolean).join("; ") || "",

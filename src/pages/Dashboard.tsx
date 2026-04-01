@@ -6,6 +6,7 @@ import PageGuide from "@/components/PageGuide";
 import StatusBadge from "@/components/StatusBadge";
 import { Link } from "react-router-dom";
 import { format, isToday, isPast, parseISO } from "date-fns";
+import { id as idLocale } from "date-fns/locale";
 import BusinessBadge from "@/components/BusinessBadge";
 
 const FOCUS_REASON_LABELS: Record<string, { label: string; color: string }> = {
@@ -212,7 +213,7 @@ export default function Dashboard() {
                     <StatusBadge status={f.customers?.status} />
                     {f.followUpDate && (
                       <span className={`text-xs font-mono ${isPast(parseISO(f.followUpDate)) && !isToday(parseISO(f.followUpDate)) ? "text-red-500 font-semibold" : "text-muted-foreground"}`}>
-                        {format(parseISO(f.followUpDate), "MMM d")}
+                        {format(parseISO(f.followUpDate), "d MMM", { locale: idLocale })}
                       </span>
                     )}
                   </div>
@@ -239,7 +240,7 @@ export default function Dashboard() {
                   <div className="flex items-center gap-2">
                     <p className="text-sm font-medium">{n.customers?.name}</p>
                     <span className="text-xs text-muted-foreground font-mono">
-                      {format(parseISO(n.createdAt), "MMM d")}
+                      {format(parseISO(n.createdAt), "d MMM", { locale: idLocale })}
                     </span>
                   </div>
                   <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{n.content}</p>

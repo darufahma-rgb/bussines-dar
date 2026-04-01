@@ -78,6 +78,8 @@ export const api = {
       request("/interactions", { method: "POST", body: JSON.stringify(data) }),
     complete: (id: string) =>
       request(`/interactions/${id}`, { method: "PATCH", body: JSON.stringify({ isCompleted: true }) }),
+    delete: (id: string) =>
+      request(`/interactions/${id}`, { method: "DELETE" }),
   },
   ai: {
     parseCapture: (text: string, businesses: any[]) =>

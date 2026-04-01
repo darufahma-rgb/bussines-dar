@@ -11,10 +11,11 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
+import { id as idLocale } from "date-fns/locale";
 import {
   ArrowLeft, MessageSquare, DollarSign, CalendarCheck, Zap,
   Check, Trash2, Sparkles, Loader2, Copy, RefreshCw, ChevronDown, ChevronUp,
-  Brain, Edit2,
+  Brain, Edit2, X,
 } from "lucide-react";
 
 type InteractionType = "note" | "transaction" | "follow_up" | "quick_capture";
@@ -172,6 +173,16 @@ export default function CustomerDetail() {
       queryClient.invalidateQueries({ queryKey: ["today-follow-ups"] });
       toast.success("Ditandai selesai");
     } catch { toast.error("Gagal menandai selesai"); }
+  };
+
+  const handleDeleteInteraction = async (interactionId: string) => {
+    if (!confirm("Hapus interaksi ini?")) return;
+    try {
+      await api.interactions.delete(interactionId);
+      queryClient.invalidateQueries({ queryKey: ["interactions", id] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      toast.success("Interaksi dihapus");
+    } catch { toast.error("Gagal menghapus interaksi"); }
   };
 
   const handleDelete = async () => {
@@ -430,7 +441,7 @@ export default function CustomerDetail() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-xs font-medium text-muted-foreground">{typeLabels[i.type as InteractionType]}</span>
-                      <span className="text-xs text-muted-foreground font-mono">{format(parseISO(i.createdAt), "MMM d, h:mm a")}</span>
+                      <span className="text-xs text-muted-foreground font-mono">{format(parseISO(i.createdAt), "d MMM, HH:mm", { locale: idLocale })}</span>
                       {i.type === "follow_up" && !i.isCompleted && (
                         <button onClick={() => handleComplete(i.id)} className="text-xs text-status-closed hover:underline flex items-center gap-0.5">
                           <Check className="h-3 w-3" /> Selesai
@@ -439,10 +450,17 @@ export default function CustomerDetail() {
                       {i.type === "follow_up" && i.isCompleted && (
                         <span className="text-xs text-green-600">✓ Selesai</span>
                       )}
+                      <button
+                        onClick={() => handleDeleteInteraction(i.id)}
+                        className="ml-auto text-muted-foreground/40 hover:text-red-500 transition-colors"
+                        title="Hapus interaksi"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
                     </div>
                     <p className="text-sm mt-0.5 whitespace-pre-wrap">{i.content}</p>
                     {i.amount && <p className="text-sm font-mono font-medium mt-0.5">{i.currency} {Number(i.amount).toLocaleString()}</p>}
-                    {i.followUpDate && <p className="text-xs text-muted-foreground mt-0.5">Follow-up: {format(parseISO(i.followUpDate), "MMM d, yyyy")}</p>}
+                    {i.followUpDate && <p className="text-xs text-muted-foreground mt-0.5">Follow-up: {format(parseISO(i.followUpDate), "d MMM yyyy", { locale: idLocale })}</p>}
                   </div>
                 </div>
               );
