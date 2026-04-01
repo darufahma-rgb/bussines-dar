@@ -170,12 +170,12 @@ export default function CustomerList() {
           No customers found. <Link to="/customers/new" className="underline">Add your first customer</Link>
         </div>
       ) : (
-        <div className="border rounded-lg divide-y">
+        <div className="bg-white border border-border rounded-xl card-shadow divide-y divide-border">
           {sorted.map((c: any) => (
             <Link
               key={c.id}
               to={`/customers/${c.id}`}
-              className="flex items-center justify-between p-3 hover:bg-muted/50 transition-colors"
+              className="flex items-center justify-between p-3.5 hover:bg-muted/40 transition-colors first:rounded-t-xl last:rounded-b-xl"
               data-testid={`row-customer-${c.id}`}
             >
               <div className="min-w-0">

@@ -146,7 +146,7 @@ export default function Pipeline() {
           const stageValue = stageCustomers.reduce((sum: number, c: any) => sum + (Number(c.estimatedValue) || 0), 0);
           return (
             <div key={stage.key} className="flex-shrink-0 w-64">
-              <div className={`flex items-center justify-between px-3 py-2 rounded-t-lg border-b ${stage.bg} ${stage.border} border border-b-0`}>
+              <div className={`flex items-center justify-between px-3 py-2 rounded-t-xl border-b ${stage.bg} ${stage.border} border border-b-0`}>
                 <div className="flex items-center gap-2">
                   <span className={`text-xs font-semibold ${stage.color}`}>{stage.label}</span>
                   <span className="text-xs bg-white/70 text-gray-600 rounded-full px-1.5 py-0.5 font-mono">
@@ -160,14 +160,14 @@ export default function Pipeline() {
                 )}
               </div>
 
-              <div className={`border ${stage.border} border-t-0 rounded-b-lg min-h-32 divide-y ${stage.border.replace("border-", "divide-")}`}>
+              <div className={`border ${stage.border} border-t-0 rounded-b-xl min-h-32 divide-y ${stage.border.replace("border-", "divide-")} bg-white`}>
                 {stageCustomers.length === 0 ? (
-                  <p className="text-xs text-muted-foreground text-center py-6">Empty</p>
+                  <p className="text-xs text-muted-foreground text-center py-6">Kosong</p>
                 ) : (
                   stageCustomers.map((c: any) => {
                     const next = NEXT[stage.key];
                     return (
-                      <div key={c.id} className={`p-3 bg-card hover:bg-muted/30 transition-colors ${movingId === c.id ? "opacity-50" : ""}`}>
+                      <div key={c.id} className={`p-3 hover:bg-muted/30 transition-colors ${movingId === c.id ? "opacity-50" : ""}`}>
                         <Link to={`/customers/${c.id}`} className="block">
                           <p className="text-sm font-medium line-clamp-1 hover:underline">{c.name}</p>
                           {c.customer_businesses?.length > 0 && (

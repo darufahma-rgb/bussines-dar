@@ -58,7 +58,7 @@ function LostReasonModal({ onConfirm, onCancel }: { onConfirm: (r: string) => vo
 function AIPanel({ label, children }: { label: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(true);
   return (
-    <div className="bg-card border rounded-lg overflow-hidden">
+    <div className="bg-white border border-border rounded-xl card-shadow overflow-hidden">
       <button type="button"
         className="w-full flex items-center justify-between p-3 text-sm font-medium hover:bg-muted/40 transition-colors"
         onClick={() => setOpen(!open)}>
@@ -276,7 +276,7 @@ export default function CustomerDetail() {
         { icon: "🗑️", title: "Hapus Customer", desc: "Tombol merah di pojok kanan atas akan menghapus seluruh data customer ini beserta semua interaksinya secara permanen." },
       ]} />
 
-      <div className="bg-card border rounded-lg overflow-hidden">
+      <div className="bg-white border border-border rounded-xl card-shadow overflow-hidden">
         <div className="flex items-center justify-between p-3">
           <span className="text-sm font-medium flex items-center gap-2">
             <Brain className="h-3.5 w-3.5 text-indigo-500" /> Customer Memory
@@ -394,7 +394,7 @@ export default function CustomerDetail() {
         </div>
       </AIPanel>
 
-      <form onSubmit={handleAddInteraction} className="bg-card border rounded-lg p-4 space-y-3">
+      <form onSubmit={handleAddInteraction} className="bg-white border border-border rounded-xl card-shadow p-4 space-y-3">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Add to Timeline</p>
         <div className="flex gap-2 flex-wrap">
           <Select value={addType} onValueChange={(v) => setAddType(v as InteractionType)}>
@@ -416,16 +416,16 @@ export default function CustomerDetail() {
         <Button type="submit" size="sm" disabled={saving || !content.trim()}>Add</Button>
       </form>
 
-      <div className="space-y-1">
-        <h3 className="font-medium text-sm text-muted-foreground">Timeline</h3>
+      <div className="space-y-2">
+        <h3 className="font-semibold text-sm">Timeline</h3>
         {!interactions?.length ? (
-          <p className="text-sm text-muted-foreground p-4">No interactions yet.</p>
+          <p className="text-sm text-muted-foreground p-4">Belum ada interaksi.</p>
         ) : (
-          <div className="border rounded-lg divide-y">
+          <div className="bg-white border border-border rounded-xl card-shadow divide-y divide-border">
             {interactions.map((i: any) => {
               const Icon = typeIcons[i.type as InteractionType];
               return (
-                <div key={i.id} className="p-3 flex gap-3">
+                <div key={i.id} className="p-3.5 flex gap-3">
                   <div className="mt-0.5"><Icon className="h-4 w-4 text-muted-foreground" /></div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">

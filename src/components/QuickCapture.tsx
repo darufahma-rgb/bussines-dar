@@ -103,7 +103,7 @@ export default function QuickCapture() {
   const clearParsed = () => setParsed(null);
 
   return (
-    <div className="bg-card border rounded-lg overflow-hidden">
+    <div className="bg-white border border-border rounded-xl card-shadow overflow-hidden">
       <form onSubmit={handleSubmit}>
         <div className="flex items-center gap-2 p-2">
           <Zap className="h-4 w-4 text-status-warm shrink-0" />

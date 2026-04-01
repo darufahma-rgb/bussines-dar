@@ -68,21 +68,21 @@ export default function Weekly() {
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             {statCards.map((s) => (
-              <div key={s.label} className="bg-card border rounded-lg p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <span className="text-xs text-muted-foreground">{s.label}</span>
-                  <div className={`h-7 w-7 rounded-md flex items-center justify-center ${s.bg}`}>
+              <div key={s.label} className="bg-white border border-border rounded-xl p-4 card-shadow">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-xs font-medium text-muted-foreground">{s.label}</span>
+                  <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${s.bg}`}>
                     <s.icon className={`h-4 w-4 ${s.color}`} />
                   </div>
                 </div>
-                <p className="text-3xl font-semibold font-mono">{s.value}</p>
+                <p className="text-3xl font-bold font-mono">{s.value}</p>
               </div>
             ))}
           </div>
 
-          <div className="bg-card border rounded-lg p-4 space-y-3">
+          <div className="bg-white border border-border rounded-xl p-4 card-shadow space-y-3">
             <div className="flex items-center justify-between">
-              <h3 className="font-medium text-sm">AI Weekly Insight</h3>
+              <h3 className="font-semibold text-sm">AI Weekly Insight</h3>
               <Button
                 size="sm"
                 variant="outline"
@@ -101,8 +101,8 @@ export default function Weekly() {
             )}
           </div>
 
-          <div className="bg-card border rounded-lg p-4">
-            <h3 className="font-medium text-sm mb-3">This Week's Activity</h3>
+          <div className="bg-white border border-border rounded-xl p-4 card-shadow">
+            <h3 className="font-semibold text-sm mb-3">Aktivitas Minggu Ini</h3>
             {!stats?.weekInteractions?.length ? (
               <p className="text-sm text-muted-foreground py-4 text-center">No activity recorded this week yet.</p>
             ) : (

@@ -36,9 +36,9 @@ export default function FollowUps() {
     items.length > 0 ? (
       <div>
         <h3 className={`text-sm font-medium mb-2 ${color}`}>{title} ({items.length})</h3>
-        <div className="border rounded-lg divide-y">
+        <div className="bg-white border border-border rounded-xl card-shadow divide-y divide-border">
           {items.map((f: any) => (
-            <div key={f.id} className="flex items-center justify-between p-3">
+            <div key={f.id} className="flex items-center justify-between p-3.5">
               <Link to={`/customers/${f.customerId}`} className="flex-1 min-w-0 hover:underline">
                 <p className="text-sm font-medium">{f.customers?.name}</p>
                 <p className="text-xs text-muted-foreground line-clamp-1">{f.content}</p>

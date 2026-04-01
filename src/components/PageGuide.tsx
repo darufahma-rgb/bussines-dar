@@ -15,20 +15,20 @@ export default function PageGuide({ steps }: PageGuideProps) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="border rounded-lg overflow-hidden text-sm">
+    <div className="bg-white border border-border rounded-xl card-shadow overflow-hidden text-sm">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center justify-between px-4 py-2.5 bg-muted/40 hover:bg-muted/60 transition-colors text-left"
+        className="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/40 transition-colors text-left"
       >
         <span className="flex items-center gap-2 font-medium text-muted-foreground">
-          <HelpCircle className="h-4 w-4" />
+          <HelpCircle className="h-4 w-4 text-primary" />
           Cara menggunakan halaman ini
         </span>
         {open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
       </button>
 
       {open && (
-        <div className="px-4 py-3 grid sm:grid-cols-2 gap-3 bg-muted/20 border-t">
+        <div className="px-4 py-3 grid sm:grid-cols-2 gap-3 bg-muted/20 border-t border-border">
           {steps.map((step, i) => (
             <div key={i} className="flex gap-3">
               <span className="text-lg shrink-0 leading-tight">{step.icon}</span>
