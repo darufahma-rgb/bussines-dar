@@ -1,0 +1,55 @@
+Now I want you to improve the product structure so the app feels like a complete founder control system, not just a CRM with extra pages.
+
+The current app already has dashboard, customer management, pipeline, follow-ups, weekly review, and monthly review. I now want you to strengthen the founder-facing experience and complete the missing long-term layer.
+
+Please do the following:
+
+1. Redesign the dashboard into a true founder command center
+The dashboard should answer these questions immediately:
+- what needs my attention today?
+- where is money currently sitting in the pipeline?
+- which business unit is moving?
+- what is falling behind?
+- what should I focus on first?
+
+Please structure the dashboard into clearer blocks:
+- Today’s priorities
+- Key metrics
+- Revenue / pipeline overview
+- Follow-up urgency
+- Recent important notes
+- Weekly and monthly snapshot preview
+
+2. Add a Yearly Overview page
+There is already weekly and monthly review, but I want a yearly layer too so the system feels complete.
+
+The Yearly page should show:
+- total customers this year
+- total transactions / revenue if available
+- strongest business unit
+- lead movement summary
+- top customer sources
+- lost reason patterns
+- a clean long-term summary area
+
+It should stay simple and reflective, not enterprise-style analytics.
+
+3. Improve review page structure
+For weekly, monthly, and yearly pages, create a consistent layout pattern:
+- summary header
+- key metrics
+- patterns / trends
+- reflection notes
+- AI insight section if available
+
+4. Add clearer business-unit identity
+Since this app handles multiple businesses, make the UI reflect that better. Business units should feel intentional and visually distinct in a subtle, elegant way. For example, use business-specific accents, badges, or identity cues without making the interface noisy.
+
+5. Add dashboard preview links
+From the dashboard, I want quick links or preview cards to jump into weekly, monthly, and yearly review pages.
+
+6. Improve product framing
+The app should feel like a “Business Operating System” for a founder managing multiple ventures, not just a contact tracker.
+
+Important:
+Keep the tone of the interface practical, clean, and executive. I want clarity and direction, not visual noise.

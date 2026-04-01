@@ -22,7 +22,7 @@ Multi-bisnis CRM untuk mengelola customer dari Temantiket, SYMP, AIGYPT, dan Dar
 - Follow-ups page — grouped by overdue/today/upcoming
 - CSV Import with column auto-mapping + business assignment
 - CSV Export
-- Weekly & Monthly reports with AI insights
+- Weekly, Monthly & **Yearly** reports with AI insights + reflection textarea
 - AI features: customer summary, reply generator, next-action suggestion, parse capture
 - Collapsed sidebar (localStorage persistent) + mobile drawer
 - Full Indonesian UI (bahasa Indonesia throughout)
@@ -38,7 +38,7 @@ Multi-bisnis CRM untuk mengelola customer dari Temantiket, SYMP, AIGYPT, dan Dar
 ```
 src/               # React frontend
   pages/           # Dashboard, CustomerList, CustomerDetail, Pipeline,
-                   # FollowUps, Weekly, Monthly, NewCustomer, Login
+                   # FollowUps, Weekly, Monthly, Yearly, NewCustomer, Login
   components/      # AppSidebar, QuickCapture, StatusBadge, BusinessBadge, PageGuide, NavLink
   hooks/           # useAuth.tsx (session-based)
   lib/             # api.ts — all API calls; queryClient.ts

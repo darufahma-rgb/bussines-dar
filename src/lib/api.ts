@@ -92,10 +92,13 @@ export const api = {
       request("/ai/weekly-insight", { method: "POST", body: JSON.stringify({ stats }) }),
     monthlyInsight: (data: { current: any; previous: any; byBusiness: any[] }) =>
       request("/ai/monthly-insight", { method: "POST", body: JSON.stringify(data) }),
+    yearlyInsight: (stats: any) =>
+      request("/ai/yearly-insight", { method: "POST", body: JSON.stringify({ stats }) }),
   },
   stats: {
     weekly: () => request("/stats/weekly"),
     monthly: () => request("/stats/monthly"),
+    yearly: () => request("/stats/yearly"),
   },
   import: {
     customers: (rows: object[], businessName?: string) =>

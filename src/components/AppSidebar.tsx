@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, CalendarCheck, LogOut, Plus,
-  BarChart2, CalendarDays, Kanban, TrendingUp, X,
+  BarChart2, CalendarDays, Kanban, TrendingUp, X, CalendarRange,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -27,6 +27,7 @@ const mainItems = [
 const insightItems = [
   { to: "/weekly", icon: CalendarDays, label: "Mingguan", end: true },
   { to: "/monthly", icon: BarChart2, label: "Bulanan", end: true },
+  { to: "/yearly", icon: CalendarRange, label: "Tahunan", end: true },
 ];
 
 function NavItem({

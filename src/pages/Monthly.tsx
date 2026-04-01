@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { Sparkles, Loader2, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Sparkles, Loader2, TrendingUp, TrendingDown, Minus, BarChart2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 
 function Delta({ current, previous }: { current: number; previous: number }) {
@@ -21,6 +22,15 @@ function Delta({ current, previous }: { current: number; previous: number }) {
   );
 }
 
+function SectionHeading({ title, subtitle }: { title: string; subtitle?: string }) {
+  return (
+    <div className="flex items-baseline gap-2 mb-3">
+      <h3 className="font-semibold text-[13px] text-muted-foreground uppercase tracking-wider">{title}</h3>
+      {subtitle && <span className="text-xs text-muted-foreground">— {subtitle}</span>}
+    </div>
+  );
+}
+
 const STAT_ROWS = [
   { label: "Customer Baru", key: "newCustomers" },
   { label: "Deal Berhasil", key: "closedDeals" },
@@ -29,9 +39,18 @@ const STAT_ROWS = [
   { label: "Follow-up Terlewat", key: "followUpsMissed" },
 ];
 
+const BIZ_COLORS: Record<string, string> = {
+  Temantiket: "#2563EB",
+  "SYMP Studio": "#DC2626",
+  SYMP: "#DC2626",
+  AIGYPT: "#7C3AED",
+  Darcia: "#EC4899",
+};
+
 export default function Monthly() {
   const [insight, setInsight] = useState<string | null>(null);
   const [loadingInsight, setLoadingInsight] = useState(false);
+  const [reflection, setReflection] = useState("");
 
   const { data: stats, isLoading } = useQuery({
     queryKey: ["monthly-stats"],
@@ -58,11 +77,21 @@ export default function Monthly() {
   const currentMonthName = now.toLocaleString("id-ID", { month: "long", year: "numeric" });
   const prevMonthName = new Date(now.getFullYear(), now.getMonth() - 1, 1).toLocaleString("id-ID", { month: "long", year: "numeric" });
 
+  const bestBiz = stats?.byBusiness?.length
+    ? [...stats.byBusiness].sort((a: any, b: any) => b.totalInteractions - a.totalInteractions)[0]
+    : null;
+
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-8 max-w-4xl">
+
+      {/* Header */}
       <div>
-        <h2 className="text-xl font-bold text-foreground">Laporan Bulanan</h2>
-        <p className="text-sm text-muted-foreground mt-0.5 capitalize">{currentMonthName} vs {prevMonthName}</p>
+        <div className="flex items-center gap-2 mb-1">
+          <BarChart2 className="h-4 w-4 text-muted-foreground" />
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Laporan Bulanan</p>
+        </div>
+        <h2 className="text-2xl font-bold text-foreground capitalize">{currentMonthName}</h2>
+        <p className="text-sm text-muted-foreground mt-1 capitalize">Dibandingkan dengan {prevMonthName}.</p>
       </div>
 
       {isLoading ? (
@@ -82,121 +111,145 @@ export default function Monthly() {
       ) : (
         <>
           {/* Month comparison */}
-          <div className="grid md:grid-cols-2 gap-4">
-            {/* This month */}
-            <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
-              <div className="px-5 py-4 border-b border-border bg-primary/5">
-                <h3 className="font-semibold text-sm text-primary capitalize">{currentMonthName}</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">Bulan berjalan</p>
+          <div>
+            <SectionHeading title="Perbandingan Bulan" />
+            <div className="grid md:grid-cols-2 gap-4">
+              <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
+                <div className="px-5 py-4 border-b border-border bg-primary/5">
+                  <h3 className="font-semibold text-sm text-primary capitalize">{currentMonthName}</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Bulan berjalan</p>
+                </div>
+                <div className="px-5 py-4 space-y-3.5">
+                  {STAT_ROWS.map(({ label, key }) => (
+                    <div key={key} className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">{label}</span>
+                      <div className="flex items-center gap-3">
+                        <Delta current={stats?.current?.[key] ?? 0} previous={stats?.previous?.[key] ?? 0} />
+                        <span className="text-sm font-bold font-mono w-8 text-right text-foreground">
+                          {stats?.current?.[key] ?? 0}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
-              <div className="px-5 py-4 space-y-3.5">
-                {STAT_ROWS.map(({ label, key }) => (
-                  <div key={key} className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">{label}</span>
-                    <div className="flex items-center gap-3">
-                      <Delta
-                        current={stats?.current?.[key] ?? 0}
-                        previous={stats?.previous?.[key] ?? 0}
-                      />
-                      <span className="text-sm font-bold font-mono w-8 text-right text-foreground">
-                        {stats?.current?.[key] ?? 0}
+              <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
+                <div className="px-5 py-4 border-b border-border bg-muted/40">
+                  <h3 className="font-semibold text-sm text-muted-foreground capitalize">{prevMonthName}</h3>
+                  <p className="text-xs text-muted-foreground mt-0.5">Bulan lalu (pembanding)</p>
+                </div>
+                <div className="px-5 py-4 space-y-3.5">
+                  {STAT_ROWS.map(({ label, key }) => (
+                    <div key={key} className="flex items-center justify-between">
+                      <span className="text-sm text-muted-foreground">{label}</span>
+                      <span className="text-sm font-bold font-mono text-muted-foreground">
+                        {stats?.previous?.[key] ?? 0}
                       </span>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
             </div>
+          </div>
 
-            {/* Last month */}
+          {/* Business breakdown */}
+          <div>
+            <SectionHeading title="Performa Unit Bisnis" subtitle="aktivitas bulan ini" />
             <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
-              <div className="px-5 py-4 border-b border-border bg-muted/40">
-                <h3 className="font-semibold text-sm text-muted-foreground capitalize">{prevMonthName}</h3>
-                <p className="text-xs text-muted-foreground mt-0.5">Bulan lalu</p>
-              </div>
-              <div className="px-5 py-4 space-y-3.5">
-                {STAT_ROWS.map(({ label, key }) => (
-                  <div key={key} className="flex items-center justify-between">
-                    <span className="text-sm text-muted-foreground">{label}</span>
-                    <span className="text-sm font-bold font-mono text-muted-foreground">
-                      {stats?.previous?.[key] ?? 0}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </div>
-
-          {/* Business performance */}
-          <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
-            <div className="px-5 py-4 border-b border-border">
-              <h3 className="font-semibold text-sm text-foreground">Performa per Bisnis</h3>
-              <p className="text-xs text-muted-foreground mt-0.5">Breakdown customer dan aktivitas</p>
-            </div>
-            {!stats?.byBusiness?.length ? (
-              <div className="py-10 text-center px-5">
-                <p className="text-sm text-muted-foreground">Belum ada data bisnis.</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-border">
-                {stats.byBusiness
-                  .sort((a: any, b: any) => b.totalInteractions - a.totalInteractions)
-                  .map((biz: any) => (
-                  <div key={biz.id} className="px-5 py-4 flex items-center gap-4">
-                    <div
-                      className="h-3 w-3 rounded-full shrink-0 ring-2 ring-white shadow-sm"
-                      style={{ backgroundColor: biz.color || "#6B7280" }}
-                    />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-foreground">{biz.name}</p>
-                      <p className="text-xs text-muted-foreground">{biz.totalCustomers} customer total</p>
-                    </div>
-                    <div className="flex items-center gap-6 shrink-0">
-                      <div className="text-right">
-                        <p className="text-sm font-bold font-mono text-foreground">{biz.totalInteractions}</p>
-                        <p className="text-[10px] text-muted-foreground">interaksi</p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm font-bold font-mono text-foreground">{biz.newCustomers}</p>
-                        <p className="text-[10px] text-muted-foreground">lead baru</p>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-          {/* AI Monthly Insight */}
-          <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
-            <div className="flex items-center justify-between px-5 py-4 border-b border-border">
-              <div className="flex items-center gap-2.5">
-                <div className="h-8 w-8 rounded-xl bg-violet-50 flex items-center justify-center">
-                  <Sparkles className="h-4 w-4 text-violet-500" />
+              {!stats?.byBusiness?.length ? (
+                <div className="py-10 text-center px-5">
+                  <p className="text-sm text-muted-foreground">Belum ada data bisnis.</p>
                 </div>
-                <div>
-                  <h3 className="font-semibold text-sm text-foreground">Insight Bulanan AI</h3>
-                  <p className="text-xs text-muted-foreground">Analisis tren dan rekomendasi</p>
-                </div>
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                className="h-8 text-xs gap-1.5"
-                onClick={handleGetInsight}
-                disabled={loadingInsight}
-              >
-                {loadingInsight ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
-                {loadingInsight ? "Berpikir..." : insight ? "Perbarui" : "Buat Insight"}
-              </Button>
-            </div>
-            <div className="px-5 py-4">
-              {insight ? (
-                <p className="text-sm leading-relaxed text-foreground">{insight}</p>
               ) : (
-                <p className="text-sm text-muted-foreground leading-relaxed">
-                  Klik "Buat Insight" untuk mendapatkan analisis AI bulanan — apa yang membaik, apa yang belum, dan apa yang perlu diprioritaskan bulan depan.
-                </p>
+                <>
+                  {stats.byBusiness
+                    .sort((a: any, b: any) => b.totalInteractions - a.totalInteractions)
+                    .map((biz: any) => {
+                      const brandColor = BIZ_COLORS[biz.name] || biz.color || "#6B7280";
+                      return (
+                        <div
+                          key={biz.id}
+                          className="flex items-center gap-4 px-5 py-4 border-b border-border last:border-b-0"
+                          style={{ borderLeftColor: brandColor, borderLeftWidth: "3px" }}
+                        >
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-foreground">{biz.name}</p>
+                            <p className="text-xs text-muted-foreground">{biz.totalCustomers} total customer</p>
+                          </div>
+                          <div className="flex items-center gap-6 shrink-0">
+                            <div className="text-right">
+                              <p className="text-sm font-bold font-mono text-foreground">{biz.totalInteractions}</p>
+                              <p className="text-[10px] text-muted-foreground">interaksi</p>
+                            </div>
+                            <div className="text-right">
+                              <p className="text-sm font-bold font-mono text-foreground">{biz.newCustomers}</p>
+                              <p className="text-[10px] text-muted-foreground">lead baru</p>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  {bestBiz && (
+                    <div className="px-5 py-3 bg-muted/20">
+                      <p className="text-xs text-muted-foreground">
+                        🏆 Unit paling aktif bulan ini: <strong className="text-foreground">{bestBiz.name}</strong>
+                      </p>
+                    </div>
+                  )}
+                </>
               )}
+            </div>
+          </div>
+
+          {/* Reflection */}
+          <div>
+            <SectionHeading title="Refleksi Bulanan" subtitle="hanya tersimpan di browser ini" />
+            <div className="bg-white border border-border rounded-2xl card-shadow p-5">
+              <Textarea
+                placeholder={`Tulis refleksi bulan ini...\n\n• Apa pencapaian terbesar bulan ini?\n• Deal mana yang seharusnya bisa ditutup?\n• Bisnis mana yang perlu lebih banyak perhatian bulan depan?\n• Apa yang ingin kamu lakukan berbeda?`}
+                value={reflection}
+                onChange={(e) => setReflection(e.target.value)}
+                rows={5}
+                className="text-sm bg-muted/20 border-border focus-visible:ring-primary/20 resize-none"
+              />
+              <p className="text-xs text-muted-foreground mt-2">Catatan ini tidak disimpan ke server.</p>
+            </div>
+          </div>
+
+          {/* AI Insight */}
+          <div>
+            <SectionHeading title="AI Insight" />
+            <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+                <div className="flex items-center gap-2.5">
+                  <div className="h-8 w-8 rounded-xl bg-violet-50 flex items-center justify-center">
+                    <Sparkles className="h-4 w-4 text-violet-500" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-sm text-foreground">Insight Bulanan AI</h3>
+                    <p className="text-xs text-muted-foreground">Analisis tren dan rekomendasi</p>
+                  </div>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="h-8 text-xs gap-1.5"
+                  onClick={handleGetInsight}
+                  disabled={loadingInsight}
+                >
+                  {loadingInsight ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                  {loadingInsight ? "Berpikir..." : insight ? "Perbarui" : "Buat Insight"}
+                </Button>
+              </div>
+              <div className="px-5 py-4">
+                {insight ? (
+                  <p className="text-sm leading-relaxed text-foreground">{insight}</p>
+                ) : (
+                  <p className="text-sm text-muted-foreground leading-relaxed">
+                    Klik "Buat Insight" untuk mendapatkan analisis AI bulanan — apa yang membaik dibanding bulan lalu, unit bisnis mana yang paling aktif, dan apa yang perlu diprioritaskan bulan depan.
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </>

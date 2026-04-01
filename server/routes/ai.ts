@@ -245,4 +245,31 @@ router.post("/monthly-insight", async (req, res) => {
   }
 });
 
+router.post("/yearly-insight", async (req, res) => {
+  try {
+    const { stats } = req.body;
+
+    const response = await getOpenAI().chat.completions.create({
+      model: getAIModel(),
+      messages: [
+        {
+          role: "system",
+          content: `You are a strategic business advisor giving a concise yearly CRM review for a founder managing multiple businesses. Be direct, reflective, and forward-looking. 4-6 sentences. Cover: overall year performance, strongest business unit, key pattern in wins/losses, and one clear strategic direction for next year.`,
+        },
+        {
+          role: "user",
+          content: `Yearly CRM data:\n${JSON.stringify(stats, null, 2)}`,
+        },
+      ],
+      max_tokens: 300,
+    });
+
+    return res.json({ insight: response.choices[0].message.content?.trim() });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "AI error" });
+  }
+});
+
 export default router;
+

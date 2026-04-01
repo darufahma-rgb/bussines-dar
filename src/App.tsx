@@ -15,6 +15,7 @@ import FollowUps from "@/pages/FollowUps";
 import Pipeline from "@/pages/Pipeline";
 import Weekly from "@/pages/Weekly";
 import Monthly from "@/pages/Monthly";
+import Yearly from "@/pages/Yearly";
 import NotFound from "@/pages/NotFound";
 import { Menu, PanelLeftClose, PanelLeftOpen, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
@@ -23,13 +24,14 @@ import { id as idLocale } from "date-fns/locale";
 const queryClient = new QueryClient();
 
 const PAGE_TITLES: Record<string, string> = {
-  "/": "Dasbor",
+  "/": "Command Center",
   "/customers": "Daftar Customer",
   "/customers/new": "Tambah Customer",
   "/pipeline": "Pipeline",
   "/follow-ups": "Follow-ups",
   "/weekly": "Laporan Mingguan",
   "/monthly": "Laporan Bulanan",
+  "/yearly": "Tinjauan Tahunan",
 };
 
 function TopBar({
@@ -60,7 +62,6 @@ function TopBar({
           onClick={onMobileMenuClick}
           className="md:hidden flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0"
           aria-label="Buka menu"
-          data-testid="button-mobile-menu"
         >
           <Menu className="h-[18px] w-[18px]" />
         </button>
@@ -69,7 +70,6 @@ function TopBar({
           onClick={onToggleCollapse}
           className="hidden md:flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0"
           aria-label={sidebarCollapsed ? "Buka sidebar" : "Tutup sidebar"}
-          data-testid="button-toggle-sidebar"
         >
           {sidebarCollapsed
             ? <PanelLeftOpen className="h-[15px] w-[15px]" />
@@ -150,6 +150,7 @@ function AppLayout() {
               <Route path="/pipeline" element={<Pipeline />} />
               <Route path="/weekly" element={<Weekly />} />
               <Route path="/monthly" element={<Monthly />} />
+              <Route path="/yearly" element={<Yearly />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>

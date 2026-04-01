@@ -2,7 +2,7 @@ import { Router } from "express";
 import { db } from "../db.js";
 import { customers, interactions, customerBusinesses, businesses } from "../../shared/schema.js";
 import { requireAuth } from "../middleware/auth.js";
-import { sql, and, eq, gte, lt, lte, inArray, desc } from "drizzle-orm";
+import { sql, and, eq, gte, lt, lte, inArray, desc, isNotNull, ne } from "drizzle-orm";
 
 const router = Router();
 router.use(requireAuth);
@@ -19,6 +19,13 @@ function startOfMonth(offset = 0) {
   d.setDate(1);
   d.setHours(0, 0, 0, 0);
   d.setMonth(d.getMonth() + offset);
+  return d;
+}
+
+function startOfYear() {
+  const d = new Date();
+  d.setMonth(0, 1);
+  d.setHours(0, 0, 0, 0);
   return d;
 }
 
@@ -122,6 +129,109 @@ router.get("/monthly", async (_req, res) => {
     );
 
     return res.json({ current: currentMonth, previous: previousMonth, byBusiness });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.get("/yearly", async (_req, res) => {
+  try {
+    const yearStart = startOfYear();
+    const now = new Date();
+
+    const [totalCustomers, closedDeals, totalRevenue, bizRows] = await Promise.all([
+      db.select({ count: sql<number>`count(*)` }).from(customers).where(gte(customers.createdAt, yearStart)),
+      db.select({ count: sql<number>`count(*)` }).from(customers).where(and(eq(customers.status, "closed"), gte(customers.updatedAt, yearStart))),
+      db.select({ total: sql<string>`coalesce(sum(amount), 0)` }).from(interactions).where(and(eq(interactions.type, "transaction"), gte(interactions.createdAt, yearStart))),
+      db.select().from(businesses),
+    ]);
+
+    const [activeLeads, lostLeads, sourceRows, lostReasonRows] = await Promise.all([
+      db.select({ count: sql<number>`count(*)` }).from(customers).where(
+        and(
+          inArray(customers.status, ["new", "warm", "hot", "negotiation"] as any),
+          gte(customers.createdAt, yearStart)
+        )
+      ),
+      db.select({ count: sql<number>`count(*)` }).from(customers).where(and(eq(customers.status, "lost"), gte(customers.updatedAt, yearStart))),
+      db.select({ source: customers.source, count: sql<number>`count(*)` })
+        .from(customers)
+        .where(and(gte(customers.createdAt, yearStart), isNotNull(customers.source)))
+        .groupBy(customers.source)
+        .orderBy(sql`count(*) desc`)
+        .limit(8),
+      db.select({ reason: customers.lostReason, count: sql<number>`count(*)` })
+        .from(customers)
+        .where(and(eq(customers.status, "lost"), isNotNull(customers.lostReason), gte(customers.updatedAt, yearStart)))
+        .groupBy(customers.lostReason)
+        .orderBy(sql`count(*) desc`)
+        .limit(6),
+    ]);
+
+    const byBusiness = await Promise.all(
+      bizRows.map(async (biz) => {
+        const cbRows = await db.select({ customerId: customerBusinesses.customerId }).from(customerBusinesses).where(eq(customerBusinesses.businessId, biz.id));
+        const customerIds = cbRows.map((r) => r.customerId);
+
+        let newCustomers = 0, closedThisYear = 0, revenue = "0", totalInteractions = 0;
+        if (customerIds.length) {
+          const [nc, cl, rev, ti] = await Promise.all([
+            db.select({ count: sql<number>`count(*)` }).from(customers).where(and(inArray(customers.id, customerIds), gte(customers.createdAt, yearStart))),
+            db.select({ count: sql<number>`count(*)` }).from(customers).where(and(inArray(customers.id, customerIds), eq(customers.status, "closed"), gte(customers.updatedAt, yearStart))),
+            db.select({ total: sql<string>`coalesce(sum(amount), 0)` }).from(interactions).where(and(inArray(interactions.customerId, customerIds), eq(interactions.type, "transaction"), gte(interactions.createdAt, yearStart))),
+            db.select({ count: sql<number>`count(*)` }).from(interactions).where(and(inArray(interactions.customerId, customerIds), gte(interactions.createdAt, yearStart))),
+          ]);
+          newCustomers = Number(nc[0].count);
+          closedThisYear = Number(cl[0].count);
+          revenue = rev[0].total;
+          totalInteractions = Number(ti[0].count);
+        }
+
+        return {
+          id: biz.id,
+          name: biz.name,
+          color: biz.color,
+          totalCustomers: customerIds.length,
+          newCustomers,
+          closedThisYear,
+          revenue,
+          totalInteractions,
+        };
+      })
+    );
+
+    // Monthly breakdown (current year, month by month)
+    const currentYear = new Date().getFullYear();
+    const monthlyBreakdown = await Promise.all(
+      Array.from({ length: 12 }, async (_, i) => {
+        const monthStart = new Date(currentYear, i, 1);
+        const monthEnd = new Date(currentYear, i + 1, 1);
+        const label = `${currentYear}-${String(i + 1).padStart(2, "0")}`;
+
+        if (monthEnd > now) return { month: label, newCustomers: 0, closedDeals: 0, revenue: "0" };
+
+        const [nc, cd, rev] = await Promise.all([
+          db.select({ count: sql<number>`count(*)` }).from(customers).where(and(gte(customers.createdAt, monthStart), lt(customers.createdAt, monthEnd))),
+          db.select({ count: sql<number>`count(*)` }).from(customers).where(and(eq(customers.status, "closed"), gte(customers.updatedAt, monthStart), lt(customers.updatedAt, monthEnd))),
+          db.select({ total: sql<string>`coalesce(sum(amount), 0)` }).from(interactions).where(and(eq(interactions.type, "transaction"), gte(interactions.createdAt, monthStart), lt(interactions.createdAt, monthEnd))),
+        ]);
+        return { month: label, newCustomers: Number(nc[0].count), closedDeals: Number(cd[0].count), revenue: rev[0].total };
+      })
+    );
+
+    return res.json({
+      year: currentYear,
+      totalCustomers: Number(totalCustomers[0].count),
+      closedDeals: Number(closedDeals[0].count),
+      totalRevenue: totalRevenue[0].total,
+      activeLeads: Number(activeLeads[0].count),
+      lostLeads: Number(lostLeads[0].count),
+      topSources: sourceRows.filter(r => r.source).map(r => ({ source: r.source!, count: Number(r.count) })),
+      lostReasons: lostReasonRows.filter(r => r.reason).map(r => ({ reason: r.reason!, count: Number(r.count) })),
+      byBusiness,
+      monthlyBreakdown,
+    });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Server error" });
