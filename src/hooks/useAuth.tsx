@@ -29,7 +29,8 @@ export function useAuth() {
 
   const signUp = async (email: string, password: string) => {
     try {
-      await api.auth.signUp(email, password);
+      const { user } = await api.auth.signUp(email, password);
+      setUser(user);
       return { error: null };
     } catch (err: any) {
       return { error: { message: err.message } };

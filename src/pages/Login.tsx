@@ -22,7 +22,7 @@ export default function Login() {
     if (error) {
       toast.error(error.message);
     } else if (isSignUp) {
-      toast.success("Account created! Check your email to confirm.");
+      toast.success("Account created! Welcome to CRM Hub.");
     }
     setLoading(false);
   };
