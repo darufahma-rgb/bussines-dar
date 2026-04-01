@@ -16,7 +16,7 @@ import Pipeline from "@/pages/Pipeline";
 import Weekly from "@/pages/Weekly";
 import Monthly from "@/pages/Monthly";
 import NotFound from "@/pages/NotFound";
-import { Menu, Bell } from "lucide-react";
+import { Menu, Bell, PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import { format } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 
@@ -32,7 +32,15 @@ const PAGE_TITLES: Record<string, string> = {
   "/monthly": "Laporan Bulanan",
 };
 
-function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
+function TopBar({
+  onMobileMenuClick,
+  sidebarCollapsed,
+  onToggleCollapse,
+}: {
+  onMobileMenuClick: () => void;
+  sidebarCollapsed: boolean;
+  onToggleCollapse: () => void;
+}) {
   const { user } = useAuth();
   const location = useLocation();
   const initials = user?.email?.slice(0, 2).toUpperCase() ?? "CR";
@@ -46,23 +54,39 @@ function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
   };
 
   return (
-    <div className="sticky top-0 z-40 bg-white border-b border-border px-4 md:px-6 py-3 flex items-center justify-between">
-      <div className="flex items-center gap-3">
+    <div className="sticky top-0 z-40 bg-white border-b border-border px-3 sm:px-5 py-3 flex items-center justify-between gap-3">
+      <div className="flex items-center gap-2 min-w-0">
+        {/* Mobile hamburger */}
         <button
-          onClick={onMenuClick}
-          className="md:hidden text-muted-foreground hover:text-foreground"
-          aria-label="Open menu"
+          onClick={onMobileMenuClick}
+          className="md:hidden flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0"
+          aria-label="Buka menu"
+          data-testid="button-mobile-menu"
         >
           <Menu className="h-5 w-5" />
         </button>
-        <div>
-          <h1 className="font-semibold text-foreground text-sm md:text-base leading-tight">{getTitle()}</h1>
-          <p className="text-[11px] text-muted-foreground hidden md:block capitalize">{today}</p>
+
+        {/* Desktop collapse toggle */}
+        <button
+          onClick={onToggleCollapse}
+          className="hidden md:flex items-center justify-center h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground transition-colors shrink-0"
+          aria-label={sidebarCollapsed ? "Buka sidebar" : "Tutup sidebar"}
+          data-testid="button-toggle-sidebar"
+        >
+          {sidebarCollapsed
+            ? <PanelLeftOpen className="h-4 w-4" />
+            : <PanelLeftClose className="h-4 w-4" />
+          }
+        </button>
+
+        <div className="min-w-0">
+          <h1 className="font-semibold text-foreground text-sm sm:text-base leading-tight truncate">{getTitle()}</h1>
+          <p className="text-[11px] text-muted-foreground hidden sm:block capitalize">{today}</p>
         </div>
       </div>
 
-      <div className="flex items-center gap-2">
-        <button className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors relative">
+      <div className="flex items-center gap-1.5 shrink-0">
+        <button className="h-8 w-8 rounded-lg flex items-center justify-center text-muted-foreground hover:bg-muted transition-colors">
           <Bell className="h-4 w-4" />
         </button>
         <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center">
@@ -75,7 +99,18 @@ function TopBar({ onMenuClick }: { onMenuClick: () => void }) {
 
 function AppLayout() {
   const { user, loading } = useAuth();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try { return localStorage.getItem("sidebar-collapsed") === "true"; } catch { return false; }
+  });
+
+  function toggleCollapse() {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      try { localStorage.setItem("sidebar-collapsed", String(next)); } catch {}
+      return next;
+    });
+  }
 
   if (loading) {
     return (
@@ -93,24 +128,34 @@ function AppLayout() {
   if (!user) return <Login />;
 
   return (
-    <div className="flex min-h-screen bg-background">
-      <AppSidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-      <main className="flex-1 flex flex-col min-w-0 overflow-auto">
-        <TopBar onMenuClick={() => setSidebarOpen(true)} />
-        <div className="flex-1 p-4 md:p-6">
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/customers" element={<CustomerList />} />
-            <Route path="/customers/new" element={<NewCustomer />} />
-            <Route path="/customers/:id" element={<CustomerDetail />} />
-            <Route path="/follow-ups" element={<FollowUps />} />
-            <Route path="/pipeline" element={<Pipeline />} />
-            <Route path="/weekly" element={<Weekly />} />
-            <Route path="/monthly" element={<Monthly />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </div>
-      </main>
+    <div className="flex h-screen bg-background overflow-hidden">
+      <AppSidebar
+        collapsed={sidebarCollapsed}
+        mobileOpen={mobileOpen}
+        onMobileClose={() => setMobileOpen(false)}
+      />
+      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+        <TopBar
+          onMobileMenuClick={() => setMobileOpen(true)}
+          sidebarCollapsed={sidebarCollapsed}
+          onToggleCollapse={toggleCollapse}
+        />
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-3 sm:p-5 max-w-screen-xl mx-auto">
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/customers" element={<CustomerList />} />
+              <Route path="/customers/new" element={<NewCustomer />} />
+              <Route path="/customers/:id" element={<CustomerDetail />} />
+              <Route path="/follow-ups" element={<FollowUps />} />
+              <Route path="/pipeline" element={<Pipeline />} />
+              <Route path="/weekly" element={<Weekly />} />
+              <Route path="/monthly" element={<Monthly />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
