@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Eye, EyeOff, TrendingUp, Mail } from "lucide-react";
+import { Eye, EyeOff, Mail } from "lucide-react";
 
 /* ── Animated blob canvas ── */
 function AnimatedOrb({ className = "" }: { className?: string }) {
@@ -130,10 +130,10 @@ export default function Login() {
         {/* brand header — above card */}
         <div className="relative z-10 text-center mb-5">
           <div
-            className="h-10 w-10 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg"
+            className="h-12 w-12 rounded-2xl flex items-center justify-center mx-auto mb-3 shadow-lg overflow-hidden"
             style={{ background: "rgba(255,255,255,0.15)", backdropFilter: "blur(8px)" }}
           >
-            <TrendingUp className="h-5 w-5 text-white" />
+            <img src="/darcia-logo.png" alt="Darcia" className="h-8 w-8 object-contain" />
           </div>
           <h1 className="text-lg font-bold text-white tracking-tight">Darcia Business Hub</h1>
           <p className="text-xs text-white/50 mt-0.5">Business Operating System</p>
@@ -234,10 +234,10 @@ export default function Login() {
         <div className="relative flex flex-col justify-center bg-white px-8 py-10 w-[400px] shrink-0 z-10">
           <div className="mb-7">
             <div
-              className="h-11 w-11 rounded-xl flex items-center justify-center mb-5"
+              className="h-11 w-11 rounded-xl flex items-center justify-center mb-5 overflow-hidden"
               style={{ background: BLUE }}
             >
-              <TrendingUp className="h-5 w-5 text-white" />
+              <img src="/darcia-logo.png" alt="Darcia" className="h-7 w-7 object-contain" />
             </div>
             <h1 className="text-[26px] font-bold text-gray-900 leading-tight">
               {isSignUp ? "Buat akun baru" : "Selamat datang"}

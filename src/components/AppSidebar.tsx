@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, CalendarCheck, LogOut, Plus,
-  BarChart2, CalendarDays, Kanban, TrendingUp, X, CalendarRange,
+  BarChart2, CalendarDays, Kanban, X, CalendarRange,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -92,8 +92,8 @@ function SidebarContent({
         "flex items-center border-b border-border shrink-0 h-14",
         collapsed ? "justify-center" : "px-4 gap-3"
       )}>
-        <div className="h-8 w-8 rounded-xl bg-primary flex items-center justify-center shrink-0 shadow-sm">
-          <TrendingUp className="h-[15px] w-[15px] text-white" />
+        <div className="h-8 w-8 rounded-xl bg-primary flex items-center justify-center shrink-0 shadow-sm overflow-hidden">
+          <img src="/darcia-logo.png" alt="Darcia" className="h-5 w-5 object-contain" />
         </div>
         {!collapsed && (
           <div className="flex-1 min-w-0">
