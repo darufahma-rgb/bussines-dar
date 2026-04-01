@@ -23,7 +23,8 @@ Multi-bisnis CRM untuk mengelola customer dari Temantiket, SYMP, AIGYPT, dan Dar
 - CSV Import with column auto-mapping + business assignment
 - CSV Export
 - Weekly, Monthly & **Yearly** reports with AI insights + reflection textarea
-- AI features: customer summary, reply generator, next-action suggestion, parse capture
+- AI features: customer summary, reply generator, next-action suggestion, parse capture, dedicated AI Chat page (/chat)
+- Profile settings page (/profile): update display name, change password
 - Collapsed sidebar (localStorage persistent) + mobile drawer
 - Full Indonesian UI (bahasa Indonesia throughout)
 - Premium navy design system (--primary: 222 60% 24%, rounded-2xl cards, card-shadow utilities)

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes, useLocation } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,6 +16,8 @@ import Pipeline from "@/pages/Pipeline";
 import Weekly from "@/pages/Weekly";
 import Monthly from "@/pages/Monthly";
 import Yearly from "@/pages/Yearly";
+import Profile from "@/pages/Profile";
+import AiChat from "@/pages/AiChat";
 import NotFound from "@/pages/NotFound";
 import { Menu, PanelLeftClose, PanelLeftOpen, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
@@ -32,6 +34,8 @@ const PAGE_TITLES: Record<string, string> = {
   "/weekly": "Laporan Mingguan",
   "/monthly": "Laporan Bulanan",
   "/yearly": "Tinjauan Tahunan",
+  "/chat": "Chat AI",
+  "/profile": "Profil Saya",
 };
 
 function TopBar({
@@ -45,7 +49,8 @@ function TopBar({
 }) {
   const { user } = useAuth();
   const location = useLocation();
-  const initials = user?.email?.slice(0, 2).toUpperCase() ?? "CR";
+  const navigate = useNavigate();
+  const initials = (user?.name || user?.email || "CR").slice(0, 2).toUpperCase();
   const today = format(new Date(), "EEEE, d MMMM yyyy", { locale: idLocale });
 
   const getTitle = () => {
@@ -84,9 +89,13 @@ function TopBar({
       </div>
 
       <div className="flex items-center gap-2 shrink-0">
-        <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center shadow-sm">
+        <button
+          onClick={() => navigate("/profile")}
+          title="Profil saya"
+          className="h-8 w-8 rounded-full bg-primary flex items-center justify-center shadow-sm hover:opacity-85 transition-opacity"
+        >
           <span className="text-[11px] font-bold text-white">{initials}</span>
-        </div>
+        </button>
       </div>
     </div>
   );
@@ -151,6 +160,8 @@ function AppLayout() {
               <Route path="/weekly" element={<Weekly />} />
               <Route path="/monthly" element={<Monthly />} />
               <Route path="/yearly" element={<Yearly />} />
+              <Route path="/chat" element={<AiChat />} />
+              <Route path="/profile" element={<Profile />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </div>

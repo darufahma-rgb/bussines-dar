@@ -271,5 +271,45 @@ router.post("/yearly-insight", async (req, res) => {
   }
 });
 
+router.post("/chat", async (req, res) => {
+  try {
+    const { messages } = req.body;
+    if (!Array.isArray(messages) || messages.length === 0) {
+      return res.status(400).json({ error: "messages required" });
+    }
+
+    const customerRows = await db
+      .select({ id: customers.id, name: customers.name, status: customers.status })
+      .from(customers)
+      .limit(50);
+
+    const customerSummary = customerRows
+      .map((c) => `- ${c.name} (${c.status})`)
+      .join("\n") || "Belum ada customer.";
+
+    const response = await getOpenAI().chat.completions.create({
+      model: getAIModel(),
+      messages: [
+        {
+          role: "system",
+          content: `Kamu adalah asisten bisnis AI untuk Darcia Business Hub — sebuah CRM yang mengelola customer dari 4 bisnis: Temantiket, SYMP Studio, Darcia, dan AIGYPT. Jawab dalam Bahasa Indonesia secara ringkas, praktis, dan membantu.
+
+Data customer saat ini (50 terbaru):
+${customerSummary}
+
+Kamu bisa membantu: analisis pipeline, saran follow-up, strategi penjualan, pertanyaan umum bisnis, dan apapun yang relevan dengan operasional bisnis ini.`,
+        },
+        ...messages,
+      ],
+      max_tokens: 600,
+    });
+
+    return res.json({ reply: response.choices[0].message.content?.trim() });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "AI error" });
+  }
+});
+
 export default router;
 

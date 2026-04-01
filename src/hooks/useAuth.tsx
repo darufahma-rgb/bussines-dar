@@ -4,6 +4,7 @@ import { api } from "@/lib/api";
 interface AuthUser {
   id: string;
   email: string;
+  name?: string | null;
 }
 
 export function useAuth() {

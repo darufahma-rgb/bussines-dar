@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, CalendarCheck, LogOut, Plus,
-  BarChart2, CalendarDays, Kanban, X, CalendarRange,
+  BarChart2, CalendarDays, Kanban, X, CalendarRange, Sparkles, UserCircle,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -22,6 +22,7 @@ const mainItems = [
   { to: "/pipeline", icon: Kanban, label: "Pipeline", end: true, hasBadge: false },
   { to: "/follow-ups", icon: CalendarCheck, label: "Follow-ups", end: true, hasBadge: true },
   { to: "/customers/new", icon: Plus, label: "Tambah Customer", end: true, hasBadge: false },
+  { to: "/chat", icon: Sparkles, label: "Chat AI", end: true, hasBadge: false },
 ];
 
 const insightItems = [
@@ -79,7 +80,7 @@ function SidebarContent({
   collapsed: boolean; onClose?: () => void; overdueCount: number;
 }) {
   const { signOut, user } = useAuth();
-  const initials = user?.email?.slice(0, 2).toUpperCase() ?? "CR";
+  const initials = (user?.name || user?.email || "CR").slice(0, 2).toUpperCase();
 
   return (
     <aside
@@ -149,17 +150,20 @@ function SidebarContent({
 
       <div className={cn(
         "border-t border-border shrink-0",
-        collapsed ? "py-3 flex flex-col items-center gap-1.5" : "px-3 py-3"
+        collapsed ? "py-3 flex flex-col items-center gap-1.5" : "px-3 py-3 space-y-0.5"
       )}>
         {collapsed ? (
           <>
             <Tooltip delayDuration={0}>
               <TooltipTrigger asChild>
-                <div className="h-8 w-8 rounded-xl bg-primary/10 flex items-center justify-center cursor-default">
-                  <span className="text-xs font-bold text-primary">{initials}</span>
-                </div>
+                <NavLink to="/profile" className={({ isActive }) => cn(
+                  "h-8 w-8 rounded-xl flex items-center justify-center transition-colors",
+                  isActive ? "bg-primary text-white" : "bg-primary/10 text-primary hover:bg-primary/20"
+                )}>
+                  <span className="text-xs font-bold">{initials}</span>
+                </NavLink>
               </TooltipTrigger>
-              <TooltipContent side="right" className="text-xs">{user?.email}</TooltipContent>
+              <TooltipContent side="right" className="text-xs">Profil · {user?.email}</TooltipContent>
             </Tooltip>
             <Tooltip delayDuration={0}>
               <TooltipTrigger asChild>
@@ -174,13 +178,27 @@ function SidebarContent({
             </Tooltip>
           </>
         ) : (
-          <button
-            onClick={signOut}
-            className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] text-muted-foreground hover:bg-muted/80 hover:text-foreground w-full transition-colors"
-          >
-            <LogOut className="h-[16px] w-[16px] shrink-0" />
-            Keluar
-          </button>
+          <>
+            <NavLink
+              to="/profile"
+              className={({ isActive }) => cn(
+                "flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] w-full transition-colors",
+                isActive
+                  ? "bg-primary text-white shadow-sm"
+                  : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
+              )}
+            >
+              <UserCircle className="h-[16px] w-[16px] shrink-0" />
+              <span className="truncate">{user?.name || "Profil Saya"}</span>
+            </NavLink>
+            <button
+              onClick={signOut}
+              className="flex items-center gap-3 px-3 py-2 rounded-xl text-[13px] text-muted-foreground hover:bg-muted/80 hover:text-foreground w-full transition-colors"
+            >
+              <LogOut className="h-[16px] w-[16px] shrink-0" />
+              Keluar
+            </button>
+          </>
         )}
       </div>
     </aside>

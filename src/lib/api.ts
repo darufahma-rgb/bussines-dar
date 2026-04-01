@@ -24,6 +24,8 @@ export const api = {
       request("/auth/signup", { method: "POST", body: JSON.stringify({ email, password }) }),
     signOut: () => request("/auth/signout", { method: "POST" }),
     me: () => request("/auth/me"),
+    updateProfile: (data: { name?: string; currentPassword?: string; newPassword?: string }) =>
+      request("/auth/profile", { method: "PUT", body: JSON.stringify(data) }),
   },
   businesses: {
     list: () => request("/businesses"),
@@ -94,6 +96,8 @@ export const api = {
       request("/ai/monthly-insight", { method: "POST", body: JSON.stringify(data) }),
     yearlyInsight: (stats: any) =>
       request("/ai/yearly-insight", { method: "POST", body: JSON.stringify({ stats }) }),
+    chat: (messages: { role: string; content: string }[]) =>
+      request("/ai/chat", { method: "POST", body: JSON.stringify({ messages }) }),
   },
   stats: {
     weekly: () => request("/stats/weekly"),
