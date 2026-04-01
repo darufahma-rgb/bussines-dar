@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { useState } from "react";
 import { toast } from "sonner";
 import BusinessBadge from "@/components/BusinessBadge";
+import PageGuide from "@/components/PageGuide";
 import { ChevronRight, ArrowRight } from "lucide-react";
 
 type CustomerStatus = "new" | "warm" | "hot" | "negotiation" | "closed" | "lost";
@@ -112,16 +113,25 @@ export default function Pipeline() {
         />
       )}
 
+      <div>
+        <h2 className="text-xl font-semibold">Pipeline</h2>
+        <p className="text-sm text-muted-foreground">
+          {isLoading ? "Memuat..." : `${customers?.length ?? 0} customer`}
+          {totalPipeline > 0 && (
+            <span className="ml-2 text-green-600 font-mono">· Pipeline: IDR {totalPipeline.toLocaleString()}</span>
+          )}
+        </p>
+      </div>
+
+      <PageGuide steps={[
+        { icon: "🗂️", title: "Tahap Penjualan", desc: "Setiap kolom mewakili tahap: New Lead → Warm → Hot → Negotiation → Closed Won / Lost. Customer bergerak dari kiri ke kanan seiring proses penjualan." },
+        { icon: "▶️", title: "Pindah Tahap", desc: "Klik tombol panah (→) di kartu customer untuk memindahkannya ke tahap berikutnya. Jika dipindah ke 'Lost', kamu akan diminta memasukkan alasan kenapa gagal." },
+        { icon: "💰", title: "Nilai Pipeline", desc: "Total nilai deal yang sedang berjalan ditampilkan di bagian atas. Pastikan setiap customer sudah diisi Estimated Value di profilnya." },
+        { icon: "👤", title: "Buka Profil", desc: "Klik nama customer di kartu untuk membuka profil lengkapnya dan melihat riwayat interaksi." },
+      ]} />
+
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-xl font-semibold">Pipeline</h2>
-          <p className="text-sm text-muted-foreground">
-            {isLoading ? "Loading..." : `${customers?.length ?? 0} customers`}
-            {totalPipeline > 0 && (
-              <span className="ml-2 text-green-600 font-mono">· Pipeline: IDR {totalPipeline.toLocaleString()}</span>
-            )}
-          </p>
-        </div>
+        <div />
         <Link
           to="/customers/new"
           className="text-xs bg-foreground text-background px-3 py-1.5 rounded-md hover:opacity-90 transition-opacity"

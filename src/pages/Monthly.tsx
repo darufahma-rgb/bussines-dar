@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Sparkles, Loader2, TrendingUp, TrendingDown, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import PageGuide from "@/components/PageGuide";
 
 function Delta({ current, previous, label }: { current: number; previous: number; label: string }) {
   const diff = current - previous;
@@ -52,9 +53,15 @@ export default function Monthly() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold">Monthly View</h2>
+        <h2 className="text-xl font-semibold">Laporan Bulanan</h2>
         <p className="text-sm text-muted-foreground">{currentMonthName} vs {prevMonthName}</p>
       </div>
+
+      <PageGuide steps={[
+        { icon: "📈", title: "Perbandingan Bulan", desc: "Bandingkan performa bulan ini vs bulan lalu: jumlah customer baru, deal closed, interaksi total, dan follow-up. Panah hijau = naik, merah = turun." },
+        { icon: "🏢", title: "Performa per Bisnis", desc: "Lihat breakdown customer per bisnis (Temantiket, SYMP, AIGYPT, dll) — berapa yang aktif dan berapa deal yang closed bulan ini." },
+        { icon: "✨", title: "AI Monthly Insight", desc: "Klik 'Generate Insight' untuk mendapatkan analisis mendalam dari AI tentang tren bulan ini, bisnis mana yang perlu perhatian lebih, dan rekomendasi strategi bulan depan." },
+      ]} />
 
       {isLoading ? (
         <div className="text-sm text-muted-foreground text-center py-12">Loading...</div>

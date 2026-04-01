@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Button } from "@/components/ui/button";
 import StatusBadge from "@/components/StatusBadge";
 import BusinessBadge from "@/components/BusinessBadge";
+import PageGuide from "@/components/PageGuide";
 import { Link } from "react-router-dom";
 import { Search, Download, ArrowUpDown } from "lucide-react";
 import { format, parseISO } from "date-fns";
@@ -80,7 +81,7 @@ export default function CustomerList() {
       <div className="flex items-center justify-between gap-2">
         <div>
           <h2 className="text-xl font-semibold">Customers</h2>
-          <p className="text-sm text-muted-foreground">{customers?.length ?? 0} customers</p>
+          <p className="text-sm text-muted-foreground">{customers?.length ?? 0} customer</p>
         </div>
         <Button
           variant="outline"
@@ -94,6 +95,13 @@ export default function CustomerList() {
           <span className="hidden sm:inline">Export CSV</span>
         </Button>
       </div>
+
+      <PageGuide steps={[
+        { icon: "🔍", title: "Cari Customer", desc: "Ketik nama customer di kolom pencarian. Filter tambahan tersedia untuk menyaring berdasarkan status (New, Warm, Hot, dll) dan bisnis." },
+        { icon: "↕️", title: "Urutkan Daftar", desc: "Gunakan dropdown Sort untuk mengurutkan berdasarkan tanggal update, nama A-Z, status, atau nilai deal terbesar/terkecil." },
+        { icon: "📥", title: "Export CSV", desc: "Tekan tombol Export CSV untuk mengunduh semua customer yang sedang ditampilkan (sesuai filter aktif) dalam format spreadsheet." },
+        { icon: "👤", title: "Buka Profil", desc: "Klik baris customer mana saja untuk membuka detail lengkap: riwayat interaksi, AI summary, next action, dan memory." },
+      ]} />
 
       <div className="flex flex-wrap gap-2">
         <div className="relative flex-1 min-w-[160px]">

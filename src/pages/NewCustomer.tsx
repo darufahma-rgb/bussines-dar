@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
+import PageGuide from "@/components/PageGuide";
 import { toast } from "sonner";
 
 const SOURCE_OPTIONS = ["Instagram", "WhatsApp", "Referral", "Website", "TikTok", "Email", "Cold Outreach", "Event", "Other"];
@@ -54,9 +55,16 @@ export default function NewCustomer() {
   return (
     <div className="max-w-lg space-y-6">
       <div>
-        <h2 className="text-xl font-semibold">Add Customer</h2>
-        <p className="text-sm text-muted-foreground">Create a new customer profile</p>
+        <h2 className="text-xl font-semibold">Tambah Customer</h2>
+        <p className="text-sm text-muted-foreground">Buat profil customer baru secara manual</p>
       </div>
+
+      <PageGuide steps={[
+        { icon: "💡", title: "Alternatif Lebih Cepat", desc: "Untuk input cepat, gunakan Quick Capture di Dashboard (Ctrl+K) dan aktifkan AI Parse — AI akan otomatis mengisi nama, status, dan follow-up dari catatan singkat kamu." },
+        { icon: "🏢", title: "Pilih Bisnis", desc: "Satu customer bisa dihubungkan ke lebih dari satu bisnis (centang beberapa). Berguna jika customer tertarik ke Temantiket sekaligus AIGYPT misalnya." },
+        { icon: "💰", title: "Estimated Value", desc: "Isi perkiraan nilai deal dalam Rupiah (tanpa titik/koma). Angka ini digunakan untuk menghitung Pipeline Value di Dashboard dan Pipeline." },
+        { icon: "📌", title: "Lead Source", desc: "Pilih dari mana customer ini berasal (Instagram, WhatsApp, Referral, dll). Membantu kamu tahu channel mana yang paling efektif." },
+      ]} />
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-1.5">

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Users, Flame, CalendarCheck, TrendingUp, Target, DollarSign, AlertCircle } from "lucide-react";
 import QuickCapture from "@/components/QuickCapture";
+import PageGuide from "@/components/PageGuide";
 import StatusBadge from "@/components/StatusBadge";
 import { Link } from "react-router-dom";
 import { format, isToday, isPast, parseISO } from "date-fns";
@@ -55,8 +56,17 @@ export default function Dashboard() {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold">Dashboard</h2>
-        <p className="text-sm text-muted-foreground">Quick overview of your CRM</p>
+        <p className="text-sm text-muted-foreground">Ringkasan aktivitas CRM kamu hari ini</p>
       </div>
+
+      <PageGuide steps={[
+        { icon: "⚡", title: "Quick Capture", desc: "Ketik catatan singkat tentang customer lalu tekan Capture. Gunakan tombol 'AI Parse' agar AI otomatis mengekstrak nama, status, dan tanggal follow-up. Shortcut: Ctrl+K / Cmd+K." },
+        { icon: "📊", title: "Statistik", desc: "Lihat total customer, lead aktif, follow-up hari ini, dan yang sudah overdue sekaligus di satu tampilan." },
+        { icon: "🎯", title: "Daily Focus", desc: "AI memilihkan 3 customer yang paling perlu diperhatikan hari ini — berdasarkan follow-up overdue, hot lead, atau nilai deal yang tinggi." },
+        { icon: "📅", title: "Due Follow-ups", desc: "Daftar follow-up yang jatuh tempo hari ini atau sudah lewat. Klik nama customer untuk langsung membuka profilnya dan tandai selesai." },
+        { icon: "📝", title: "Recent Notes", desc: "5 catatan terbaru dari Quick Capture. Berguna untuk mengingat apa yang terakhir dibahas dengan customer." },
+        { icon: "💰", title: "Pipeline Value", desc: "Total estimasi nilai deal yang masih berjalan (belum closed/lost). Diisi otomatis dari field Estimated Value di profil customer." },
+      ]} />
 
       <QuickCapture />
 

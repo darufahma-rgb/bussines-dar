@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Link } from "react-router-dom";
 import StatusBadge from "@/components/StatusBadge";
+import PageGuide from "@/components/PageGuide";
 import { Button } from "@/components/ui/button";
 import { Check } from "lucide-react";
 import { format, parseISO, isToday, isPast, isFuture } from "date-fns";
@@ -64,8 +65,15 @@ export default function FollowUps() {
     <div className="space-y-6">
       <div>
         <h2 className="text-xl font-semibold">Follow-ups</h2>
-        <p className="text-sm text-muted-foreground">{followUps?.length ?? 0} pending follow-ups</p>
+        <p className="text-sm text-muted-foreground">{followUps?.length ?? 0} follow-up tertunda</p>
       </div>
+
+      <PageGuide steps={[
+        { icon: "⚠️", title: "Overdue", desc: "Follow-up yang sudah melewati tanggalnya dan belum diselesaikan. Prioritaskan ini terlebih dahulu agar tidak ada customer yang terlupakan." },
+        { icon: "📅", title: "Hari Ini", desc: "Follow-up yang dijadwalkan untuk hari ini. Usahakan semua selesai sebelum akhir hari." },
+        { icon: "🔜", title: "Upcoming", desc: "Follow-up yang dijadwalkan untuk hari-hari mendatang. Gunakan sebagai preview agenda kamu." },
+        { icon: "✅", title: "Tandai Selesai", desc: "Klik tombol 'Done' setelah menghubungi customer. Follow-up akan dihapus dari daftar ini dan tidak lagi dihitung sebagai overdue." },
+      ]} />
 
       {!followUps?.length ? (
         <p className="text-sm text-muted-foreground p-8 text-center">No pending follow-ups. You're all caught up! 🎉</p>

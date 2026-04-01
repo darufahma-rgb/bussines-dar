@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import StatusBadge from "@/components/StatusBadge";
 import BusinessBadge from "@/components/BusinessBadge";
+import PageGuide from "@/components/PageGuide";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -266,6 +267,14 @@ export default function CustomerDetail() {
           </Button>
         </div>
       </div>
+
+      <PageGuide steps={[
+        { icon: "🔄", title: "Ubah Status", desc: "Gunakan dropdown di pojok kanan atas untuk memindahkan customer ke tahap yang sesuai: New → Warm → Hot → Negotiation → Closed Won / Lost." },
+        { icon: "🧠", title: "Customer Memory", desc: "Catatan permanen tentang customer ini (preferensi, konteks penting, dll). Diedit manual dan dipakai AI sebagai konteks saat generate summary." },
+        { icon: "✨", title: "AI Summary & Next Action", desc: "Klik 'Generate' untuk mendapatkan ringkasan situasi customer dan rekomendasi langkah selanjutnya dari AI berdasarkan riwayat interaksi." },
+        { icon: "📝", title: "Tambah Interaksi", desc: "Log Note (catatan umum), Transaction (nominal deal), atau Follow-up (dengan tanggal). Follow-up akan muncul di halaman Follow-ups." },
+        { icon: "🗑️", title: "Hapus Customer", desc: "Tombol merah di pojok kanan atas akan menghapus seluruh data customer ini beserta semua interaksinya secara permanen." },
+      ]} />
 
       <div className="bg-card border rounded-lg overflow-hidden">
         <div className="flex items-center justify-between p-3">

@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Users, Flame, CalendarCheck, AlertTriangle, Sparkles, Loader2, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import PageGuide from "@/components/PageGuide";
 import { format, parseISO } from "date-fns";
 import { Link } from "react-router-dom";
 
@@ -51,9 +52,15 @@ export default function Weekly() {
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-xl font-semibold">Weekly Overview</h2>
-        <p className="text-sm text-muted-foreground">What happened this week</p>
+        <h2 className="text-xl font-semibold">Laporan Mingguan</h2>
+        <p className="text-sm text-muted-foreground">Ringkasan aktivitas 7 hari terakhir</p>
       </div>
+
+      <PageGuide steps={[
+        { icon: "📊", title: "Statistik Minggu Ini", desc: "Lihat berapa lead baru masuk, hot lead, deal yang berhasil ditutup, dan follow-up yang terlewat dalam 7 hari terakhir." },
+        { icon: "✨", title: "AI Weekly Insight", desc: "Klik 'Generate Insight' untuk mendapatkan analisis AI tentang performa minggu ini — apa yang berjalan baik, apa yang perlu diperbaiki, dan rekomendasi untuk minggu depan." },
+        { icon: "📋", title: "Aktivitas Minggu Ini", desc: "Daftar semua interaksi yang terjadi minggu ini: note, follow-up, quick capture, dan transaksi. Klik nama customer untuk membuka profilnya." },
+      ]} />
 
       {isLoading ? (
         <div className="text-sm text-muted-foreground text-center py-12">Loading...</div>
