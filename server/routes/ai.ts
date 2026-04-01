@@ -21,7 +21,7 @@ router.post("/parse-capture", async (req, res) => {
     const bizNames = bizList?.map((b: any) => `${b.name} (id: ${b.id})`).join(", ") || "none";
 
     const response = await openai.chat.completions.create({
-      model: "gpt-5-mini",
+      model: "gpt-4o-mini",
       response_format: { type: "json_object" },
       messages: [
         {
@@ -66,7 +66,7 @@ router.get("/customer-summary/:id", async (req, res) => {
       .join("\n");
 
     const response = await openai.chat.completions.create({
-      model: "gpt-5-mini",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -112,7 +112,7 @@ router.post("/reply", async (req, res) => {
     }[tone] || "Write in a friendly, professional tone.";
 
     const response = await openai.chat.completions.create({
-      model: "gpt-5-mini",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -152,7 +152,7 @@ router.get("/next-action/:id", async (req, res) => {
       .join("\n");
 
     const response = await openai.chat.completions.create({
-      model: "gpt-5-mini",
+      model: "gpt-4o-mini",
       response_format: { type: "json_object" },
       messages: [
         {
@@ -183,7 +183,7 @@ router.post("/weekly-insight", async (req, res) => {
     const { stats } = req.body;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-5-mini",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
@@ -209,7 +209,7 @@ router.post("/monthly-insight", async (req, res) => {
     const { current, previous, byBusiness } = req.body;
 
     const response = await openai.chat.completions.create({
-      model: "gpt-5-mini",
+      model: "gpt-4o-mini",
       messages: [
         {
           role: "system",
