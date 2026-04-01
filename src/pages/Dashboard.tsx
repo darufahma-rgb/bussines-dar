@@ -1,65 +1,34 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import {
-  Users, Flame, CalendarCheck, TrendingUp, Target, DollarSign,
+  Users, Flame, CalendarCheck, TrendingUp, DollarSign,
   ArrowRight, Clock, AlertTriangle, ChevronRight, BarChart2, CalendarDays, CalendarRange,
 } from "lucide-react";
 import QuickCapture from "@/components/QuickCapture";
 import StatusBadge from "@/components/StatusBadge";
+import StatCard from "@/components/StatCard";
+import SectionHeading from "@/components/SectionHeading";
+import EmptyState from "@/components/EmptyState";
 import { Link } from "react-router-dom";
 import { format, isToday, isPast, parseISO } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import BusinessBadge from "@/components/BusinessBadge";
 import { useAuth } from "@/hooks/useAuth";
-import { Skeleton } from "@/components/ui/skeleton";
+import { getBizColor } from "@/lib/constants";
+import { formatIDR, formatDateShort } from "@/lib/format";
 
 const PIPELINE_STAGES = [
-  { key: "new", label: "Baru", color: "bg-blue-500" },
-  { key: "warm", label: "Hangat", color: "bg-amber-500" },
-  { key: "hot", label: "Panas", color: "bg-orange-500" },
+  { key: "new",         label: "Baru",      color: "bg-blue-500" },
+  { key: "warm",        label: "Hangat",    color: "bg-amber-500" },
+  { key: "hot",         label: "Panas",     color: "bg-orange-500" },
   { key: "negotiation", label: "Negosiasi", color: "bg-violet-500" },
 ];
 
 const FOCUS_REASON_LABELS: Record<string, { label: string; dot: string }> = {
   overdue_followup: { label: "Follow-up terlambat", dot: "bg-red-500" },
-  hot_lead:         { label: "Lead panas",          dot: "bg-orange-500" },
-  high_value:       { label: "Nilai tinggi",        dot: "bg-emerald-500" },
+  hot_lead:         { label: "Lead panas",           dot: "bg-orange-500" },
+  high_value:       { label: "Nilai tinggi",         dot: "bg-emerald-500" },
 };
-
-const BIZ_COLORS: Record<string, string> = {
-  Temantiket: "#2563EB",
-  "SYMP Studio": "#DC2626",
-  SYMP: "#DC2626",
-  AIGYPT: "#7C3AED",
-  Darcia: "#EC4899",
-};
-
-function MetricCard({
-  label, value, icon: Icon, colorClass, bgClass, loading, accent,
-}: {
-  label: string; value: string | number; icon: React.ElementType;
-  colorClass: string; bgClass: string; loading?: boolean; accent?: boolean;
-}) {
-  return (
-    <div className={`rounded-2xl p-5 card-shadow flex flex-col gap-2.5 ${accent ? "bg-primary text-white" : "bg-white border border-border"}`}>
-      <div className="flex items-center justify-between">
-        <span className={`text-xs font-medium leading-tight ${accent ? "text-white/70" : "text-muted-foreground"}`}>{label}</span>
-        <div className={`h-8 w-8 rounded-xl flex items-center justify-center ${accent ? "bg-white/15" : bgClass}`}>
-          <Icon className={`h-4 w-4 ${accent ? "text-white" : colorClass}`} />
-        </div>
-      </div>
-      {loading ? (
-        <Skeleton className={`h-9 w-16 ${accent ? "bg-white/20" : ""}`} />
-      ) : (
-        <p className={`text-4xl font-bold font-mono leading-none tracking-tight ${accent ? "text-white" : "text-foreground"}`}>{value}</p>
-      )}
-    </div>
-  );
-}
-
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return <h3 className="font-semibold text-[13px] text-muted-foreground uppercase tracking-wider mb-3">{children}</h3>;
-}
 
 export default function Dashboard() {
   const { user } = useAuth();
@@ -100,7 +69,6 @@ export default function Dashboard() {
     queryFn: () => api.stats.monthly(),
   });
 
-  const today = new Date().toISOString().split("T")[0];
   const overdue = todayFollowUps?.filter((f: any) =>
     f.followUpDate && isPast(parseISO(f.followUpDate)) && !isToday(parseISO(f.followUpDate))
   ) ?? [];
@@ -117,7 +85,6 @@ export default function Dashboard() {
     value: (allCustomers || []).filter((c: any) => c.status === s.key).reduce((sum: number, c: any) => sum + (Number(c.estimatedValue) || 0), 0),
   }));
   const maxStageCount = Math.max(...stageGroups.map(s => s.customers.length), 1);
-
   const pipelineTotal = stageGroups.reduce((sum, s) => sum + s.value, 0);
 
   return (
@@ -145,7 +112,7 @@ export default function Dashboard() {
       {/* ── TODAY'S PRIORITIES ── */}
       {(overdue.length > 0 || todayDue.length > 0) && (
         <div>
-          <SectionTitle>Prioritas Hari Ini</SectionTitle>
+          <SectionHeading title="Prioritas Hari Ini" />
           <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
             {overdue.length > 0 && (
               <div className="border-b border-border">
@@ -165,7 +132,7 @@ export default function Dashboard() {
                     </div>
                     <div className="flex items-center gap-2.5 shrink-0">
                       <span className="text-xs font-mono font-semibold text-red-500">
-                        {format(parseISO(f.followUpDate), "d MMM", { locale: idLocale })}
+                        {formatDateShort(f.followUpDate)}
                       </span>
                       <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/40 group-hover:text-muted-foreground transition-colors" />
                     </div>
@@ -173,7 +140,7 @@ export default function Dashboard() {
                 ))}
                 {overdue.length > 4 && (
                   <Link to="/follow-ups" className="block px-5 py-2.5 text-xs text-center text-muted-foreground hover:text-foreground border-t border-border transition-colors">
-                    +{overdue.length - 4} lagi → Lihat semua
+                    +{overdue.length - 4} lagi · Lihat semua
                   </Link>
                 )}
               </div>
@@ -212,22 +179,22 @@ export default function Dashboard() {
 
       {/* ── KEY METRICS ── */}
       <div>
-        <SectionTitle>Metrik Kunci</SectionTitle>
+        <SectionHeading title="Metrik Kunci" />
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-          <MetricCard label="Total Customer" value={stats?.total ?? 0} icon={Users} colorClass="text-blue-500" bgClass="bg-blue-50" loading={statsLoading} />
-          <MetricCard label="Lead Aktif" value={stats?.leads ?? 0} icon={TrendingUp} colorClass="text-indigo-500" bgClass="bg-indigo-50" loading={statsLoading} />
-          <MetricCard label="Follow-up Hari Ini" value={stats?.todayFollowUps ?? 0} icon={CalendarCheck} colorClass="text-emerald-500" bgClass="bg-emerald-50" loading={statsLoading} />
-          <MetricCard label="Overdue" value={stats?.overdue ?? 0} icon={Flame} accent loading={statsLoading} colorClass="" bgClass="" />
+          <StatCard label="Total Customer" value={stats?.total ?? 0} icon={Users} iconBg="bg-blue-50" iconColor="text-blue-500" loading={statsLoading} />
+          <StatCard label="Lead Aktif" value={stats?.leads ?? 0} icon={TrendingUp} iconBg="bg-indigo-50" iconColor="text-indigo-500" loading={statsLoading} />
+          <StatCard label="Follow-up Hari Ini" value={stats?.todayFollowUps ?? 0} icon={CalendarCheck} iconBg="bg-emerald-50" iconColor="text-emerald-500" loading={statsLoading} />
+          <StatCard label="Overdue" value={stats?.overdue ?? 0} icon={Flame} iconBg="bg-red-50" iconColor="text-red-500" loading={statsLoading} accent />
         </div>
       </div>
 
       {/* ── PIPELINE OVERVIEW ── */}
       <div>
         <div className="flex items-center justify-between mb-3">
-          <SectionTitle>Pipeline</SectionTitle>
+          <SectionHeading title="Pipeline" className="mb-0" />
           {pipelineTotal > 0 && (
-            <span className="text-xs font-mono font-semibold text-emerald-600 mb-3">
-              IDR {pipelineTotal.toLocaleString()} total
+            <span className="text-xs font-mono font-semibold text-emerald-600">
+              {formatIDR(pipelineTotal)} total
             </span>
           )}
         </div>
@@ -249,7 +216,7 @@ export default function Dashboard() {
                   <span className="font-mono font-semibold text-foreground w-4 text-right">{s.customers.length}</span>
                   {s.value > 0 && (
                     <span className="font-mono text-muted-foreground hidden sm:block w-28 text-right">
-                      IDR {s.value.toLocaleString()}
+                      {formatIDR(s.value)}
                     </span>
                   )}
                 </div>
@@ -264,7 +231,7 @@ export default function Dashboard() {
                 </div>
                 <div>
                   <p className="text-[10px] text-muted-foreground">Closed Revenue</p>
-                  <p className="text-sm font-mono font-bold text-emerald-600">IDR {Number(revenue.closedRevenue).toLocaleString()}</p>
+                  <p className="text-sm font-mono font-bold text-emerald-600">{formatIDR(revenue.closedRevenue)}</p>
                 </div>
               </div>
             )}
@@ -278,13 +245,13 @@ export default function Dashboard() {
       {/* ── BUSINESS UNITS ── */}
       {monthlyStats?.byBusiness?.filter((b: any) => b.totalCustomers > 0).length > 0 && (
         <div>
-          <SectionTitle>Unit Bisnis</SectionTitle>
+          <SectionHeading title="Unit Bisnis" />
           <div className="grid grid-cols-2 gap-3">
             {monthlyStats.byBusiness
               .filter((b: any) => b.totalCustomers > 0)
               .sort((a: any, b: any) => b.totalCustomers - a.totalCustomers)
               .map((biz: any) => {
-                const brandColor = BIZ_COLORS[biz.name] || biz.color || "#6B7280";
+                const brandColor = getBizColor(biz.name, biz.color);
                 return (
                   <div
                     key={biz.id}
@@ -322,7 +289,7 @@ export default function Dashboard() {
       {/* ── DAILY FOCUS ── */}
       {dailyFocus && dailyFocus.length > 0 && (
         <div>
-          <SectionTitle>Customer Prioritas</SectionTitle>
+          <SectionHeading title="Customer Prioritas" />
           <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
             <div className="px-5 py-3.5 border-b border-border bg-amber-50/50 flex items-center gap-2">
               <span className="text-base">🎯</span>
@@ -359,7 +326,7 @@ export default function Dashboard() {
                   <div className="flex items-center gap-3 shrink-0">
                     {c.estimatedValue && (
                       <span className="text-xs font-mono text-emerald-600 font-semibold hidden sm:block">
-                        IDR {Number(c.estimatedValue).toLocaleString()}
+                        {formatIDR(c.estimatedValue)}
                       </span>
                     )}
                     <StatusBadge status={c.status} />
@@ -383,12 +350,11 @@ export default function Dashboard() {
             </Link>
           </div>
           {!recentCaptures?.length ? (
-            <div className="py-10 text-center px-5">
-              <div className="h-10 w-10 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-3">
-                <Clock className="h-4 w-4 text-muted-foreground/60" />
-              </div>
-              <p className="text-xs text-muted-foreground">Belum ada catatan. Pakai Quick Capture di atas.</p>
-            </div>
+            <EmptyState
+              icon={Clock}
+              title="Belum ada catatan"
+              description="Gunakan Quick Capture di atas untuk menambahkan catatan pertama."
+            />
           ) : (
             <div className="divide-y divide-border">
               {recentCaptures.map((n: any) => (
@@ -412,11 +378,11 @@ export default function Dashboard() {
 
         {/* Review shortcuts */}
         <div className="lg:col-span-2 space-y-3">
-          <SectionTitle>Review</SectionTitle>
+          <SectionHeading title="Review" />
           {[
-            { to: "/weekly", icon: CalendarDays, label: "Laporan Mingguan", desc: "Aktivitas 7 hari terakhir", color: "bg-blue-50", iconColor: "text-blue-500" },
-            { to: "/monthly", icon: BarChart2, label: "Laporan Bulanan", desc: "Perbandingan bulan ini vs lalu", color: "bg-indigo-50", iconColor: "text-indigo-500" },
-            { to: "/yearly", icon: CalendarRange, label: "Tinjauan Tahunan", desc: "Gambaran besar tahun ini", color: "bg-violet-50", iconColor: "text-violet-500" },
+            { to: "/weekly",  icon: CalendarDays,  label: "Laporan Mingguan", desc: "Aktivitas 7 hari terakhir",       color: "bg-blue-50",   iconColor: "text-blue-500" },
+            { to: "/monthly", icon: BarChart2,      label: "Laporan Bulanan",  desc: "Perbandingan bulan ini vs lalu", color: "bg-indigo-50", iconColor: "text-indigo-500" },
+            { to: "/yearly",  icon: CalendarRange,  label: "Tinjauan Tahunan", desc: "Gambaran besar tahun ini",       color: "bg-violet-50", iconColor: "text-violet-500" },
           ].map((item) => (
             <Link
               key={item.to}

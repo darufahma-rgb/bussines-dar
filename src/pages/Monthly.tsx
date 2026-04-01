@@ -5,6 +5,8 @@ import { Sparkles, Loader2, TrendingUp, TrendingDown, Minus, BarChart2 } from "l
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
+import SectionHeading from "@/components/SectionHeading";
+import { getBizColor } from "@/lib/constants";
 
 function Delta({ current, previous }: { current: number; previous: number }) {
   const diff = current - previous;
@@ -22,30 +24,13 @@ function Delta({ current, previous }: { current: number; previous: number }) {
   );
 }
 
-function SectionHeading({ title, subtitle }: { title: string; subtitle?: string }) {
-  return (
-    <div className="flex items-baseline gap-2 mb-3">
-      <h3 className="font-semibold text-[13px] text-muted-foreground uppercase tracking-wider">{title}</h3>
-      {subtitle && <span className="text-xs text-muted-foreground">— {subtitle}</span>}
-    </div>
-  );
-}
-
 const STAT_ROWS = [
-  { label: "Customer Baru", key: "newCustomers" },
-  { label: "Deal Berhasil", key: "closedDeals" },
-  { label: "Total Interaksi", key: "totalInteractions" },
-  { label: "Follow-up Selesai", key: "followUpsDone" },
-  { label: "Follow-up Terlewat", key: "followUpsMissed" },
+  { label: "Customer Baru",       key: "newCustomers" },
+  { label: "Deal Berhasil",       key: "closedDeals" },
+  { label: "Total Interaksi",     key: "totalInteractions" },
+  { label: "Follow-up Selesai",   key: "followUpsDone" },
+  { label: "Follow-up Terlewat",  key: "followUpsMissed" },
 ];
-
-const BIZ_COLORS: Record<string, string> = {
-  Temantiket: "#2563EB",
-  "SYMP Studio": "#DC2626",
-  SYMP: "#DC2626",
-  AIGYPT: "#7C3AED",
-  Darcia: "#EC4899",
-};
 
 export default function Monthly() {
   const [insight, setInsight] = useState<string | null>(null);
@@ -68,7 +53,7 @@ export default function Monthly() {
       });
       setInsight(result.insight);
     } catch {
-      setInsight("Gagal membuat insight. Coba lagi nanti.");
+      setInsight("Gagal membuat insight. Periksa koneksi dan API key kamu.");
     }
     setLoadingInsight(false);
   };
@@ -114,6 +99,7 @@ export default function Monthly() {
           <div>
             <SectionHeading title="Perbandingan Bulan" />
             <div className="grid md:grid-cols-2 gap-4">
+              {/* This month */}
               <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
                 <div className="px-5 py-4 border-b border-border bg-primary/5">
                   <h3 className="font-semibold text-sm text-primary capitalize">{currentMonthName}</h3>
@@ -133,6 +119,7 @@ export default function Monthly() {
                   ))}
                 </div>
               </div>
+              {/* Last month */}
               <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
                 <div className="px-5 py-4 border-b border-border bg-muted/40">
                   <h3 className="font-semibold text-sm text-muted-foreground capitalize">{prevMonthName}</h3>
@@ -165,7 +152,7 @@ export default function Monthly() {
                   {stats.byBusiness
                     .sort((a: any, b: any) => b.totalInteractions - a.totalInteractions)
                     .map((biz: any) => {
-                      const brandColor = BIZ_COLORS[biz.name] || biz.color || "#6B7280";
+                      const brandColor = getBizColor(biz.name, biz.color);
                       return (
                         <div
                           key={biz.id}
@@ -206,13 +193,13 @@ export default function Monthly() {
             <SectionHeading title="Refleksi Bulanan" subtitle="hanya tersimpan di browser ini" />
             <div className="bg-white border border-border rounded-2xl card-shadow p-5">
               <Textarea
-                placeholder={`Tulis refleksi bulan ini...\n\n• Apa pencapaian terbesar bulan ini?\n• Deal mana yang seharusnya bisa ditutup?\n• Bisnis mana yang perlu lebih banyak perhatian bulan depan?\n• Apa yang ingin kamu lakukan berbeda?`}
+                placeholder={`Tulis refleksi bulan ini...\n\n• Apa pencapaian terbesar?\n• Deal mana yang seharusnya bisa ditutup?\n• Bisnis mana yang perlu lebih banyak perhatian bulan depan?\n• Apa yang ingin kamu lakukan berbeda?`}
                 value={reflection}
                 onChange={(e) => setReflection(e.target.value)}
                 rows={5}
                 className="text-sm bg-muted/20 border-border focus-visible:ring-primary/20 resize-none"
               />
-              <p className="text-xs text-muted-foreground mt-2">Catatan ini tidak disimpan ke server.</p>
+              <p className="text-xs text-muted-foreground mt-2">Catatan ini tidak disimpan ke server. Salin ke dokumen kamu jika perlu.</p>
             </div>
           </div>
 
@@ -227,7 +214,7 @@ export default function Monthly() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-sm text-foreground">Insight Bulanan AI</h3>
-                    <p className="text-xs text-muted-foreground">Analisis tren dan rekomendasi</p>
+                    <p className="text-xs text-muted-foreground">Analisis tren dan rekomendasi untuk bulan depan</p>
                   </div>
                 </div>
                 <Button
@@ -246,7 +233,7 @@ export default function Monthly() {
                   <p className="text-sm leading-relaxed text-foreground">{insight}</p>
                 ) : (
                   <p className="text-sm text-muted-foreground leading-relaxed">
-                    Klik "Buat Insight" untuk mendapatkan analisis AI bulanan — apa yang membaik dibanding bulan lalu, unit bisnis mana yang paling aktif, dan apa yang perlu diprioritaskan bulan depan.
+                    Klik "Buat Insight" untuk mendapatkan analisis bulanan — apa yang membaik dibanding bulan lalu, unit bisnis mana yang paling aktif, dan prioritas untuk bulan depan.
                   </p>
                 )}
               </div>

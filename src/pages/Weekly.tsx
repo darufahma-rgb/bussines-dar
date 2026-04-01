@@ -4,33 +4,26 @@ import { api } from "@/lib/api";
 import { Users, Flame, CalendarCheck, AlertTriangle, Sparkles, Loader2, TrendingUp, CalendarDays } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import StatCard from "@/components/StatCard";
+import SectionHeading from "@/components/SectionHeading";
 import { format, parseISO, startOfWeek, endOfWeek } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const typeLabels: Record<string, string> = {
-  note: "Catatan",
-  transaction: "Transaksi",
-  follow_up: "Follow-up",
+  note:          "Catatan",
+  transaction:   "Transaksi",
+  follow_up:     "Follow-up",
   quick_capture: "Capture",
 };
 
 const typeStyles: Record<string, string> = {
-  note: "bg-blue-50 text-blue-700",
-  transaction: "bg-emerald-50 text-emerald-700",
-  follow_up: "bg-amber-50 text-amber-700",
+  note:          "bg-blue-50 text-blue-700",
+  transaction:   "bg-emerald-50 text-emerald-700",
+  follow_up:     "bg-amber-50 text-amber-700",
   quick_capture: "bg-violet-50 text-violet-700",
 };
-
-function SectionHeading({ title, subtitle }: { title: string; subtitle?: string }) {
-  return (
-    <div className="flex items-baseline gap-2 mb-3">
-      <h3 className="font-semibold text-[13px] text-muted-foreground uppercase tracking-wider">{title}</h3>
-      {subtitle && <span className="text-xs text-muted-foreground">— {subtitle}</span>}
-    </div>
-  );
-}
 
 export default function Weekly() {
   const [insight, setInsight] = useState<string | null>(null);
@@ -49,7 +42,7 @@ export default function Weekly() {
       const result = await api.ai.weeklyInsight(stats);
       setInsight(result.insight);
     } catch {
-      setInsight("Gagal membuat insight. Coba lagi nanti.");
+      setInsight("Gagal membuat insight. Periksa koneksi dan API key kamu.");
     }
     setLoadingInsight(false);
   };
@@ -60,10 +53,10 @@ export default function Weekly() {
   const weekLabel = `${format(weekStart, "d MMM", { locale: idLocale })} – ${format(weekEnd, "d MMM yyyy", { locale: idLocale })}`;
 
   const statCards = [
-    { label: "Lead Baru", value: stats?.newLeads ?? 0, icon: Users, iconBg: "bg-blue-50", iconColor: "text-blue-500" },
-    { label: "Lead Panas", value: stats?.hotLeads ?? 0, icon: Flame, iconBg: "bg-amber-50", iconColor: "text-amber-500" },
-    { label: "Deal Berhasil", value: stats?.closedDeals ?? 0, icon: TrendingUp, iconBg: "bg-emerald-50", iconColor: "text-emerald-500" },
-    { label: "Follow-up Terlewat", value: stats?.missedFollowUps ?? 0, icon: AlertTriangle, iconBg: "bg-red-50", iconColor: "text-red-500" },
+    { label: "Lead Baru",            value: stats?.newLeads       ?? 0, icon: Users,         iconBg: "bg-blue-50",    iconColor: "text-blue-500" },
+    { label: "Lead Panas",           value: stats?.hotLeads       ?? 0, icon: Flame,         iconBg: "bg-amber-50",   iconColor: "text-amber-500" },
+    { label: "Deal Berhasil",        value: stats?.closedDeals    ?? 0, icon: TrendingUp,    iconBg: "bg-emerald-50", iconColor: "text-emerald-500" },
+    { label: "Follow-up Terlewat",   value: stats?.missedFollowUps ?? 0, icon: AlertTriangle, iconBg: "bg-red-50",     iconColor: "text-red-500" },
   ];
 
   return (
@@ -76,7 +69,7 @@ export default function Weekly() {
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Laporan Mingguan</p>
         </div>
         <h2 className="text-2xl font-bold text-foreground">{weekLabel}</h2>
-        <p className="text-sm text-muted-foreground mt-1">Ringkasan aktivitas 7 hari terakhir.</p>
+        <p className="text-sm text-muted-foreground mt-1">Ringkasan aktivitas CRM 7 hari terakhir.</p>
       </div>
 
       {isLoading ? (
@@ -95,15 +88,7 @@ export default function Weekly() {
             <SectionHeading title="Metrik Minggu Ini" />
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
               {statCards.map((s) => (
-                <div key={s.label} className="bg-white border border-border rounded-2xl p-5 card-shadow">
-                  <div className="flex items-center justify-between mb-3">
-                    <span className="text-xs font-medium text-muted-foreground leading-tight">{s.label}</span>
-                    <div className={`h-9 w-9 rounded-xl flex items-center justify-center ${s.iconBg}`}>
-                      <s.icon className={`h-4 w-4 ${s.iconColor}`} />
-                    </div>
-                  </div>
-                  <p className="text-4xl font-bold font-mono leading-none text-foreground">{s.value}</p>
-                </div>
+                <StatCard key={s.label} {...s} />
               ))}
             </div>
           </div>
@@ -117,8 +102,8 @@ export default function Weekly() {
             <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
               {!stats?.weekInteractions?.length ? (
                 <div className="py-12 text-center px-5">
-                  <p className="text-sm font-medium text-foreground mb-1">Belum ada aktivitas</p>
-                  <p className="text-xs text-muted-foreground">Belum ada interaksi yang tercatat minggu ini.</p>
+                  <p className="text-sm font-medium text-foreground mb-1">Belum ada aktivitas minggu ini</p>
+                  <p className="text-xs text-muted-foreground">Interaksi yang ditambahkan minggu ini akan muncul di sini.</p>
                 </div>
               ) : (
                 <div className="divide-y divide-border">
@@ -150,13 +135,13 @@ export default function Weekly() {
             <SectionHeading title="Refleksi Mingguan" subtitle="hanya tersimpan di browser ini" />
             <div className="bg-white border border-border rounded-2xl card-shadow p-5">
               <Textarea
-                placeholder={`Tulis refleksi minggu ini...\n\n• Apa yang berjalan baik minggu ini?\n• Apa yang bisa diperbaiki?\n• Customer mana yang perlu diperhatikan minggu depan?\n• Satu hal yang ingin dilakukan berbeda?`}
+                placeholder={`Tulis refleksi minggu ini...\n\n• Apa yang berjalan baik?\n• Apa yang bisa diperbaiki?\n• Customer mana yang perlu diperhatikan minggu depan?\n• Satu hal yang ingin dilakukan berbeda?`}
                 value={reflection}
                 onChange={(e) => setReflection(e.target.value)}
                 rows={5}
                 className="text-sm bg-muted/20 border-border focus-visible:ring-primary/20 resize-none"
               />
-              <p className="text-xs text-muted-foreground mt-2">Catatan ini tidak disimpan ke server.</p>
+              <p className="text-xs text-muted-foreground mt-2">Catatan ini tidak disimpan ke server. Salin ke dokumen kamu jika perlu.</p>
             </div>
           </div>
 
@@ -190,7 +175,7 @@ export default function Weekly() {
                   <p className="text-sm leading-relaxed text-foreground">{insight}</p>
                 ) : (
                   <p className="text-sm text-muted-foreground leading-relaxed">
-                    Klik "Buat Insight" untuk mendapatkan ringkasan AI tentang minggu ini — apa yang berjalan baik, apa yang perlu diperhatikan, dan satu tindakan konkret untuk minggu depan.
+                    Klik "Buat Insight" untuk mendapatkan ringkasan AI — apa yang berjalan baik, apa yang perlu diperhatikan, dan satu tindakan konkret untuk minggu depan.
                   </p>
                 )}
               </div>

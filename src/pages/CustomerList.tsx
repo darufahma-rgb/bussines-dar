@@ -11,8 +11,11 @@ import BusinessBadge from "@/components/BusinessBadge";
 import { Link } from "react-router-dom";
 import { Search, Download, Upload, X, CheckCircle, AlertCircle, ArrowUpDown, Users, ChevronRight } from "lucide-react";
 import { format, parseISO } from "date-fns";
+import { id as idLocale } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
+import EmptyState from "@/components/EmptyState";
+import { formatIDR } from "@/lib/format";
 
 type SortKey = "name" | "updatedAt" | "status" | "estimatedValue";
 type SortDir = "asc" | "desc";
@@ -449,22 +452,18 @@ export default function CustomerList() {
           ))}
         </div>
       ) : !sorted.length ? (
-        <div className="bg-white border border-border rounded-2xl card-shadow py-16 text-center">
-          <div className="h-14 w-14 rounded-2xl bg-muted flex items-center justify-center mx-auto mb-4">
-            <Users className="h-6 w-6 text-muted-foreground/60" />
-          </div>
-          <p className="text-sm font-semibold text-foreground mb-1">Belum ada customer</p>
-          <p className="text-xs text-muted-foreground mb-4">
-            {search || statusFilter !== "all" || bizFilter !== "all"
-              ? "Tidak ada customer yang cocok dengan filter."
-              : "Tambahkan customer pertama kamu untuk mulai."}
-          </p>
-          <Link
-            to="/customers/new"
-            className="inline-flex items-center gap-1.5 bg-primary text-white text-sm font-medium px-4 py-2 rounded-xl hover:opacity-90 transition-opacity"
-          >
-            + Tambah Customer
-          </Link>
+        <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
+          <EmptyState
+            icon={Users}
+            title="Belum ada customer"
+            description={
+              search || statusFilter !== "all" || bizFilter !== "all"
+                ? "Tidak ada customer yang cocok dengan filter yang dipilih."
+                : "Tambahkan customer pertama kamu untuk mulai melacak lead."
+            }
+            actionLabel={(!search && statusFilter === "all" && bizFilter === "all") ? "+ Tambah Customer" : undefined}
+            actionHref={(!search && statusFilter === "all" && bizFilter === "all") ? "/customers/new" : undefined}
+          />
         </div>
       ) : (
         <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
@@ -495,12 +494,12 @@ export default function CustomerList() {
               <div className="flex items-center gap-3 shrink-0 ml-3">
                 {c.estimatedValue && (
                   <span className="text-xs font-mono text-emerald-600 font-semibold hidden sm:block">
-                    IDR {Number(c.estimatedValue).toLocaleString()}
+                    {formatIDR(c.estimatedValue)}
                   </span>
                 )}
                 <StatusBadge status={c.status} />
                 <span className="text-xs text-muted-foreground font-mono hidden xs:block">
-                  {format(parseISO(c.updatedAt), "MMM d")}
+                  {format(parseISO(c.updatedAt), "d MMM", { locale: idLocale })}
                 </span>
                 <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-muted-foreground transition-colors" />
               </div>

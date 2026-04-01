@@ -39,9 +39,12 @@ Multi-bisnis CRM untuk mengelola customer dari Temantiket, SYMP, AIGYPT, dan Dar
 src/               # React frontend
   pages/           # Dashboard, CustomerList, CustomerDetail, Pipeline,
                    # FollowUps, Weekly, Monthly, Yearly, NewCustomer, Login
-  components/      # AppSidebar, QuickCapture, StatusBadge, BusinessBadge, PageGuide, NavLink
+  components/      # AppSidebar, QuickCapture, StatusBadge, BusinessBadge,
+                   # StatCard, SectionHeading, EmptyState, LostReasonModal,
+                   # PageGuide, NavLink
   hooks/           # useAuth.tsx (session-based)
-  lib/             # api.ts — all API calls; queryClient.ts
+  lib/             # api.ts — API client; format.ts — formatIDR/formatDate utils;
+                   # constants.ts — BIZ_COLORS, STATUS_LABELS, LOST_PRESETS; queryClient.ts
 server/            # Express backend
   index.ts         # Entry point — serves static in prod, CORS in dev
   app.ts           # Express app setup (session, helmet, rate limit, routes)

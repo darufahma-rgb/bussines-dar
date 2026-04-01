@@ -4,6 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import StatusBadge from "@/components/StatusBadge";
 import BusinessBadge from "@/components/BusinessBadge";
+import LostReasonModal from "@/components/LostReasonModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,6 +18,7 @@ import {
   Brain, Edit2, X, AlertTriangle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { formatIDR } from "@/lib/format";
 
 type InteractionType = "note" | "transaction" | "follow_up" | "quick_capture";
 type CustomerStatus = "new" | "warm" | "hot" | "negotiation" | "closed" | "lost";
@@ -28,52 +30,11 @@ const typeConfig: Record<InteractionType, { icon: any; label: string; bg: string
   quick_capture: { icon: Zap,          label: "Quick Capture",bg: "bg-violet-50",  color: "text-violet-600" },
 };
 
-const LOST_PRESETS = ["Harga terlalu tinggi", "Tidak ada respons", "Tidak berminat", "Pilih kompetitor", "Waktu tidak tepat", "Anggaran dipotong"];
-
 const urgencyConfig: Record<string, { label: string; className: string }> = {
   high:   { label: "Prioritas Tinggi",  className: "bg-red-50 text-red-700 ring-1 ring-red-200" },
   medium: { label: "Prioritas Sedang",  className: "bg-amber-50 text-amber-700 ring-1 ring-amber-200" },
   low:    { label: "Prioritas Rendah",  className: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200" },
 };
-
-function LostReasonModal({ onConfirm, onCancel }: { onConfirm: (r: string) => void; onCancel: () => void }) {
-  const [reason, setReason] = useState("");
-  return (
-    <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
-        <h3 className="font-semibold text-foreground">Kenapa ini gagal?</h3>
-        <div className="flex flex-wrap gap-2">
-          {LOST_PRESETS.map((p) => (
-            <button
-              key={p}
-              onClick={() => setReason(p)}
-              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${reason === p ? "bg-foreground text-background border-foreground" : "border-border text-muted-foreground hover:bg-muted hover:text-foreground"}`}
-            >
-              {p}
-            </button>
-          ))}
-        </div>
-        <input
-          className="w-full border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
-          placeholder="Atau tulis alasan lain..."
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-        />
-        <div className="flex gap-2 justify-end pt-1">
-          <button onClick={onCancel} className="text-sm text-muted-foreground hover:text-foreground px-3 py-1.5 rounded-lg transition-colors">
-            Batal
-          </button>
-          <button
-            onClick={() => onConfirm(reason)}
-            className="text-sm bg-foreground text-background px-4 py-1.5 rounded-xl hover:opacity-90 transition-opacity"
-          >
-            Konfirmasi
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
 
 function AISection({
   title,
@@ -320,7 +281,7 @@ export default function CustomerDetail() {
                 )}
                 {customer.estimatedValue && (
                   <p className="text-sm font-mono font-bold text-emerald-600 mt-1.5">
-                    IDR {Number(customer.estimatedValue).toLocaleString()}
+                    {formatIDR(customer.estimatedValue)}
                   </p>
                 )}
               </div>
@@ -663,7 +624,7 @@ export default function CustomerDetail() {
                       <p className="text-sm mt-2 whitespace-pre-wrap leading-relaxed text-foreground">{item.content}</p>
                       {item.amount && (
                         <p className="text-sm font-mono font-bold text-emerald-600 mt-1.5">
-                          IDR {Number(item.amount).toLocaleString()}
+                          {formatIDR(item.amount)}
                         </p>
                       )}
                       {item.followUpDate && !item.isCompleted && (
