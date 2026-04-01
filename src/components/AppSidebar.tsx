@@ -1,4 +1,4 @@
-import { LayoutDashboard, Users, CalendarCheck, LogOut, Plus, BarChart2, CalendarDays } from "lucide-react";
+import { LayoutDashboard, Users, CalendarCheck, LogOut, Plus, BarChart2, CalendarDays, Kanban } from "lucide-react";
 import { NavLink } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -6,6 +6,7 @@ import { useAuth } from "@/hooks/useAuth";
 const navItems = [
   { to: "/", icon: LayoutDashboard, label: "Dashboard", end: true },
   { to: "/customers", icon: Users, label: "Customers", end: false },
+  { to: "/pipeline", icon: Kanban, label: "Pipeline", end: true },
   { to: "/customers/new", icon: Plus, label: "Add Customer", end: true },
   { to: "/follow-ups", icon: CalendarCheck, label: "Follow-ups", end: true },
 ];

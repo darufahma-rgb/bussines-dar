@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 
-type CustomerStatus = "new" | "warm" | "hot" | "closed";
+const SOURCE_OPTIONS = ["Instagram", "WhatsApp", "Referral", "Website", "TikTok", "Email", "Cold Outreach", "Event", "Other"];
 
 export default function NewCustomer() {
   const navigate = useNavigate();
@@ -16,7 +16,9 @@ export default function NewCustomer() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [status, setStatus] = useState<CustomerStatus>("new");
+  const [status, setStatus] = useState("new");
+  const [source, setSource] = useState("");
+  const [estimatedValue, setEstimatedValue] = useState("");
   const [selectedBiz, setSelectedBiz] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -36,6 +38,8 @@ export default function NewCustomer() {
         phone: phone.trim() || undefined,
         status,
         businessIds: selectedBiz,
+        source: source || undefined,
+        estimatedValue: estimatedValue ? Number(estimatedValue.replace(/[^0-9]/g, "")) : undefined,
       });
       queryClient.invalidateQueries({ queryKey: ["customers"] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
@@ -71,26 +75,55 @@ export default function NewCustomer() {
           </div>
         </div>
 
+        <div className="grid grid-cols-2 gap-3">
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Status</label>
+            <Select value={status} onValueChange={setStatus}>
+              <SelectTrigger className="h-9">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="new">New Lead</SelectItem>
+                <SelectItem value="warm">Warm</SelectItem>
+                <SelectItem value="hot">Hot</SelectItem>
+                <SelectItem value="negotiation">Negotiation</SelectItem>
+                <SelectItem value="closed">Closed Won</SelectItem>
+                <SelectItem value="lost">Lost</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-sm font-medium">Source</label>
+            <Select value={source} onValueChange={setSource}>
+              <SelectTrigger className="h-9">
+                <SelectValue placeholder="Where from?" />
+              </SelectTrigger>
+              <SelectContent>
+                {SOURCE_OPTIONS.map((s) => (
+                  <SelectItem key={s} value={s}>{s}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
         <div className="space-y-1.5">
-          <label className="text-sm font-medium">Status</label>
-          <Select value={status} onValueChange={(v) => setStatus(v as CustomerStatus)}>
-            <SelectTrigger className="h-9">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="new">New</SelectItem>
-              <SelectItem value="warm">Warm</SelectItem>
-              <SelectItem value="hot">Hot</SelectItem>
-              <SelectItem value="closed">Closed</SelectItem>
-            </SelectContent>
-          </Select>
+          <label className="text-sm font-medium">Estimated Value (IDR)</label>
+          <Input
+            type="text"
+            inputMode="numeric"
+            value={estimatedValue}
+            onChange={(e) => setEstimatedValue(e.target.value)}
+            placeholder="e.g. 5000000"
+          />
+          <p className="text-xs text-muted-foreground">Optional — helps track pipeline revenue</p>
         </div>
 
         <div className="space-y-2">
           <label className="text-sm font-medium">Businesses</label>
           <div className="flex flex-wrap gap-3">
             {businesses?.map((b: any) => (
-              <label key={b.id} className="flex items-center gap-2 text-sm">
+              <label key={b.id} className="flex items-center gap-2 text-sm cursor-pointer">
                 <Checkbox
                   checked={selectedBiz.includes(b.id)}
                   onCheckedChange={(checked) => {

@@ -42,15 +42,17 @@ export default function CustomerList() {
           />
         </div>
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-32 h-9">
+          <SelectTrigger className="w-36 h-9">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Status</SelectItem>
-            <SelectItem value="new">New</SelectItem>
+            <SelectItem value="new">New Lead</SelectItem>
             <SelectItem value="warm">Warm</SelectItem>
             <SelectItem value="hot">Hot</SelectItem>
-            <SelectItem value="closed">Closed</SelectItem>
+            <SelectItem value="negotiation">Negotiation</SelectItem>
+            <SelectItem value="closed">Closed Won</SelectItem>
+            <SelectItem value="lost">Lost</SelectItem>
           </SelectContent>
         </Select>
         <Select value={bizFilter} onValueChange={setBizFilter}>
@@ -86,10 +88,16 @@ export default function CustomerList() {
                   {c.customer_businesses?.map((cb: any) => (
                     <BusinessBadge key={cb.business_id} name={cb.businesses?.name} />
                   ))}
+                  {c.source && <span className="text-xs text-muted-foreground">via {c.source}</span>}
                   {c.phone && <span className="text-xs text-muted-foreground font-mono">{c.phone}</span>}
                 </div>
               </div>
               <div className="flex items-center gap-3 shrink-0">
+                {c.estimatedValue && (
+                  <span className="text-xs font-mono text-green-600 hidden sm:block">
+                    IDR {Number(c.estimatedValue).toLocaleString()}
+                  </span>
+                )}
                 <StatusBadge status={c.status} />
                 <span className="text-xs text-muted-foreground font-mono">
                   {format(parseISO(c.updatedAt), "MMM d")}

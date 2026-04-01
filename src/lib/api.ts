@@ -37,8 +37,27 @@ export const api = {
       return request(`/customers${qs.toString() ? `?${qs}` : ""}`);
     },
     get: (id: string) => request(`/customers/${id}`),
-    create: (data: { name: string; email?: string; phone?: string; status?: string; businessIds?: string[] }) =>
-      request("/customers", { method: "POST", body: JSON.stringify(data) }),
+    dailyFocus: () => request("/customers/daily-focus"),
+    revenue: () => request("/customers/revenue"),
+    create: (data: {
+      name: string;
+      email?: string;
+      phone?: string;
+      status?: string;
+      businessIds?: string[];
+      source?: string;
+      estimatedValue?: string | number;
+    }) => request("/customers", { method: "POST", body: JSON.stringify(data) }),
+    update: (id: string, data: {
+      status?: string;
+      lostReason?: string;
+      memory?: string;
+      estimatedValue?: string | number | null;
+      source?: string;
+      name?: string;
+      email?: string;
+      phone?: string;
+    }) => request(`/customers/${id}`, { method: "PATCH", body: JSON.stringify(data) }),
     updateStatus: (id: string, status: string) =>
       request(`/customers/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }),
     delete: (id: string) => request(`/customers/${id}`, { method: "DELETE" }),

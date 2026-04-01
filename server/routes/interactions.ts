@@ -83,7 +83,7 @@ router.get("/stats", async (_req, res) => {
     const [totalRes, leadsRes, todayRes, overdueRes] = await Promise.all([
       db.select({ count: sql<number>`count(*)` }).from(customers),
       db.select({ count: sql<number>`count(*)` }).from(customers).where(
-        inArray(customers.status, ["new", "warm", "hot"])
+        inArray(customers.status, ["new", "warm", "hot", "negotiation"])
       ),
       db.select({ count: sql<number>`count(*)` }).from(interactions).where(
         and(eq(interactions.type, "follow_up"), eq(interactions.isCompleted, false), eq(interactions.followUpDate, today))

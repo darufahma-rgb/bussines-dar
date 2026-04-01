@@ -1,7 +1,7 @@
 import { pgTable, uuid, text, timestamp, pgEnum, boolean, numeric, date, unique, index } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
-export const customerStatusEnum = pgEnum("customer_status", ["new", "warm", "hot", "closed"]);
+export const customerStatusEnum = pgEnum("customer_status", ["new", "warm", "hot", "negotiation", "closed", "lost"]);
 export const interactionTypeEnum = pgEnum("interaction_type", ["note", "transaction", "follow_up", "quick_capture"]);
 
 export const users = pgTable("users", {
@@ -26,6 +26,9 @@ export const customers = pgTable("customers", {
   status: customerStatusEnum("status").notNull().default("new"),
   tags: text("tags").array().default(sql`'{}'`),
   source: text("source"),
+  estimatedValue: numeric("estimated_value"),
+  lostReason: text("lost_reason"),
+  memory: text("memory"),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [
@@ -66,5 +69,5 @@ export type Business = typeof businesses.$inferSelect;
 export type Customer = typeof customers.$inferSelect;
 export type CustomerBusiness = typeof customerBusinesses.$inferSelect;
 export type Interaction = typeof interactions.$inferSelect;
-export type CustomerStatus = "new" | "warm" | "hot" | "closed";
+export type CustomerStatus = "new" | "warm" | "hot" | "negotiation" | "closed" | "lost";
 export type InteractionType = "note" | "transaction" | "follow_up" | "quick_capture";

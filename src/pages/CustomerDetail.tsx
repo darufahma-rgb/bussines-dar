@@ -13,36 +13,56 @@ import { format, parseISO } from "date-fns";
 import {
   ArrowLeft, MessageSquare, DollarSign, CalendarCheck, Zap,
   Check, Trash2, Sparkles, Loader2, Copy, RefreshCw, ChevronDown, ChevronUp,
+  Brain, Edit2,
 } from "lucide-react";
 
 type InteractionType = "note" | "transaction" | "follow_up" | "quick_capture";
-type CustomerStatus = "new" | "warm" | "hot" | "closed";
+type CustomerStatus = "new" | "warm" | "hot" | "negotiation" | "closed" | "lost";
 
 const typeIcons: Record<InteractionType, any> = {
-  note: MessageSquare,
-  transaction: DollarSign,
-  follow_up: CalendarCheck,
-  quick_capture: Zap,
+  note: MessageSquare, transaction: DollarSign, follow_up: CalendarCheck, quick_capture: Zap,
 };
 const typeLabels: Record<InteractionType, string> = {
-  note: "Note",
-  transaction: "Transaction",
-  follow_up: "Follow-up",
-  quick_capture: "Quick Capture",
+  note: "Note", transaction: "Transaction", follow_up: "Follow-up", quick_capture: "Quick Capture",
 };
+
+const LOST_PRESETS = ["Price too high", "No response", "Not interested", "Went with competitor", "Bad timing", "Budget cut"];
+
+function LostReasonModal({ onConfirm, onCancel }: { onConfirm: (r: string) => void; onCancel: () => void }) {
+  const [reason, setReason] = useState("");
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+      <div className="bg-background border rounded-xl shadow-xl w-full max-w-sm p-5 space-y-4">
+        <h3 className="font-semibold">Why was this lost?</h3>
+        <div className="flex flex-wrap gap-2">
+          {LOST_PRESETS.map((p) => (
+            <button key={p} onClick={() => setReason(p)}
+              className={`text-xs px-3 py-1.5 rounded-full border transition-colors ${reason === p ? "bg-foreground text-background border-foreground" : "hover:bg-muted"}`}>
+              {p}
+            </button>
+          ))}
+        </div>
+        <input className="w-full border rounded-md px-3 py-2 text-sm" placeholder="Or write a reason..."
+          value={reason} onChange={(e) => setReason(e.target.value)} />
+        <div className="flex gap-2 justify-end">
+          <button onClick={onCancel} className="text-sm text-muted-foreground hover:text-foreground px-3 py-1.5">Cancel</button>
+          <button onClick={() => onConfirm(reason)}
+            className="text-sm bg-foreground text-background px-4 py-1.5 rounded-md">Confirm</button>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function AIPanel({ label, children }: { label: string; children: React.ReactNode }) {
   const [open, setOpen] = useState(true);
   return (
     <div className="bg-card border rounded-lg overflow-hidden">
-      <button
-        type="button"
+      <button type="button"
         className="w-full flex items-center justify-between p-3 text-sm font-medium hover:bg-muted/40 transition-colors"
-        onClick={() => setOpen(!open)}
-      >
+        onClick={() => setOpen(!open)}>
         <span className="flex items-center gap-2">
-          <Sparkles className="h-3.5 w-3.5 text-violet-500" />
-          {label}
+          <Sparkles className="h-3.5 w-3.5 text-violet-500" />{label}
         </span>
         {open ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
       </button>
@@ -50,6 +70,8 @@ function AIPanel({ label, children }: { label: string; children: React.ReactNode
     </div>
   );
 }
+
+const SOURCE_OPTIONS = ["Instagram", "WhatsApp", "Referral", "Website", "TikTok", "Email", "Cold Outreach", "Event", "Other"];
 
 export default function CustomerDetail() {
   const { id } = useParams<{ id: string }>();
@@ -62,14 +84,18 @@ export default function CustomerDetail() {
   const [followUpDate, setFollowUpDate] = useState("");
   const [saving, setSaving] = useState(false);
 
+  const [editingMemory, setEditingMemory] = useState(false);
+  const [memoryText, setMemoryText] = useState("");
+  const [savingMemory, setSavingMemory] = useState(false);
+
+  const [pendingStatus, setPendingStatus] = useState<CustomerStatus | null>(null);
+
   const [summary, setSummary] = useState<string | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
-
   const [replyMessage, setReplyMessage] = useState("");
   const [replyTone, setReplyTone] = useState("professional");
   const [reply, setReply] = useState<string | null>(null);
   const [loadingReply, setLoadingReply] = useState(false);
-
   const [nextAction, setNextAction] = useState<any>(null);
   const [loadingNext, setLoadingNext] = useState(false);
 
@@ -85,6 +111,14 @@ export default function CustomerDetail() {
     enabled: !!id,
   });
 
+  const invalidate = () => {
+    queryClient.invalidateQueries({ queryKey: ["customer", id] });
+    queryClient.invalidateQueries({ queryKey: ["customers"] });
+    queryClient.invalidateQueries({ queryKey: ["customers-pipeline"] });
+    queryClient.invalidateQueries({ queryKey: ["daily-focus"] });
+    queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+  };
+
   const handleAddInteraction = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!content.trim() || !id) return;
@@ -99,14 +133,34 @@ export default function CustomerDetail() {
     setSaving(false);
   };
 
-  const handleStatusChange = async (status: CustomerStatus) => {
+  const handleStatusChange = async (status: CustomerStatus, lostReason?: string) => {
     if (!id) return;
     try {
-      await api.customers.updateStatus(id, status);
-      queryClient.invalidateQueries({ queryKey: ["customer", id] });
-      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      await api.customers.update(id, { status, ...(lostReason !== undefined ? { lostReason } : {}) });
+      invalidate();
       toast.success("Status updated");
     } catch { toast.error("Failed"); }
+  };
+
+  const handleStatusSelect = (v: string) => {
+    const status = v as CustomerStatus;
+    if (status === "lost") {
+      setPendingStatus("lost");
+    } else {
+      handleStatusChange(status);
+    }
+  };
+
+  const handleSaveMemory = async () => {
+    if (!id) return;
+    setSavingMemory(true);
+    try {
+      await api.customers.update(id, { memory: memoryText });
+      queryClient.invalidateQueries({ queryKey: ["customer", id] });
+      setEditingMemory(false);
+      toast.success("Memory saved");
+    } catch { toast.error("Failed"); }
+    setSavingMemory(false);
   };
 
   const handleComplete = async (interactionId: string) => {
@@ -132,30 +186,24 @@ export default function CustomerDetail() {
   const handleGetSummary = async () => {
     if (!id) return;
     setLoadingSummary(true);
-    try {
-      const result = await api.ai.customerSummary(id);
-      setSummary(result.summary);
-    } catch { toast.error("Could not generate summary"); }
+    try { const r = await api.ai.customerSummary(id); setSummary(r.summary); }
+    catch { toast.error("Could not generate summary"); }
     setLoadingSummary(false);
   };
 
   const handleGenerateReply = async () => {
     if (!replyMessage.trim() || !id) return;
     setLoadingReply(true);
-    try {
-      const result = await api.ai.generateReply({ customerMessage: replyMessage, tone: replyTone, customerId: id });
-      setReply(result.reply);
-    } catch { toast.error("Could not generate reply"); }
+    try { const r = await api.ai.generateReply({ customerMessage: replyMessage, tone: replyTone, customerId: id }); setReply(r.reply); }
+    catch { toast.error("Could not generate reply"); }
     setLoadingReply(false);
   };
 
   const handleNextAction = async () => {
     if (!id) return;
     setLoadingNext(true);
-    try {
-      const result = await api.ai.nextAction(id);
-      setNextAction(result);
-    } catch { toast.error("Could not generate suggestion"); }
+    try { const r = await api.ai.nextAction(id); setNextAction(r); }
+    catch { toast.error("Could not generate suggestion"); }
     setLoadingNext(false);
   };
 
@@ -169,6 +217,13 @@ export default function CustomerDetail() {
 
   return (
     <div className="space-y-5 max-w-2xl">
+      {pendingStatus === "lost" && (
+        <LostReasonModal
+          onConfirm={(reason) => { handleStatusChange("lost", reason); setPendingStatus(null); }}
+          onCancel={() => setPendingStatus(null)}
+        />
+      )}
+
       <div className="flex items-start justify-between">
         <div>
           <button onClick={() => navigate(-1)} className="text-sm text-muted-foreground hover:text-foreground flex items-center gap-1 mb-2">
@@ -179,25 +234,75 @@ export default function CustomerDetail() {
             {customer.customer_businesses?.map((cb: any) => (
               <BusinessBadge key={cb.business_id} name={cb.businesses?.name} />
             ))}
+            {customer.source && (
+              <span className="text-xs bg-muted text-muted-foreground rounded px-2 py-0.5">via {customer.source}</span>
+            )}
             {customer.email && <span className="text-xs text-muted-foreground">{customer.email}</span>}
             {customer.phone && <span className="text-xs text-muted-foreground font-mono">{customer.phone}</span>}
           </div>
+          {customer.estimatedValue && (
+            <p className="text-sm font-mono text-green-600 mt-1">IDR {Number(customer.estimatedValue).toLocaleString()}</p>
+          )}
+          {customer.status === "lost" && customer.lostReason && (
+            <p className="text-xs text-red-500 mt-1">Lost reason: {customer.lostReason}</p>
+          )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
-          <Select value={customer.status} onValueChange={(v) => handleStatusChange(v as CustomerStatus)}>
-            <SelectTrigger className="w-28 h-8 text-xs">
+          <Select value={customer.status} onValueChange={handleStatusSelect}>
+            <SelectTrigger className="w-32 h-8 text-xs">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="new">New</SelectItem>
+              <SelectItem value="new">New Lead</SelectItem>
               <SelectItem value="warm">Warm</SelectItem>
               <SelectItem value="hot">Hot</SelectItem>
-              <SelectItem value="closed">Closed</SelectItem>
+              <SelectItem value="negotiation">Negotiation</SelectItem>
+              <SelectItem value="closed">Closed Won</SelectItem>
+              <SelectItem value="lost">Lost</SelectItem>
             </SelectContent>
           </Select>
           <Button variant="ghost" size="sm" onClick={handleDelete} className="text-destructive h-8">
             <Trash2 className="h-3 w-3" />
           </Button>
+        </div>
+      </div>
+
+      <div className="bg-card border rounded-lg overflow-hidden">
+        <div className="flex items-center justify-between p-3">
+          <span className="text-sm font-medium flex items-center gap-2">
+            <Brain className="h-3.5 w-3.5 text-indigo-500" /> Customer Memory
+          </span>
+          {!editingMemory && (
+            <button
+              onClick={() => { setMemoryText(customer.memory || ""); setEditingMemory(true); }}
+              className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
+            >
+              <Edit2 className="h-3 w-3" /> {customer.memory ? "Edit" : "Add"}
+            </button>
+          )}
+        </div>
+        <div className="px-3 pb-3">
+          {editingMemory ? (
+            <div className="space-y-2">
+              <Textarea
+                value={memoryText}
+                onChange={(e) => setMemoryText(e.target.value)}
+                placeholder="Communication style, preferences, important context, personal notes..."
+                rows={3}
+                className="text-sm"
+              />
+              <div className="flex gap-2">
+                <Button size="sm" className="h-7 text-xs" onClick={handleSaveMemory} disabled={savingMemory}>
+                  {savingMemory ? <Loader2 className="h-3 w-3 animate-spin" /> : "Save"}
+                </Button>
+                <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setEditingMemory(false)}>Cancel</Button>
+              </div>
+            </div>
+          ) : customer.memory ? (
+            <p className="text-sm whitespace-pre-wrap text-foreground/80">{customer.memory}</p>
+          ) : (
+            <p className="text-sm text-muted-foreground italic">No memory added yet. Store communication style, preferences, or personal notes about this customer.</p>
+          )}
         </div>
       </div>
 
@@ -211,7 +316,7 @@ export default function CustomerDetail() {
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            <p className="text-xs text-muted-foreground">Get a quick AI-generated overview of who this customer is, what they want, and their current status.</p>
+            <p className="text-xs text-muted-foreground">Get a quick AI-generated overview of who this customer is and what they want.</p>
             <Button size="sm" variant="outline" className="w-fit h-7 text-xs gap-1" onClick={handleGetSummary} disabled={loadingSummary}>
               {loadingSummary ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
               {loadingSummary ? "Generating..." : "Generate Summary"}
@@ -229,7 +334,7 @@ export default function CustomerDetail() {
             <p className="text-sm font-medium">{nextAction.action}</p>
             <p className="text-xs text-muted-foreground">{nextAction.reason}</p>
             {nextAction.suggestedDate && (
-              <p className="text-xs font-mono text-muted-foreground">Suggested date: {nextAction.suggestedDate}</p>
+              <p className="text-xs font-mono text-muted-foreground">Suggested: {nextAction.suggestedDate}</p>
             )}
             <button onClick={handleNextAction} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground mt-1">
               <RefreshCw className="h-3 w-3" /> Refresh
@@ -237,7 +342,7 @@ export default function CustomerDetail() {
           </div>
         ) : (
           <div className="flex flex-col gap-2">
-            <p className="text-xs text-muted-foreground">Get an AI recommendation for the single best next step with this customer.</p>
+            <p className="text-xs text-muted-foreground">Get the best next step to move this deal forward.</p>
             <Button size="sm" variant="outline" className="w-fit h-7 text-xs gap-1" onClick={handleNextAction} disabled={loadingNext}>
               {loadingNext ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
               {loadingNext ? "Thinking..." : "Suggest Next Action"}
@@ -248,18 +353,10 @@ export default function CustomerDetail() {
 
       <AIPanel label="Reply Generator">
         <div className="space-y-2">
-          <Textarea
-            placeholder='Paste the customer message you received...'
-            value={replyMessage}
-            onChange={(e) => setReplyMessage(e.target.value)}
-            rows={2}
-            className="text-sm"
-          />
+          <Textarea placeholder='Paste the customer message...' value={replyMessage} onChange={(e) => setReplyMessage(e.target.value)} rows={2} className="text-sm" />
           <div className="flex items-center gap-2">
             <Select value={replyTone} onValueChange={setReplyTone}>
-              <SelectTrigger className="w-36 h-8 text-xs">
-                <SelectValue />
-              </SelectTrigger>
+              <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="casual">Casual & Warm</SelectItem>
                 <SelectItem value="professional">Professional</SelectItem>
@@ -275,10 +372,8 @@ export default function CustomerDetail() {
             <div className="bg-muted/50 border rounded p-3 space-y-2">
               <p className="text-sm whitespace-pre-wrap leading-relaxed">{reply}</p>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={() => { navigator.clipboard.writeText(reply); toast.success("Copied!"); }}
-                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-                >
+                <button onClick={() => { navigator.clipboard.writeText(reply); toast.success("Copied!"); }}
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
                   <Copy className="h-3 w-3" /> Copy
                 </button>
                 <button onClick={handleGenerateReply} className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground">
@@ -292,11 +387,9 @@ export default function CustomerDetail() {
 
       <form onSubmit={handleAddInteraction} className="bg-card border rounded-lg p-4 space-y-3">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Add to Timeline</p>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <Select value={addType} onValueChange={(v) => setAddType(v as InteractionType)}>
-            <SelectTrigger className="w-36 h-8 text-xs">
-              <SelectValue />
-            </SelectTrigger>
+            <SelectTrigger className="w-36 h-8 text-xs"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="note">📝 Note</SelectItem>
               <SelectItem value="transaction">💰 Transaction</SelectItem>

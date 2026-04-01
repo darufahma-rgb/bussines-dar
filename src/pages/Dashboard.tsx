@@ -1,10 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-import { Users, Flame, CalendarCheck, TrendingUp } from "lucide-react";
+import { Users, Flame, CalendarCheck, TrendingUp, Target, DollarSign, AlertCircle } from "lucide-react";
 import QuickCapture from "@/components/QuickCapture";
 import StatusBadge from "@/components/StatusBadge";
 import { Link } from "react-router-dom";
 import { format, isToday, isPast, parseISO } from "date-fns";
+import BusinessBadge from "@/components/BusinessBadge";
+
+const FOCUS_REASON_LABELS: Record<string, { label: string; color: string }> = {
+  overdue_followup: { label: "Overdue follow-up", color: "text-red-500" },
+  hot_lead:         { label: "Hot lead",          color: "text-orange-500" },
+  high_value:       { label: "High value",         color: "text-green-600" },
+};
 
 export default function Dashboard() {
   const { data: stats } = useQuery({
@@ -20,6 +27,16 @@ export default function Dashboard() {
   const { data: recentCaptures } = useQuery({
     queryKey: ["recent-captures"],
     queryFn: () => api.interactions.list({ type: "quick_capture,note", limit: 5, includeCustomer: true }),
+  });
+
+  const { data: dailyFocus } = useQuery({
+    queryKey: ["daily-focus"],
+    queryFn: () => api.customers.dailyFocus(),
+  });
+
+  const { data: revenue } = useQuery({
+    queryKey: ["revenue"],
+    queryFn: () => api.customers.revenue(),
   });
 
   const today = new Date().toISOString().split("T")[0];
@@ -55,11 +72,77 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {(revenue?.pipelineValue > 0 || revenue?.closedRevenue > 0) && (
+        <div className="grid grid-cols-2 gap-3">
+          <div className="bg-card border rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Pipeline Value</span>
+              <Target className="h-4 w-4 text-blue-500" />
+            </div>
+            <p className="text-xl font-semibold font-mono mt-1 text-blue-600">
+              IDR {Number(revenue.pipelineValue).toLocaleString()}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">Open opportunities</p>
+          </div>
+          <div className="bg-card border rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Closed Revenue</span>
+              <DollarSign className="h-4 w-4 text-green-500" />
+            </div>
+            <p className="text-xl font-semibold font-mono mt-1 text-green-600">
+              IDR {Number(revenue.closedRevenue).toLocaleString()}
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">Won deals</p>
+          </div>
+        </div>
+      )}
+
+      {dailyFocus && dailyFocus.length > 0 && (
+        <div className="bg-card border rounded-lg p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <AlertCircle className="h-4 w-4 text-orange-500" />
+            <h3 className="font-medium text-sm">Daily Focus</h3>
+            <span className="text-xs text-muted-foreground">— act on these today</span>
+          </div>
+          <div className="space-y-2">
+            {dailyFocus.map((c: any) => (
+              <Link
+                key={c.id}
+                to={`/customers/${c.id}`}
+                className="flex items-center justify-between p-2 rounded hover:bg-muted transition-colors"
+              >
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="text-sm font-medium">{c.name}</p>
+                    {c.customer_businesses?.map((cb: any) => (
+                      <BusinessBadge key={cb.business_id} name={cb.businesses?.name} />
+                    ))}
+                  </div>
+                  <div className="flex gap-2 mt-0.5 flex-wrap">
+                    {c.focusReasons?.map((r: string) => (
+                      <span key={r} className={`text-xs ${FOCUS_REASON_LABELS[r]?.color ?? "text-muted-foreground"}`}>
+                        {FOCUS_REASON_LABELS[r]?.label ?? r}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {c.estimatedValue && (
+                    <span className="text-xs font-mono text-green-600">IDR {Number(c.estimatedValue).toLocaleString()}</span>
+                  )}
+                  <StatusBadge status={c.status} />
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="grid lg:grid-cols-2 gap-4">
         <div className="bg-card border rounded-lg p-4">
           <h3 className="font-medium text-sm mb-3">Due Follow-ups</h3>
           {!dueFollowUps.length ? (
-            <p className="text-sm text-muted-foreground">No follow-ups due. You're all caught up! 🎉</p>
+            <p className="text-sm text-muted-foreground">No follow-ups due. You're all caught up!</p>
           ) : (
             <div className="space-y-2">
               {dueFollowUps.map((f: any) => (

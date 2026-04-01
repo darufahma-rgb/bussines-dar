@@ -11,6 +11,7 @@ import CustomerList from "@/pages/CustomerList";
 import CustomerDetail from "@/pages/CustomerDetail";
 import NewCustomer from "@/pages/NewCustomer";
 import FollowUps from "@/pages/FollowUps";
+import Pipeline from "@/pages/Pipeline";
 import Weekly from "@/pages/Weekly";
 import Monthly from "@/pages/Monthly";
 import NotFound from "@/pages/NotFound";
@@ -40,6 +41,7 @@ function AppLayout() {
           <Route path="/customers/new" element={<NewCustomer />} />
           <Route path="/customers/:id" element={<CustomerDetail />} />
           <Route path="/follow-ups" element={<FollowUps />} />
+          <Route path="/pipeline" element={<Pipeline />} />
           <Route path="/weekly" element={<Weekly />} />
           <Route path="/monthly" element={<Monthly />} />
           <Route path="*" element={<NotFound />} />

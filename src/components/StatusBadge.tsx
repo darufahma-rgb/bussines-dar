@@ -1,16 +1,18 @@
 import { cn } from "@/lib/utils";
 
-const statusConfig = {
-  new: { label: "New", className: "bg-status-new/10 text-status-new" },
-  warm: { label: "Warm", className: "bg-status-warm/10 text-status-warm" },
-  hot: { label: "Hot", className: "bg-status-hot/10 text-status-hot" },
-  closed: { label: "Closed", className: "bg-status-closed/10 text-status-closed" },
+const statusConfig: Record<string, { label: string; className: string }> = {
+  new:         { label: "New",         className: "bg-blue-100 text-blue-700" },
+  warm:        { label: "Warm",        className: "bg-yellow-100 text-yellow-700" },
+  hot:         { label: "Hot",         className: "bg-orange-100 text-orange-700" },
+  negotiation: { label: "Negotiation", className: "bg-purple-100 text-purple-700" },
+  closed:      { label: "Closed Won",  className: "bg-green-100 text-green-700" },
+  lost:        { label: "Lost",        className: "bg-gray-100 text-gray-500" },
 };
 
-export default function StatusBadge({ status }: { status: keyof typeof statusConfig }) {
-  const config = statusConfig[status];
+export default function StatusBadge({ status }: { status: string }) {
+  const config = statusConfig[status] ?? { label: status, className: "bg-gray-100 text-gray-500" };
   return (
-    <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium", config.className)}>
+    <span className={cn("px-2 py-0.5 rounded-full text-xs font-medium whitespace-nowrap", config.className)}>
       {config.label}
     </span>
   );

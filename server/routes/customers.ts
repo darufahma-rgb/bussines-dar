@@ -1,12 +1,164 @@
 import { Router } from "express";
 import { db } from "../db.js";
-import { customers, customerBusinesses, businesses } from "../../shared/schema.js";
+import { customers, customerBusinesses, businesses, interactions } from "../../shared/schema.js";
 import { requireAuth } from "../middleware/auth.js";
-import { eq, ilike, desc, and, inArray } from "drizzle-orm";
+import { eq, ilike, desc, and, inArray, lt, isNotNull, sql, isNull, or } from "drizzle-orm";
 import type { CustomerStatus } from "../../shared/schema.js";
 
 const router = Router();
 router.use(requireAuth);
+
+function buildCustomerResponse(rows: any[], cbRows: any[]) {
+  return rows.map((c) => ({
+    ...c,
+    customer_businesses: cbRows
+      .filter((cb: any) => cb.customerId === c.id)
+      .map((cb: any) => ({
+        business_id: cb.businessId,
+        businesses: { id: cb.businessId, name: cb.businessName, color: cb.businessColor },
+      })),
+  }));
+}
+
+async function fetchCbRows(customerIds: string[]) {
+  if (!customerIds.length) return [];
+  return db
+    .select({
+      customerId: customerBusinesses.customerId,
+      businessId: customerBusinesses.businessId,
+      businessName: businesses.name,
+      businessColor: businesses.color,
+    })
+    .from(customerBusinesses)
+    .innerJoin(businesses, eq(customerBusinesses.businessId, businesses.id))
+    .where(inArray(customerBusinesses.customerId, customerIds));
+}
+
+router.get("/daily-focus", async (_req, res) => {
+  try {
+    const today = new Date().toISOString().split("T")[0];
+
+    const overdueFollowUps = await db
+      .select({ customerId: interactions.customerId })
+      .from(interactions)
+      .where(and(
+        eq(interactions.type, "follow_up"),
+        eq(interactions.isCompleted, false),
+        lt(interactions.followUpDate, today),
+        isNotNull(interactions.followUpDate),
+      ))
+      .limit(20);
+
+    const overdueIds = [...new Set(overdueFollowUps.map((r) => r.customerId))];
+
+    const hotRows = await db
+      .select()
+      .from(customers)
+      .where(eq(customers.status, "hot"))
+      .orderBy(desc(customers.updatedAt))
+      .limit(10);
+
+    const highValueRows = await db
+      .select()
+      .from(customers)
+      .where(and(
+        isNotNull(customers.estimatedValue),
+        or(
+          eq(customers.status, "warm"),
+          eq(customers.status, "negotiation"),
+        )
+      ))
+      .orderBy(desc(customers.estimatedValue))
+      .limit(10);
+
+    const allIds = [...new Set([...overdueIds, ...hotRows.map((r) => r.id), ...highValueRows.map((r) => r.id)])];
+
+    let focusRows: any[] = [];
+    if (allIds.length) {
+      focusRows = await db
+        .select()
+        .from(customers)
+        .where(inArray(customers.id, allIds));
+    }
+
+    const cbRows = await fetchCbRows(focusRows.map((r) => r.id));
+
+    const withReason = focusRows.map((c) => {
+      const reasons: string[] = [];
+      if (overdueIds.includes(c.id)) reasons.push("overdue_followup");
+      if (c.status === "hot") reasons.push("hot_lead");
+      if (c.estimatedValue && ["warm", "negotiation"].includes(c.status)) reasons.push("high_value");
+      return { ...c, focusReasons: reasons };
+    });
+
+    const sorted = withReason.sort((a, b) => {
+      const score = (r: any) => {
+        let s = 0;
+        if (r.focusReasons.includes("overdue_followup")) s += 30;
+        if (r.focusReasons.includes("hot_lead")) s += 20;
+        if (r.focusReasons.includes("high_value")) s += 10;
+        return s;
+      };
+      return score(b) - score(a);
+    }).slice(0, 5);
+
+    return res.json(buildCustomerResponse(sorted, cbRows));
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.get("/revenue", async (_req, res) => {
+  try {
+    const [pipeline, closed] = await Promise.all([
+      db
+        .select({ total: sql<string>`coalesce(sum(estimated_value), 0)` })
+        .from(customers)
+        .where(and(
+          isNotNull(customers.estimatedValue),
+          inArray(customers.status, ["new", "warm", "hot", "negotiation"] as CustomerStatus[]),
+        )),
+      db
+        .select({ total: sql<string>`coalesce(sum(estimated_value), 0)` })
+        .from(customers)
+        .where(and(
+          isNotNull(customers.estimatedValue),
+          eq(customers.status, "closed"),
+        )),
+    ]);
+
+    const sourceBreakdown = await db
+      .select({
+        source: customers.source,
+        count: sql<number>`count(*)`,
+      })
+      .from(customers)
+      .where(isNotNull(customers.source))
+      .groupBy(customers.source)
+      .orderBy(desc(sql`count(*)`));
+
+    const lostReasons = await db
+      .select({
+        reason: customers.lostReason,
+        count: sql<number>`count(*)`,
+      })
+      .from(customers)
+      .where(and(eq(customers.status, "lost"), isNotNull(customers.lostReason)))
+      .groupBy(customers.lostReason)
+      .orderBy(desc(sql`count(*)`));
+
+    return res.json({
+      pipelineValue: Number(pipeline[0].total),
+      closedRevenue: Number(closed[0].total),
+      sourceBreakdown,
+      lostReasons,
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
 
 router.get("/", async (req, res) => {
   try {
@@ -23,34 +175,13 @@ router.get("/", async (req, res) => {
       .orderBy(desc(customers.updatedAt));
 
     const customerIds = rows.map((r) => r.id);
-    let cbRows: Array<{ customerId: string; businessId: string; businessName: string | null; businessColor: string | null }> = [];
+    const cbRows = await fetchCbRows(customerIds);
 
-    if (customerIds.length > 0) {
-      cbRows = await db
-        .select({
-          customerId: customerBusinesses.customerId,
-          businessId: customerBusinesses.businessId,
-          businessName: businesses.name,
-          businessColor: businesses.color,
-        })
-        .from(customerBusinesses)
-        .innerJoin(businesses, eq(customerBusinesses.businessId, businesses.id))
-        .where(inArray(customerBusinesses.customerId, customerIds));
-    }
-
-    let result = rows.map((c) => ({
-      ...c,
-      customer_businesses: cbRows
-        .filter((cb) => cb.customerId === c.id)
-        .map((cb) => ({
-          business_id: cb.businessId,
-          businesses: { id: cb.businessId, name: cb.businessName, color: cb.businessColor },
-        })),
-    }));
+    let result = buildCustomerResponse(rows, cbRows);
 
     if (businessId && businessId !== "all") {
       result = result.filter((c) =>
-        c.customer_businesses.some((cb) => cb.business_id === businessId)
+        c.customer_businesses.some((cb: any) => cb.business_id === businessId)
       );
     }
 
@@ -69,6 +200,7 @@ router.get("/:id", async (req, res) => {
 
     const cbRows = await db
       .select({
+        customerId: customerBusinesses.customerId,
         businessId: customerBusinesses.businessId,
         businessName: businesses.name,
         businessColor: businesses.color,
@@ -92,12 +224,19 @@ router.get("/:id", async (req, res) => {
 
 router.post("/", async (req, res) => {
   try {
-    const { name, email, phone, status, businessIds } = req.body;
+    const { name, email, phone, status, businessIds, source, estimatedValue } = req.body;
     if (!name?.trim()) return res.status(400).json({ error: "Name required" });
 
     const [customer] = await db
       .insert(customers)
-      .values({ name: name.trim(), email: email?.trim() || null, phone: phone?.trim() || null, status: status || "new" })
+      .values({
+        name: name.trim(),
+        email: email?.trim() || null,
+        phone: phone?.trim() || null,
+        status: status || "new",
+        source: source?.trim() || null,
+        estimatedValue: estimatedValue ? String(estimatedValue) : null,
+      })
       .returning();
 
     if (businessIds?.length) {
@@ -116,8 +255,19 @@ router.post("/", async (req, res) => {
 router.patch("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { status } = req.body;
-    await db.update(customers).set({ status, updatedAt: new Date() }).where(eq(customers.id, id));
+    const { status, lostReason, memory, estimatedValue, source, name, email, phone } = req.body;
+
+    const updateData: Record<string, any> = { updatedAt: new Date() };
+    if (status !== undefined) updateData.status = status;
+    if (lostReason !== undefined) updateData.lostReason = lostReason;
+    if (memory !== undefined) updateData.memory = memory;
+    if (estimatedValue !== undefined) updateData.estimatedValue = estimatedValue ? String(estimatedValue) : null;
+    if (source !== undefined) updateData.source = source;
+    if (name !== undefined) updateData.name = name;
+    if (email !== undefined) updateData.email = email;
+    if (phone !== undefined) updateData.phone = phone;
+
+    await db.update(customers).set(updateData).where(eq(customers.id, id));
     return res.json({ ok: true });
   } catch (err) {
     console.error(err);
