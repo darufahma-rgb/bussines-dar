@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Zap, Sparkles, X, Check, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -23,7 +23,19 @@ export default function QuickCapture() {
   const [saving, setSaving] = useState(false);
   const [parsing, setParsing] = useState(false);
   const [parsed, setParsed] = useState<ParsedCapture | null>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const queryClient = useQueryClient();
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        inputRef.current?.focus();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, []);
 
   const { data: businesses } = useQuery({
     queryKey: ["businesses"],
@@ -107,10 +119,12 @@ export default function QuickCapture() {
             </SelectContent>
           </Select>
           <Input
+            ref={inputRef}
             value={text}
             onChange={(e) => { setText(e.target.value); if (parsed) setParsed(null); }}
             placeholder='e.g. "Cia asked about Umrah package for Dec, 2 pax"'
             className="flex-1 h-8 text-sm border-0 bg-transparent focus-visible:ring-0 px-0"
+            data-testid="input-quick-capture"
           />
           {text.trim() && !customerId && (
             <Button
