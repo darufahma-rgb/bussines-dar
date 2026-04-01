@@ -8,19 +8,25 @@ import { eq, desc, inArray } from "drizzle-orm";
 const router = Router();
 router.use(requireAuth);
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENROUTER_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY,
-  baseURL: process.env.OPENROUTER_API_KEY
-    ? "https://openrouter.ai/api/v1"
-    : (process.env.AI_INTEGRATIONS_OPENAI_BASE_URL || "https://api.openai.com/v1"),
-  defaultHeaders: process.env.OPENROUTER_API_KEY
-    ? { "HTTP-Referer": "https://crmhub.app", "X-Title": "CRM Hub" }
-    : {},
-});
+function getOpenAI() {
+  const apiKey = process.env.OPENROUTER_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
+  if (!apiKey) throw new Error("No AI API key configured");
+  return new OpenAI({
+    apiKey,
+    baseURL: process.env.OPENROUTER_API_KEY
+      ? "https://openrouter.ai/api/v1"
+      : (process.env.AI_INTEGRATIONS_OPENAI_BASE_URL || "https://api.openai.com/v1"),
+    defaultHeaders: process.env.OPENROUTER_API_KEY
+      ? { "HTTP-Referer": "https://crmhub.app", "X-Title": "CRM Hub" }
+      : {},
+  });
+}
 
-const AI_MODEL = process.env.OPENROUTER_API_KEY
-  ? (process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-001")
-  : "gpt-4o-mini";
+function getAIModel() {
+  return process.env.OPENROUTER_API_KEY
+    ? (process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-001")
+    : "gpt-4o-mini";
+}
 
 router.post("/parse-capture", async (req, res) => {
   try {
@@ -29,8 +35,8 @@ router.post("/parse-capture", async (req, res) => {
 
     const bizNames = bizList?.map((b: any) => `${b.name} (id: ${b.id})`).join(", ") || "none";
 
-    const response = await openai.chat.completions.create({
-      model: AI_MODEL,
+    const response = await getOpenAI().chat.completions.create({
+      model: getAIModel(),
       response_format: { type: "json_object" },
       messages: [
         {
@@ -74,8 +80,8 @@ router.get("/customer-summary/:id", async (req, res) => {
       .map((i) => `[${i.type}] ${i.content}${i.amount ? ` — Amount: ${i.amount}` : ""}${i.followUpDate ? ` — Follow-up: ${i.followUpDate}` : ""}`)
       .join("\n");
 
-    const response = await openai.chat.completions.create({
-      model: AI_MODEL,
+    const response = await getOpenAI().chat.completions.create({
+      model: getAIModel(),
       messages: [
         {
           role: "system",
@@ -120,8 +126,8 @@ router.post("/reply", async (req, res) => {
       persuasive: "Write in a persuasive, confident tone that encourages action without being pushy.",
     }[tone] || "Write in a friendly, professional tone.";
 
-    const response = await openai.chat.completions.create({
-      model: AI_MODEL,
+    const response = await getOpenAI().chat.completions.create({
+      model: getAIModel(),
       messages: [
         {
           role: "system",
@@ -160,8 +166,8 @@ router.get("/next-action/:id", async (req, res) => {
       .map((i) => `[${i.type}] ${i.createdAt?.toString().split("T")[0]} — ${i.content}${i.followUpDate ? ` (follow-up: ${i.followUpDate}, completed: ${i.isCompleted})` : ""}`)
       .join("\n");
 
-    const response = await openai.chat.completions.create({
-      model: AI_MODEL,
+    const response = await getOpenAI().chat.completions.create({
+      model: getAIModel(),
       response_format: { type: "json_object" },
       messages: [
         {
@@ -191,8 +197,8 @@ router.post("/weekly-insight", async (req, res) => {
   try {
     const { stats } = req.body;
 
-    const response = await openai.chat.completions.create({
-      model: AI_MODEL,
+    const response = await getOpenAI().chat.completions.create({
+      model: getAIModel(),
       messages: [
         {
           role: "system",
@@ -217,8 +223,8 @@ router.post("/monthly-insight", async (req, res) => {
   try {
     const { current, previous, byBusiness } = req.body;
 
-    const response = await openai.chat.completions.create({
-      model: AI_MODEL,
+    const response = await getOpenAI().chat.completions.create({
+      model: getAIModel(),
       messages: [
         {
           role: "system",
