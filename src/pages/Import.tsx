@@ -46,45 +46,95 @@ const AUTO_MAP: Record<string, TargetField> = {
   status: "status", "lead status": "status", stage: "status", pipeline: "status",
   "tahap": "status", fase: "status", "status lead": "status", "status customer": "status",
   kondisi: "status", progress: "status",
-  // Value
+  // Value — "bayar", "harga jual", "total bayar", "nominal" etc all map here
   value: "estimatedValue", "estimated value": "estimatedValue",
   "estimasi nilai": "estimatedValue", "nilai estimasi": "estimatedValue",
   nilai: "estimatedValue", harga: "estimatedValue", budget: "estimatedValue",
   "anggaran": "estimatedValue", "estimasi": "estimatedValue", "deal value": "estimatedValue",
   "nilai deal": "estimatedValue", "potensi": "estimatedValue", "total": "estimatedValue",
+  bayar: "estimatedValue", "total bayar": "estimatedValue", "harga jual": "estimatedValue",
+  "harga beli": "estimatedValue", nominal: "estimatedValue", pembayaran: "estimatedValue",
+  "amount": "estimatedValue", "grand total": "estimatedValue",
   // Source
   source: "source", sumber: "source", channel: "source", "saluran": "source",
   "asal lead": "source", referral: "source", "via": "source", platform: "source",
-  // Notes
-  notes: "notes", catatan: "notes", memo: "notes", keterangan: "notes",
-  note: "notes", deskripsi: "notes", description: "notes", "detail": "notes",
-  informasi: "notes", info: "notes", remarks: "notes", comment: "notes",
-  komentar: "notes", "interest": "notes", minat: "notes", kebutuhan: "notes",
-  "produk": "notes", paket: "notes", "yang diminati": "notes",
-  // Tags / Kategori
+  // Tags / Kategori — "segmen", "jenis produk", "tipe customer" etc
   tags: "tags", kategori: "tags", category: "tags", "tag": "tags",
   "kategori customer": "tags", label: "tags", "tipe": "tags", type: "tags",
   "jenis": "tags", segment: "tags", segmen: "tags", grup: "tags", group: "tags",
+  "segmen customer": "tags", "jenis customer": "tags", "tipe customer": "tags",
+  "jenis produk": "tags", "tipe produk": "tags", "produk": "tags",
   // Business
   business: "business", bisnis: "business", "unit bisnis": "business",
   brand: "business", perusahaan: "business", company: "business",
   "nama bisnis": "business", "unit": "business", divisi: "business",
+  agent: "business", agen: "business",
+  // Notes — catch-all for domain-specific columns: dates, margins, airlines, routes, etc.
+  notes: "notes", catatan: "notes", memo: "notes", keterangan: "notes",
+  note: "notes", deskripsi: "notes", description: "notes", "detail": "notes",
+  informasi: "notes", info: "notes", remarks: "notes", comment: "notes",
+  komentar: "notes", "interest": "notes", minat: "notes", kebutuhan: "notes",
+  paket: "notes", "yang diminati": "notes",
+  margin: "notes", profit: "notes", keuntungan: "notes", "harga modal": "notes",
+  maskapai: "notes", airline: "notes", penerbangan: "notes",
+  berangkat: "notes", keberangkatan: "notes", "tgl berangkat": "notes",
+  "tanggal berangkat": "notes", destinasi: "notes", tujuan: "notes",
+  rute: "notes", destination: "notes", route: "notes",
+  "check in": "notes", "check out": "notes", "tanggal": "notes",
+  "departure": "notes", arrival: "notes",
 };
+
+/* Columns that are clearly system/technical — truly skip these */
+const SKIP_KEYWORDS = ["id", "uuid", "created at", "updated at", "created_at", "updated_at",
+  "timestamp", "row number", "no urut", "nomor urut", "index", "seq"];
 
 function guessMapping(headers: string[]): Record<string, TargetField> {
   const m: Record<string, TargetField> = {};
-  const usedTargets = new Set<TargetField>();
+  const usedSingleTargets = new Set<TargetField>(["skip", "notes", "tags"]); // these can have multiple
+
   headers.forEach((h) => {
-    const key = h.toLowerCase().trim().replace(/[_-]/g, " ");
-    const matched = AUTO_MAP[key];
-    if (matched && matched !== "skip" && !usedTargets.has(matched)) {
-      m[h] = matched;
-      usedTargets.add(matched);
-    } else if (matched && matched !== "skip") {
-      m[h] = "notes"; // already mapped, fold into notes
-    } else {
+    const key = h.toLowerCase().trim().replace(/[_()\-]/g, " ").replace(/\s+/g, " ").trim();
+
+    // 1. Skip obvious system columns
+    if (SKIP_KEYWORDS.some(k => key === k || key.startsWith(k + " "))) {
       m[h] = "skip";
+      return;
     }
+
+    // 2. Exact match in AUTO_MAP
+    const exact = AUTO_MAP[key];
+    if (exact) {
+      if (!usedSingleTargets.has(exact)) {
+        m[h] = exact;
+        usedSingleTargets.add(exact);
+      } else {
+        m[h] = "notes"; // duplicate target → fold into notes
+      }
+      return;
+    }
+
+    // 3. Partial/substring match — check if AUTO_MAP key is contained in column name
+    //    or column name token is contained in AUTO_MAP key
+    const tokens = key.split(" ");
+    let partialMatch: TargetField | null = null;
+    for (const [dictKey, target] of Object.entries(AUTO_MAP)) {
+      if (key.includes(dictKey) || tokens.some(t => t.length > 2 && dictKey.includes(t))) {
+        partialMatch = target;
+        break;
+      }
+    }
+    if (partialMatch) {
+      if (!usedSingleTargets.has(partialMatch) || partialMatch === "notes" || partialMatch === "tags") {
+        m[h] = partialMatch;
+        if (!["notes", "tags"].includes(partialMatch)) usedSingleTargets.add(partialMatch);
+      } else {
+        m[h] = "notes";
+      }
+      return;
+    }
+
+    // 4. No match at all — default to notes so data isn't lost
+    m[h] = "notes";
   });
   return m;
 }

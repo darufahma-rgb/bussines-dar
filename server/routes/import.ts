@@ -77,16 +77,20 @@ router.post("/ai-map", async (req, res) => {
         {
           role: "system",
           content: `Kamu memetakan kolom dari file ekspor ke field CRM customer.
-Field CRM yang tersedia: name, phone, email, status, estimatedValue, source, notes, business, skip
+Field CRM yang tersedia: name, phone, email, status, estimatedValue, source, tags, notes, business, skip
 - name: nama customer (WAJIB ada)
 - phone: nomor telepon/HP/WhatsApp
 - email: alamat email
 - status: status lead (new/warm/hot/negotiation/closed/lost)
-- estimatedValue: perkiraan nilai transaksi dalam angka
-- source: sumber lead (referral, iklan, dll)
-- notes: catatan bebas apapun
-- business: nama unit bisnis (Temantiket, SYMP, Darcia, AIGYPT, dll)
-- skip: kolom tidak relevan, abaikan
+- estimatedValue: perkiraan nilai transaksi — harga bayar, harga jual, total, nominal, budget, bayar
+- source: sumber lead (referral, iklan, media sosial, dll)
+- tags: kategori/segmen/jenis customer atau produk — segmen customer, jenis produk, tipe, kategori
+- notes: catatan dan info tambahan apapun — maskapai, rute, tanggal berangkat, margin, profit, destinasi, kota, dll
+- business: nama unit bisnis / agen / brand
+- skip: HANYA untuk kolom sistem teknis (ID, timestamp, nomor urut, UUID) yang sama sekali tidak relevan
+
+PENTING: Jika kolom berisi data bisnis yang berguna tapi tidak cocok ke field spesifik manapun, petakan ke "notes" — JANGAN gunakan "skip". Gunakan "skip" HANYA untuk kolom teknis/sistem seperti ID dan timestamp.
+Kolom "notes" bisa menerima banyak sumber sekaligus.
 
 Kembalikan JSON object: { "nama_kolom_asli": "field_target" }
 Kembalikan HANYA JSON, tanpa penjelasan.`,
