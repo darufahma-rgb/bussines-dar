@@ -479,8 +479,9 @@ export default function CustomerList() {
       )}
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-2">
-        <div className="relative flex-1 min-w-[180px]">
+      <div className="space-y-2">
+        {/* Search — full width */}
+        <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
             placeholder="Cari nama customer..."
@@ -490,6 +491,8 @@ export default function CustomerList() {
             data-testid="input-search-customers"
           />
         </div>
+        {/* Dropdowns — horizontal scroll on mobile */}
+        <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-none">
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-36 h-9 bg-white text-sm" data-testid="select-status-filter">
             <SelectValue placeholder="Status" />
@@ -547,6 +550,7 @@ export default function CustomerList() {
             <SelectItem value="estimatedValue-asc">Nilai Terkecil</SelectItem>
           </SelectContent>
         </Select>
+        </div>
       </div>
 
       {/* List */}

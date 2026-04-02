@@ -14,6 +14,7 @@ import BusinessBadge from "@/components/BusinessBadge";
 import { useAuth } from "@/hooks/useAuth";
 import { getBizColor } from "@/lib/constants";
 import { formatIDR, formatDateShort } from "@/lib/format";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const PIPELINE_STAGES = [
   { key: "new",         label: "Baru",      color: "bg-blue-500",    text: "text-blue-600",   light: "bg-blue-50" },
@@ -127,9 +128,9 @@ export default function Dashboard() {
               <s.icon className={`h-4.5 w-4.5 ${s.color}`} />
             </div>
             <div className="min-w-0">
-              <p className="text-xl font-bold font-mono text-foreground leading-none">
-                {statsLoading ? "—" : s.value}
-              </p>
+              {statsLoading
+                ? <Skeleton className="h-5 w-10 mb-1.5 rounded-md" />
+                : <p className="text-xl font-bold font-mono text-foreground leading-none">{s.value}</p>}
               <p className="text-[11px] text-muted-foreground mt-0.5 leading-tight">{s.label}</p>
             </div>
           </div>
@@ -150,6 +151,17 @@ export default function Dashboard() {
         <div className="lg:col-span-3 space-y-5">
 
           {/* Today's Priorities */}
+          {!hasPriorities && (
+            <div className="bg-emerald-50 border border-emerald-100 rounded-2xl px-5 py-4 flex items-center gap-3">
+              <div className="h-8 w-8 rounded-xl bg-emerald-100 flex items-center justify-center shrink-0">
+                <CalendarCheck className="h-4 w-4 text-emerald-600" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-emerald-800">Semua follow-up beres!</p>
+                <p className="text-xs text-emerald-600 mt-0.5">Tidak ada yang terlambat hari ini. Tetap pantau pipeline.</p>
+              </div>
+            </div>
+          )}
           {hasPriorities && (
             <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
               <div className="px-5 py-3.5 border-b border-border flex items-center justify-between">

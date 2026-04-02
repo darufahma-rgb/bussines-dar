@@ -127,7 +127,7 @@ export default function AiChat() {
   const isEmpty = messages.length === 0;
 
   return (
-    <div className="flex flex-col h-[calc(100vh-7rem)] max-w-3xl mx-auto">
+    <div className="flex flex-col h-[calc(100dvh-7rem)] max-w-3xl mx-auto">
       {/* header */}
       <div className="flex items-center justify-between mb-4 shrink-0">
         <div className="flex items-center gap-3">

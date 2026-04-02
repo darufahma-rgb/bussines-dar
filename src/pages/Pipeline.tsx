@@ -100,8 +100,11 @@ export default function Pipeline() {
         </Link>
       </div>
 
+      <div className="relative">
+        {/* right-edge fade hint — only visible when there's overflow */}
+        <div className="pointer-events-none absolute right-0 top-0 bottom-4 w-12 z-10 bg-gradient-to-l from-[hsl(var(--background))] to-transparent rounded-r-2xl" />
       {isLoading ? (
-        <div className="flex gap-3 overflow-x-auto pb-4 -mx-1 px-1">
+        <div className="flex gap-3 overflow-x-auto pb-4 -mx-1 px-1 scrollbar-thin">
           {STAGES.map((stage) => (
             <div key={stage.key} className="flex-shrink-0 w-[220px]">
               <Skeleton className="h-10 rounded-t-2xl rounded-b-none mb-px" />
@@ -113,7 +116,7 @@ export default function Pipeline() {
           ))}
         </div>
       ) : (
-        <div className="flex gap-3 overflow-x-auto pb-4 -mx-1 px-1">
+        <div className="flex gap-3 overflow-x-auto pb-4 -mx-1 px-1 scrollbar-thin">
           {STAGES.map((stage) => {
             const stageCustomers = byStage(stage.key);
             const stageValue = stageCustomers.reduce((sum: number, c: any) => sum + (Number(c.estimatedValue) || 0), 0);
@@ -201,6 +204,7 @@ export default function Pipeline() {
           })}
         </div>
       )}
+      </div>
     </div>
   );
 }
