@@ -203,6 +203,10 @@ router.post("/customers", async (req, res) => {
     let skipped = 0;
     const importedCustomers: Array<{ id: string; name: string }> = [];
 
+    // Convert JS string array → PostgreSQL array literal e.g. {"tag1","tag 2"}
+    const toPgTextArray = (arr: string[]): string =>
+      "{" + arr.map((s) => '"' + s.replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"').join(",") + "}";
+
     for (const row of rows) {
       const name = row.name?.trim();
       if (!name) { skipped++; continue; }
@@ -217,34 +221,40 @@ router.post("/customers", async (req, res) => {
 
       const hasCustomData = row.customData && Object.keys(row.customData).length > 0;
 
-      const [inserted] = await db
-        .insert(customers)
-        .values({
-          name,
-          email: row.email?.trim() || null,
-          phone: row.phone?.trim() || null,
-          status,
-          source: row.source?.trim() || "import",
-          estimatedValue: estimatedValue?.toString() || null,
-          memory: row.notes?.trim() || null,
-          tags: tagsArr,
-          // Use explicit cast to avoid node-postgres JSONB type mismatch
-          customData: hasCustomData ? (sql`${JSON.stringify(row.customData)}::jsonb` as any) : null,
-        })
-        .onConflictDoNothing()
-        .returning({ id: customers.id });
+      try {
+        const [inserted] = await db
+          .insert(customers)
+          .values({
+            name,
+            email: row.email?.trim() || null,
+            phone: row.phone?.trim() || null,
+            status,
+            source: row.source?.trim() || "import",
+            estimatedValue: estimatedValue?.toString() || null,
+            memory: row.notes?.trim() || null,
+            // Explicit cast to avoid node-postgres array type mismatch
+            tags: sql`${toPgTextArray(tagsArr)}::text[]` as any,
+            // Explicit cast to avoid node-postgres JSONB type mismatch
+            customData: hasCustomData ? (sql`${JSON.stringify(row.customData)}::jsonb` as any) : null,
+          })
+          .onConflictDoNothing()
+          .returning({ id: customers.id });
 
-      if (inserted) {
-        if (bizId) {
-          await db.insert(customerBusinesses).values({ customerId: inserted.id, businessId: bizId }).onConflictDoNothing();
+        if (inserted) {
+          if (bizId) {
+            await db.insert(customerBusinesses).values({ customerId: inserted.id, businessId: bizId }).onConflictDoNothing();
+          }
+          if (row.notes?.trim()) {
+            await db.insert(interactions).values({ customerId: inserted.id, type: "note", content: row.notes.trim() });
+          }
+          importedCustomers.push({ id: inserted.id, name });
+          imported++;
+        } else {
+          skipped++;
         }
-        if (row.notes?.trim()) {
-          await db.insert(interactions).values({ customerId: inserted.id, type: "note", content: row.notes.trim() });
-        }
-        importedCustomers.push({ id: inserted.id, name });
-        imported++;
-      } else {
-        skipped++;
+      } catch (rowErr: any) {
+        console.error(`Import row error [${name}]:`, rowErr?.message, rowErr?.detail, rowErr?.code);
+        throw new Error(`Gagal simpan "${name}": ${rowErr?.message || rowErr}`);
       }
     }
 
