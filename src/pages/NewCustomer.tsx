@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useBlocker } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,17 @@ export default function NewCustomer() {
   const [estimatedValue, setEstimatedValue] = useState("");
   const [selectedBiz, setSelectedBiz] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+
+  const isDirty = !saving && (name.trim() !== "" || email !== "" || phone !== "" || estimatedValue !== "" || selectedBiz.length > 0 || source !== "");
+
+  const blocker = useBlocker(isDirty);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const handler = (e: BeforeUnloadEvent) => { e.preventDefault(); };
+    window.addEventListener("beforeunload", handler);
+    return () => window.removeEventListener("beforeunload", handler);
+  }, [isDirty]);
 
   const { data: businesses } = useQuery({
     queryKey: ["businesses"],
@@ -54,6 +65,22 @@ export default function NewCustomer() {
 
   return (
     <div className="max-w-lg space-y-6">
+      {/* Unsaved changes blocker dialog */}
+      {blocker.state === "blocked" && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full mx-4 space-y-4">
+            <div className="space-y-1">
+              <h3 className="font-semibold text-foreground">Tinggalkan halaman ini?</h3>
+              <p className="text-sm text-muted-foreground">Form belum disimpan. Data yang sudah diisi akan hilang jika kamu pergi sekarang.</p>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <Button variant="outline" size="sm" onClick={() => blocker.reset()}>Tetap di sini</Button>
+              <Button variant="destructive" size="sm" onClick={() => blocker.proceed()}>Ya, tinggalkan</Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div>
         <h2 className="text-xl font-semibold">Tambah Customer</h2>
         <p className="text-sm text-muted-foreground">Buat profil customer baru secara manual</p>

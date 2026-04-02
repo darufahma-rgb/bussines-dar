@@ -60,14 +60,20 @@ function FileCard({ file, customerId, onDelete }: { file: any; customerId: strin
   const isImage = file.mimeType.startsWith("image/");
   const catStyle = getCategoryStyle(file.category);
   const fileUrl = `/uploads/${file.fileName}`;
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const handleDelete = async () => {
-    if (!confirm(`Hapus file "${file.originalName}"?`)) return;
+    setDeleting(true);
     try {
       await api.files.delete(customerId, file.id);
       onDelete();
       toast.success("File dihapus");
-    } catch { toast.error("Gagal menghapus file"); }
+    } catch {
+      toast.error("Gagal menghapus file");
+      setDeleting(false);
+      setConfirmDelete(false);
+    }
   };
 
   return (
@@ -102,24 +108,45 @@ function FileCard({ file, customerId, onDelete }: { file: any; customerId: strin
         </div>
       </div>
 
-      {/* Actions overlay */}
-      <div className="absolute top-1.5 right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-        <a
-          href={fileUrl}
-          download={file.originalName}
-          className="h-6 w-6 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center shadow-sm hover:bg-white transition-colors"
-          title="Download"
-        >
-          <Download className="h-3 w-3 text-foreground" />
-        </a>
-        <button
-          onClick={handleDelete}
-          className="h-6 w-6 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center shadow-sm hover:bg-red-50 transition-colors"
-          title="Hapus"
-        >
-          <X className="h-3 w-3 text-red-500" />
-        </button>
-      </div>
+      {/* Actions */}
+      {confirmDelete ? (
+        <div className="absolute inset-0 bg-white/95 backdrop-blur-sm flex flex-col items-center justify-center gap-2 z-10">
+          <p className="text-[11px] font-semibold text-foreground text-center px-2">Hapus file ini?</p>
+          <div className="flex gap-1.5">
+            <button
+              onClick={() => setConfirmDelete(false)}
+              className="h-7 px-2.5 rounded-lg text-xs bg-muted hover:bg-muted/80 transition-colors"
+            >
+              Batal
+            </button>
+            <button
+              onClick={handleDelete}
+              disabled={deleting}
+              className="h-7 px-2.5 rounded-lg text-xs bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-60"
+            >
+              {deleting ? "Menghapus..." : "Hapus"}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="absolute top-1.5 right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+          <a
+            href={fileUrl}
+            download={file.originalName}
+            className="h-6 w-6 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center shadow-sm hover:bg-white transition-colors"
+            title="Download"
+          >
+            <Download className="h-3 w-3 text-foreground" />
+          </a>
+          <button
+            onClick={() => setConfirmDelete(true)}
+            className="h-6 w-6 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center shadow-sm hover:bg-red-50 transition-colors"
+            title="Hapus"
+          >
+            <X className="h-3 w-3 text-red-500" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -287,6 +314,10 @@ export default function CustomerDetail() {
   const [savingMemory, setSavingMemory] = useState(false);
 
   const [pendingStatus, setPendingStatus] = useState<CustomerStatus | null>(null);
+  const [statusChanging, setStatusChanging] = useState(false);
+  const [completingId, setCompletingId] = useState<string | null>(null);
+  const [confirmDeleteInteraction, setConfirmDeleteInteraction] = useState<string | null>(null);
+  const [confirmDeleteCustomer, setConfirmDeleteCustomer] = useState(false);
 
   const [summary, setSummary] = useState<string | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
@@ -336,11 +367,13 @@ export default function CustomerDetail() {
 
   const handleStatusChange = async (status: CustomerStatus, lostReason?: string) => {
     if (!id) return;
+    setStatusChanging(true);
     try {
       await api.customers.update(id, { status, ...(lostReason !== undefined ? { lostReason } : {}) });
       invalidate();
       toast.success("Status diperbarui");
     } catch { toast.error("Gagal memperbarui status"); }
+    setStatusChanging(false);
   };
 
   const handleStatusSelect = (v: string) => {
@@ -362,6 +395,7 @@ export default function CustomerDetail() {
   };
 
   const handleComplete = async (interactionId: string) => {
+    setCompletingId(interactionId);
     try {
       await api.interactions.complete(interactionId);
       queryClient.invalidateQueries({ queryKey: ["interactions", id] });
@@ -369,20 +403,21 @@ export default function CustomerDetail() {
       queryClient.invalidateQueries({ queryKey: ["today-follow-ups"] });
       toast.success("Ditandai selesai");
     } catch { toast.error("Gagal menandai selesai"); }
+    setCompletingId(null);
   };
 
   const handleDeleteInteraction = async (interactionId: string) => {
-    if (!confirm("Hapus interaksi ini?")) return;
     try {
       await api.interactions.delete(interactionId);
       queryClient.invalidateQueries({ queryKey: ["interactions", id] });
       queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
       toast.success("Interaksi dihapus");
     } catch { toast.error("Gagal menghapus interaksi"); }
+    setConfirmDeleteInteraction(null);
   };
 
   const handleDelete = async () => {
-    if (!id || !confirm("Hapus customer ini beserta semua datanya?")) return;
+    if (!id) return;
     try {
       await api.customers.delete(id);
       queryClient.invalidateQueries({ queryKey: ["customers"] });
@@ -488,9 +523,11 @@ export default function CustomerDetail() {
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
-              <Select value={customer.status} onValueChange={handleStatusSelect}>
+              <Select value={customer.status} onValueChange={handleStatusSelect} disabled={statusChanging}>
                 <SelectTrigger className="w-32 h-8 text-xs bg-white">
-                  <SelectValue />
+                  {statusChanging
+                    ? <span className="flex items-center gap-1.5"><Loader2 className="h-3 w-3 animate-spin" /> Menyimpan...</span>
+                    : <SelectValue />}
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="new">Lead Baru</SelectItem>
@@ -501,15 +538,29 @@ export default function CustomerDetail() {
                   <SelectItem value="lost">Gagal</SelectItem>
                 </SelectContent>
               </Select>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleDelete}
-                className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-red-50"
-                title="Hapus customer"
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-              </Button>
+              {confirmDeleteCustomer ? (
+                <div className="flex items-center gap-1.5 border border-red-200 bg-red-50 rounded-xl px-2.5 py-1.5">
+                  <span className="text-xs text-red-600 font-medium">Hapus customer ini?</span>
+                  <button
+                    onClick={() => setConfirmDeleteCustomer(false)}
+                    className="text-[11px] px-2 py-0.5 rounded-md bg-white border border-border hover:bg-muted/50 transition-colors"
+                  >Batal</button>
+                  <button
+                    onClick={handleDelete}
+                    className="text-[11px] px-2 py-0.5 rounded-md bg-red-500 text-white hover:bg-red-600 transition-colors"
+                  >Ya, Hapus</button>
+                </div>
+              ) : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setConfirmDeleteCustomer(true)}
+                  className="h-8 w-8 p-0 text-muted-foreground hover:text-destructive hover:bg-red-50"
+                  title="Hapus customer"
+                >
+                  <Trash2 className="h-3.5 w-3.5" />
+                </Button>
+              )}
             </div>
           </div>
 
@@ -805,9 +856,13 @@ export default function CustomerDetail() {
                           {item.type === "follow_up" && !item.isCompleted && (
                             <button
                               onClick={() => handleComplete(item.id)}
-                              className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 transition-colors font-medium"
+                              disabled={completingId === item.id}
+                              className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700 transition-colors font-medium disabled:opacity-60"
                             >
-                              <Check className="h-3 w-3" /> Selesai
+                              {completingId === item.id
+                                ? <Loader2 className="h-3 w-3 animate-spin" />
+                                : <Check className="h-3 w-3" />}
+                              {completingId === item.id ? "Menyimpan..." : "Selesai"}
                             </button>
                           )}
                           {item.type === "follow_up" && item.isCompleted && (
@@ -816,13 +871,26 @@ export default function CustomerDetail() {
                             </span>
                           )}
                         </div>
-                        <button
-                          onClick={() => handleDeleteInteraction(item.id)}
-                          className="text-muted-foreground/30 hover:text-red-500 transition-colors shrink-0"
-                          title="Hapus"
-                        >
-                          <X className="h-3.5 w-3.5" />
-                        </button>
+                        {confirmDeleteInteraction === item.id ? (
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              onClick={() => setConfirmDeleteInteraction(null)}
+                              className="text-[11px] px-2 py-0.5 rounded-md bg-muted hover:bg-muted/70 transition-colors"
+                            >Batal</button>
+                            <button
+                              onClick={() => handleDeleteInteraction(item.id)}
+                              className="text-[11px] px-2 py-0.5 rounded-md bg-red-500 text-white hover:bg-red-600 transition-colors"
+                            >Hapus</button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setConfirmDeleteInteraction(item.id)}
+                            className="text-muted-foreground/30 hover:text-red-500 transition-colors shrink-0"
+                            title="Hapus"
+                          >
+                            <X className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                       </div>
                       <p className="text-sm mt-2 whitespace-pre-wrap leading-relaxed text-foreground">{item.content}</p>
                       {item.amount && (
