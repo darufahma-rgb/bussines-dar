@@ -1,15 +1,16 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "@/lib/api";
-
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import StatusBadge from "@/components/StatusBadge";
 import BusinessBadge from "@/components/BusinessBadge";
 import { Link, useNavigate } from "react-router-dom";
-import { Search, Download, Upload, X, CheckCircle, AlertCircle, ArrowUpDown, Users, ChevronRight, Trash2, Tag } from "lucide-react";
+import {
+  Search, Download, Upload, Trash2, Tag, LayoutGrid, List, Table2,
+  ArrowUpDown, Users, ChevronRight, Building2, Phone, Mail, TrendingUp,
+} from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
@@ -19,68 +20,17 @@ import { formatIDR } from "@/lib/format";
 
 type SortKey = "name" | "updatedAt" | "status" | "estimatedValue";
 type SortDir = "asc" | "desc";
+type ViewMode = "grid" | "list" | "table";
 
 const STATUS_ORDER = ["new", "warm", "hot", "negotiation", "closed", "lost"];
 
-const COLUMN_OPTIONS = [
-  { value: "_skip", label: "— Abaikan kolom ini —" },
-  { value: "name", label: "Nama" },
-  { value: "email", label: "Email" },
-  { value: "phone", label: "Telepon" },
-  { value: "status", label: "Status" },
-  { value: "source", label: "Sumber" },
-  { value: "estimatedValue", label: "Nilai Deal (angka)" },
-  { value: "notes", label: "Catatan" },
-];
-
-const AUTO_MAP: Record<string, string> = {
-  name: "name", nama: "name", customer: "name", "nama customer": "name", "full name": "name",
-  email: "email", "e-mail": "email", "alamat email": "email",
-  phone: "phone", telepon: "phone", "no hp": "phone", "no. hp": "phone", hp: "phone",
-  "phone number": "phone", mobile: "phone", wa: "phone", whatsapp: "phone",
-  status: "status",
-  source: "source", sumber: "source", "sumber lead": "source",
-  "estimated value": "estimatedValue", nilai: "estimatedValue", "nilai deal": "estimatedValue",
-  harga: "estimatedValue", budget: "estimatedValue",
-  notes: "notes", catatan: "notes", keterangan: "notes", note: "notes", memo: "notes",
-};
-
-function parseCSV(text: string): { headers: string[]; rows: string[][] } {
-  const lines = text.replace(/\r\n/g, "\n").replace(/\r/g, "\n").split("\n").filter(Boolean);
-  function parseLine(line: string): string[] {
-    const result: string[] = [];
-    let i = 0;
-    while (i < line.length) {
-      if (line[i] === '"') {
-        i++;
-        let val = "";
-        while (i < line.length) {
-          if (line[i] === '"' && line[i + 1] === '"') { val += '"'; i += 2; }
-          else if (line[i] === '"') { i++; break; }
-          else { val += line[i++]; }
-        }
-        result.push(val);
-        if (line[i] === ",") i++;
-      } else {
-        const end = line.indexOf(",", i);
-        if (end === -1) { result.push(line.slice(i)); break; }
-        result.push(line.slice(i, end));
-        i = end + 1;
-      }
-    }
-    return result;
-  }
-  const headers = parseLine(lines[0]);
-  const rows = lines.slice(1).map(parseLine);
-  return { headers, rows };
-}
-
 function exportCSV(customers: any[]) {
-  const headers = ["Nama", "Email", "Telepon", "Status", "Bisnis", "Sumber", "Nilai Deal (IDR)", "Terakhir Update"];
+  const headers = ["Nama", "Email", "Telepon", "Status", "Bisnis", "Sumber", "Nilai Deal (IDR)", "Tags", "Terakhir Update"];
   const rows = customers.map((c) => [
     c.name, c.email || "", c.phone || "", c.status,
     c.customer_businesses?.map((cb: any) => cb.businesses?.name).filter(Boolean).join("; ") || "",
     c.source || "", c.estimatedValue || "",
+    (c.tags || []).join("; "),
     format(parseISO(c.updatedAt), "yyyy-MM-dd"),
   ]);
   const csv = [headers, ...rows]
@@ -93,235 +43,305 @@ function exportCSV(customers: any[]) {
   a.click(); URL.revokeObjectURL(url);
 }
 
-function ImportModal({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [step, setStep] = useState<"upload" | "map" | "done">("upload");
-  const [headers, setHeaders] = useState<string[]>([]);
-  const [rows, setRows] = useState<string[][]>([]);
-  const [mapping, setMapping] = useState<Record<string, string>>({});
-  const [bizName, setBizName] = useState("all");
-  const [result, setResult] = useState<{ imported: number; skipped: number } | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
+function getInitials(name: string) {
+  return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+}
 
-  const { data: businesses } = useQuery({
-    queryKey: ["businesses"],
-    queryFn: () => api.businesses.list(),
-  });
+const BIZ_AVATAR_COLORS: Record<string, string> = {
+  Temantiket: "bg-amber-100 text-amber-700",
+  "SYMP Studio": "bg-blue-100 text-blue-700",
+  Darcia: "bg-pink-100 text-pink-700",
+  AIGYPT: "bg-emerald-100 text-emerald-700",
+};
 
-  const importMutation = useMutation({
-    mutationFn: async () => {
-      const dataRows = rows.map((row) => {
-        const obj: Record<string, string> = {};
-        headers.forEach((h, i) => {
-          const mapped = mapping[h];
-          if (mapped && mapped !== "_skip" && row[i] !== undefined) {
-            obj[mapped] = row[i];
-          }
-        });
-        return obj;
-      });
-      const selectedBiz = bizName !== "all" ? bizName : undefined;
-      return api.import.customers(dataRows, selectedBiz);
-    },
-    onSuccess: (data) => {
-      setResult(data);
-      setStep("done");
-      queryClient.invalidateQueries({ queryKey: ["customers"] });
-      queryClient.invalidateQueries({ queryKey: ["stats"] });
-    },
-    onError: () => toast({ title: "Gagal import", description: "Coba lagi", variant: "destructive" }),
-  });
+function avatarColor(customer: any) {
+  const biz = customer.customer_businesses?.[0]?.businesses?.name;
+  return BIZ_AVATAR_COLORS[biz] || "bg-primary/10 text-primary";
+}
 
-  function handleFile(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const text = ev.target?.result as string;
-      const { headers: h, rows: r } = parseCSV(text);
-      setHeaders(h);
-      setRows(r.filter((row) => row.some((cell) => cell.trim())));
-      const autoMapping: Record<string, string> = {};
-      h.forEach((col) => {
-        const key = col.toLowerCase().trim();
-        autoMapping[col] = AUTO_MAP[key] || "_skip";
-      });
-      setMapping(autoMapping);
-      setStep("map");
-    };
-    reader.readAsText(file, "UTF-8");
-  }
-
-  function reset() {
-    setStep("upload"); setHeaders([]); setRows([]); setMapping({}); setBizName("all"); setResult(null);
-    if (fileRef.current) fileRef.current.value = "";
-  }
-
-  const hasName = Object.values(mapping).includes("name");
-  const preview = rows.slice(0, 4);
-
+/* ─── Card (Grid View) ─────────────────────────────────────── */
+function CustomerCard({ customer, selected, onSelect, onNavigate }: {
+  customer: any; selected: boolean; onSelect: (e: React.MouseEvent) => void; onNavigate: () => void;
+}) {
+  const bizNames = customer.customer_businesses?.map((cb: any) => cb.businesses?.name).filter(Boolean) || [];
   return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) { reset(); onClose(); } }}>
-      <DialogContent className="max-w-2xl">
-        <DialogHeader>
-          <DialogTitle>Import CSV dari Notion</DialogTitle>
-        </DialogHeader>
+    <div
+      onClick={onNavigate}
+      className={`group relative bg-white rounded-2xl border cursor-pointer transition-all duration-150 hover:shadow-md hover:-translate-y-0.5 ${selected ? "border-primary ring-2 ring-primary/20 shadow-sm" : "border-border hover:border-primary/30"}`}
+    >
+      {/* Selection checkbox */}
+      <div
+        onClick={onSelect}
+        className={`absolute top-3 left-3 z-10 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${selected ? "bg-primary border-primary" : "border-border/60 bg-white opacity-0 group-hover:opacity-100"}`}
+      >
+        {selected && <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 12 12"><path d="M10 3L5 8.5 2 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>}
+      </div>
 
-        {step === "upload" && (
-          <div className="space-y-4">
-            <div className="border-2 border-dashed border-border rounded-2xl p-10 text-center hover:border-primary/40 transition-colors cursor-pointer" onClick={() => fileRef.current?.click()}>
-              <Upload className="h-10 w-10 text-muted-foreground/40 mx-auto mb-3" />
-              <p className="font-semibold mb-1">Upload file CSV dari Notion</p>
-              <p className="text-sm text-muted-foreground mb-4">
-                Di Notion: buka database → klik <strong>···</strong> → <strong>Export</strong> → pilih <strong>CSV</strong>
-              </p>
-              <input
-                ref={fileRef}
-                type="file"
-                accept=".csv,text/csv"
-                onChange={handleFile}
-                className="hidden"
-                id="csv-file-input"
-                data-testid="input-csv-file"
-              />
-              <Button onClick={(e) => { e.stopPropagation(); fileRef.current?.click(); }} data-testid="button-choose-file">
-                Pilih File CSV
-              </Button>
-            </div>
+      <div className="p-4 pt-3">
+        {/* Top row: avatar + status */}
+        <div className="flex items-start justify-between mb-3">
+          <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-sm shrink-0 ${avatarColor(customer)}`}>
+            {getInitials(customer.name)}
+          </div>
+          <StatusBadge status={customer.status} />
+        </div>
+
+        {/* Name */}
+        <h3 className="font-semibold text-sm text-foreground leading-tight mb-1 line-clamp-1">{customer.name}</h3>
+
+        {/* Contact */}
+        {(customer.phone || customer.email) && (
+          <p className="text-xs text-muted-foreground mb-2 truncate flex items-center gap-1">
+            {customer.phone
+              ? <><Phone className="h-3 w-3 shrink-0" />{customer.phone}</>
+              : <><Mail className="h-3 w-3 shrink-0" />{customer.email}</>
+            }
+          </p>
+        )}
+
+        {/* Businesses */}
+        {bizNames.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-2">
+            {bizNames.slice(0, 2).map((biz: string) => (
+              <BusinessBadge key={biz} name={biz} />
+            ))}
+            {bizNames.length > 2 && <span className="text-xs text-muted-foreground">+{bizNames.length - 2}</span>}
           </div>
         )}
 
-        {step === "map" && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">{rows.length} baris data ditemukan</p>
-              <Button variant="ghost" size="sm" onClick={reset} data-testid="button-reupload">
-                <X className="h-4 w-4 mr-1" /> Ganti file
-              </Button>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Petakan kolom CSV ke field CRM:</p>
-              <div className="grid gap-2 max-h-52 overflow-y-auto pr-1">
-                {headers.map((col) => (
-                  <div key={col} className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground w-36 shrink-0 truncate font-mono" title={col}>{col}</span>
-                    <span className="text-muted-foreground text-xs">→</span>
-                    <Select value={mapping[col] || "_skip"} onValueChange={(v) => setMapping(m => ({ ...m, [col]: v }))}>
-                      <SelectTrigger className="h-8 text-sm flex-1">
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {COLUMN_OPTIONS.map((opt) => (
-                          <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-sm font-medium">Masukkan ke bisnis (opsional):</p>
-              <Select value={bizName} onValueChange={setBizName}>
-                <SelectTrigger className="h-9" data-testid="select-import-business">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Tidak perlu</SelectItem>
-                  {businesses?.map((b: any) => (
-                    <SelectItem key={b.id} value={b.name}>{b.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {preview.length > 0 && (
-              <div className="space-y-1.5">
-                <p className="text-sm font-medium">Preview ({preview.length} baris pertama):</p>
-                <div className="overflow-x-auto rounded-xl border border-border">
-                  <table className="text-xs w-full">
-                    <thead className="bg-muted/50">
-                      <tr>
-                        {headers.map((h) => (
-                          <th key={h} className="px-2 py-1.5 text-left font-medium text-muted-foreground whitespace-nowrap">
-                            {mapping[h] && mapping[h] !== "_skip"
-                              ? COLUMN_OPTIONS.find(o => o.value === mapping[h])?.label
-                              : <span className="line-through opacity-50">{h}</span>
-                            }
-                          </th>
-                        ))}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {preview.map((row, i) => (
-                        <tr key={i} className="border-t border-border">
-                          {headers.map((h, j) => (
-                            <td key={j} className={`px-2 py-1.5 max-w-[120px] truncate ${mapping[h] === "_skip" ? "opacity-30" : ""}`}>
-                              {row[j] || ""}
-                            </td>
-                          ))}
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-
-            {!hasName && (
-              <p className="text-sm text-destructive flex items-center gap-1.5">
-                <AlertCircle className="h-4 w-4" /> Pastikan ada kolom yang dipetakan ke <strong>Nama</strong>
-              </p>
-            )}
-
-            <div className="flex gap-2 justify-end pt-1">
-              <Button variant="outline" onClick={() => { reset(); onClose(); }} data-testid="button-cancel-import">Batal</Button>
-              <Button
-                onClick={() => importMutation.mutate()}
-                disabled={!hasName || importMutation.isPending}
-                data-testid="button-run-import"
-              >
-                {importMutation.isPending ? "Mengimport..." : `Import ${rows.length} Customer`}
-              </Button>
-            </div>
+        {/* Tags */}
+        {customer.tags?.length > 0 && (
+          <div className="flex flex-wrap gap-1 mb-2">
+            {customer.tags.slice(0, 2).map((tag: string) => (
+              <span key={tag} className="text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded-md">{tag}</span>
+            ))}
+            {customer.tags.length > 2 && <span className="text-xs text-muted-foreground">+{customer.tags.length - 2}</span>}
           </div>
         )}
 
-        {step === "done" && result && (
-          <div className="py-8 text-center space-y-3">
-            <div className="h-14 w-14 rounded-2xl bg-emerald-50 flex items-center justify-center mx-auto">
-              <CheckCircle className="h-7 w-7 text-emerald-500" />
-            </div>
-            <p className="text-lg font-semibold">Import selesai!</p>
-            <p className="text-sm text-muted-foreground">
-              <span className="text-emerald-600 font-semibold">{result.imported} customer</span> berhasil diimport
-              {result.skipped > 0 && <>, <span className="text-muted-foreground">{result.skipped} dilewati</span> (duplikat / tanpa nama)</>}
-            </p>
-            <Button onClick={() => { reset(); onClose(); }} data-testid="button-done-import">Selesai</Button>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
+        {/* Footer: value + date */}
+        <div className="flex items-center justify-between pt-2 border-t border-border/50 mt-2">
+          {customer.estimatedValue ? (
+            <span className="text-xs font-semibold text-primary flex items-center gap-1">
+              <TrendingUp className="h-3 w-3" />
+              {formatIDR(Number(customer.estimatedValue))}
+            </span>
+          ) : <span />}
+          <span className="text-[11px] text-muted-foreground">
+            {format(parseISO(customer.updatedAt), "d MMM", { locale: idLocale })}
+          </span>
+        </div>
+      </div>
+    </div>
   );
 }
 
+/* ─── List Row ─────────────────────────────────────────────── */
+function CustomerRow({ customer, selected, onSelect, onNavigate }: {
+  customer: any; selected: boolean; onSelect: (e: React.MouseEvent) => void; onNavigate: () => void;
+}) {
+  const bizNames = customer.customer_businesses?.map((cb: any) => cb.businesses?.name).filter(Boolean) || [];
+  return (
+    <div
+      onClick={onNavigate}
+      className={`flex items-center gap-3 px-4 py-3 rounded-2xl cursor-pointer transition-all duration-100 hover:bg-muted/50 group ${selected ? "bg-primary/5 ring-1 ring-primary/20" : "bg-white border border-border hover:border-primary/20"}`}
+    >
+      {/* Checkbox */}
+      <div
+        onClick={onSelect}
+        className={`w-5 h-5 rounded-md border-2 flex items-center justify-center shrink-0 transition-all ${selected ? "bg-primary border-primary" : "border-border/60 opacity-0 group-hover:opacity-100"}`}
+      >
+        {selected && <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 12 12"><path d="M10 3L5 8.5 2 5.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>}
+      </div>
+
+      {/* Avatar */}
+      <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${avatarColor(customer)}`}>
+        {getInitials(customer.name)}
+      </div>
+
+      {/* Name + contact */}
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-sm text-foreground truncate">{customer.name}</p>
+        <p className="text-xs text-muted-foreground truncate">
+          {customer.phone || customer.email || <span className="italic opacity-60">tidak ada kontak</span>}
+        </p>
+      </div>
+
+      {/* Businesses */}
+      <div className="hidden sm:flex gap-1 shrink-0">
+        {bizNames.slice(0, 2).map((biz: string) => <BusinessBadge key={biz} name={biz} />)}
+      </div>
+
+      {/* Tags */}
+      <div className="hidden md:flex gap-1 shrink-0">
+        {customer.tags?.slice(0, 2).map((tag: string) => (
+          <span key={tag} className="text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded-md">{tag}</span>
+        ))}
+      </div>
+
+      {/* Status */}
+      <div className="shrink-0"><StatusBadge status={customer.status} /></div>
+
+      {/* Value */}
+      <div className="hidden lg:block text-xs font-medium text-primary shrink-0 w-24 text-right">
+        {customer.estimatedValue ? formatIDR(Number(customer.estimatedValue)) : "—"}
+      </div>
+
+      {/* Date */}
+      <div className="text-xs text-muted-foreground shrink-0 hidden md:block w-16 text-right">
+        {format(parseISO(customer.updatedAt), "d MMM", { locale: idLocale })}
+      </div>
+
+      <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />
+    </div>
+  );
+}
+
+/* ─── Table View ───────────────────────────────────────────── */
+function CustomerTable({ customers, selectedIds, onSelect, onNavigate, onSort, sortKey, sortDir }: {
+  customers: any[]; selectedIds: Set<string>;
+  onSelect: (id: string, e: React.MouseEvent) => void;
+  onNavigate: (id: string) => void;
+  onSort: (key: SortKey) => void;
+  sortKey: SortKey; sortDir: SortDir;
+}) {
+  const SortIcon = ({ k }: { k: SortKey }) => (
+    <ArrowUpDown className={`h-3 w-3 ml-1 inline ${sortKey === k ? "text-primary" : "text-muted-foreground/40"}`} />
+  );
+  return (
+    <div className="bg-white rounded-2xl border border-border overflow-hidden">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="border-b border-border bg-muted/30">
+              <th className="w-10 px-4 py-3">
+                <input type="checkbox" checked={selectedIds.size === customers.length && customers.length > 0}
+                  onChange={() => {}} className="rounded" />
+              </th>
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => onSort("name")}>
+                Nama <SortIcon k="name" />
+              </th>
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Bisnis</th>
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Kontak</th>
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => onSort("status")}>
+                Status <SortIcon k="status" />
+              </th>
+              <th className="px-4 py-3 text-left font-medium text-muted-foreground whitespace-nowrap">Tags</th>
+              <th className="px-4 py-3 text-right font-medium text-muted-foreground cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => onSort("estimatedValue")}>
+                Nilai <SortIcon k="estimatedValue" />
+              </th>
+              <th className="px-4 py-3 text-right font-medium text-muted-foreground cursor-pointer hover:text-foreground whitespace-nowrap" onClick={() => onSort("updatedAt")}>
+                Update <SortIcon k="updatedAt" />
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {customers.map((c, i) => {
+              const bizNames = c.customer_businesses?.map((cb: any) => cb.businesses?.name).filter(Boolean) || [];
+              const sel = selectedIds.has(c.id);
+              return (
+                <tr
+                  key={c.id}
+                  onClick={() => onNavigate(c.id)}
+                  className={`border-b border-border/50 last:border-0 cursor-pointer transition-colors hover:bg-muted/30 ${sel ? "bg-primary/5" : i % 2 === 0 ? "" : "bg-muted/10"}`}
+                >
+                  <td className="px-4 py-3" onClick={(e) => { e.stopPropagation(); onSelect(c.id, e); }}>
+                    <input type="checkbox" checked={sel} onChange={() => {}} className="rounded" />
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center gap-2">
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs shrink-0 ${avatarColor(c)}`}>
+                        {getInitials(c.name)}
+                      </div>
+                      <span className="font-medium text-foreground truncate max-w-[180px]">{c.name}</span>
+                    </div>
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-1">
+                      {bizNames.slice(0, 2).map((biz: string) => <BusinessBadge key={biz} name={biz} />)}
+                      {bizNames.length > 2 && <span className="text-xs text-muted-foreground">+{bizNames.length - 2}</span>}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-xs text-muted-foreground">
+                    {c.phone || c.email || "—"}
+                  </td>
+                  <td className="px-4 py-3"><StatusBadge status={c.status} /></td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-wrap gap-1">
+                      {c.tags?.slice(0, 3).map((tag: string) => (
+                        <span key={tag} className="text-xs bg-muted text-muted-foreground px-1.5 py-0.5 rounded-md">{tag}</span>
+                      ))}
+                      {c.tags?.length > 3 && <span className="text-xs text-muted-foreground">+{c.tags.length - 3}</span>}
+                    </div>
+                  </td>
+                  <td className="px-4 py-3 text-right text-xs font-semibold text-primary">
+                    {c.estimatedValue ? formatIDR(Number(c.estimatedValue)) : "—"}
+                  </td>
+                  <td className="px-4 py-3 text-right text-xs text-muted-foreground">
+                    {format(parseISO(c.updatedAt), "d MMM yy", { locale: idLocale })}
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Skeleton loaders ─────────────────────────────────────── */
+function GridSkeleton() {
+  return (
+    <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+      {Array.from({ length: 8 }).map((_, i) => (
+        <div key={i} className="bg-white rounded-2xl border border-border p-4 space-y-3">
+          <div className="flex justify-between"><Skeleton className="w-10 h-10 rounded-xl" /><Skeleton className="w-16 h-5 rounded-full" /></div>
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-3 w-1/2" />
+          <Skeleton className="h-3 w-2/3" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function ListSkeleton() {
+  return (
+    <div className="space-y-2">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="flex items-center gap-3 px-4 py-3 bg-white rounded-2xl border border-border">
+          <Skeleton className="w-9 h-9 rounded-xl" />
+          <div className="flex-1 space-y-1.5"><Skeleton className="h-4 w-1/3" /><Skeleton className="h-3 w-1/4" /></div>
+          <Skeleton className="h-5 w-16 rounded-full" />
+          <Skeleton className="h-3 w-12" />
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/* ─── Main Component ───────────────────────────────────────── */
 export default function CustomerList() {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
   const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<string>("all");
-  const [bizFilter, setBizFilter] = useState<string>("all");
-  const [tagFilter, setTagFilter] = useState<string>("all");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [tagFilter, setTagFilter] = useState("all");
   const [sortKey, setSortKey] = useState<SortKey>("updatedAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
-  const [showImport, setShowImport] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>(() => {
+    return (localStorage.getItem("customerViewMode") as ViewMode) || "grid";
+  });
+  const [activeBiz, setActiveBiz] = useState("all");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [confirmDelete, setConfirmDelete] = useState(false);
 
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
+  useEffect(() => {
+    localStorage.setItem("customerViewMode", viewMode);
+  }, [viewMode]);
 
   const { data: businesses } = useQuery({
     queryKey: ["businesses"],
@@ -329,13 +349,47 @@ export default function CustomerList() {
   });
 
   const { data: customers, isLoading } = useQuery({
-    queryKey: ["customers", search, statusFilter, bizFilter],
-    queryFn: () => api.customers.list({ search, status: statusFilter, businessId: bizFilter }),
+    queryKey: ["customers", search, statusFilter],
+    queryFn: () => api.customers.list({ search, status: statusFilter }),
   });
 
-  const sorted = useMemo(() => {
+  const allTags = useMemo(() => {
+    const s = new Set<string>();
+    (customers || []).forEach((c: any) => (c.tags || []).forEach((t: string) => s.add(t)));
+    return Array.from(s).sort();
+  }, [customers]);
+
+  // Count customers per business
+  const bizCounts = useMemo(() => {
+    const counts: Record<string, number> = { all: 0 };
+    (customers || []).forEach((c: any) => {
+      counts.all = (counts.all || 0) + 1;
+      (c.customer_businesses || []).forEach((cb: any) => {
+        const name = cb.businesses?.name;
+        if (name) counts[name] = (counts[name] || 0) + 1;
+      });
+    });
+    return counts;
+  }, [customers]);
+
+  const filtered = useMemo(() => {
     if (!customers) return [];
-    return [...customers].sort((a, b) => {
+    let list = [...customers];
+
+    // Business tab filter
+    if (activeBiz !== "all") {
+      list = list.filter((c: any) =>
+        c.customer_businesses?.some((cb: any) => cb.businesses?.name === activeBiz)
+      );
+    }
+
+    // Tag filter
+    if (tagFilter !== "all") {
+      list = list.filter((c: any) => (c.tags || []).includes(tagFilter));
+    }
+
+    // Sort
+    list.sort((a, b) => {
       let cmp = 0;
       if (sortKey === "name") cmp = a.name.localeCompare(b.name);
       else if (sortKey === "updatedAt") cmp = a.updatedAt < b.updatedAt ? -1 : 1;
@@ -343,31 +397,17 @@ export default function CustomerList() {
       else if (sortKey === "estimatedValue") cmp = (Number(a.estimatedValue) || 0) - (Number(b.estimatedValue) || 0);
       return sortDir === "asc" ? cmp : -cmp;
     });
-  }, [customers, sortKey, sortDir]);
 
-  // Collect all unique tags from all customers
-  const allTags = useMemo(() => {
-    const tagSet = new Set<string>();
-    (customers || []).forEach((c: any) => {
-      (c.tags || []).forEach((t: string) => tagSet.add(t));
-    });
-    return Array.from(tagSet).sort();
-  }, [customers]);
+    return list;
+  }, [customers, activeBiz, tagFilter, sortKey, sortDir]);
 
-  // Filter by tag
-  const displayList = useMemo(() => {
-    if (tagFilter === "all") return sorted;
-    return sorted.filter((c: any) => (c.tags || []).includes(tagFilter));
-  }, [sorted, tagFilter]);
-
-  const bulkDeleteMutation = useMutation({
+  const bulkDelete = useMutation({
     mutationFn: (ids: string[]) => api.customers.bulkDelete(ids),
     onSuccess: (data: any) => {
       toast({ title: `${data.deleted} customer dihapus` });
       setSelectedIds(new Set());
       setConfirmDelete(false);
       queryClient.invalidateQueries({ queryKey: ["customers"] });
-      queryClient.invalidateQueries({ queryKey: ["stats"] });
     },
     onError: () => toast({ title: "Gagal menghapus", variant: "destructive" }),
   });
@@ -377,124 +417,139 @@ export default function CustomerList() {
     e.stopPropagation();
     setSelectedIds((prev) => {
       const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
+      next.has(id) ? next.delete(id) : next.add(id);
       return next;
     });
   }
 
-  function toggleSelectAll() {
-    if (selectedIds.size === displayList.length) {
-      setSelectedIds(new Set());
-    } else {
-      setSelectedIds(new Set(displayList.map((c: any) => c.id)));
-    }
+  function handleSort(key: SortKey) {
+    if (sortKey === key) setSortDir(d => d === "asc" ? "desc" : "asc");
+    else { setSortKey(key); setSortDir("desc"); }
   }
 
-  const allSelected = displayList.length > 0 && selectedIds.size === displayList.length;
-  const someSelected = selectedIds.size > 0 && selectedIds.size < displayList.length;
+  const bizTabs = [
+    { key: "all", label: "Semua" },
+    ...(businesses || []).map((b: any) => ({ key: b.name, label: b.name, color: b.color })),
+  ];
 
   return (
-    <div className="space-y-5 max-w-5xl">
-      {/* Header */}
-      <div className="flex items-start justify-between gap-3">
+    <div className="space-y-4 max-w-7xl">
+
+      {/* ── Header ── */}
+      <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
-          <h2 className="text-xl font-bold text-foreground">Daftar Customer</h2>
+          <h2 className="text-xl font-bold text-foreground">Customer</h2>
           <p className="text-sm text-muted-foreground mt-0.5">
-            {isLoading ? "Memuat..." : `${customers?.length ?? 0} customer terdaftar`}
+            {isLoading ? "Memuat..." : `${filtered.length} dari ${customers?.length ?? 0} customer`}
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5 h-9 shrink-0"
-            onClick={() => navigate("/import")}
-            data-testid="button-import-csv"
-          >
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* View mode */}
+          <div className="flex items-center bg-muted rounded-xl p-0.5 gap-0.5">
+            {([
+              { mode: "grid" as ViewMode, icon: LayoutGrid, label: "Grid" },
+              { mode: "list" as ViewMode, icon: List, label: "List" },
+              { mode: "table" as ViewMode, icon: Table2, label: "Table" },
+            ]).map(({ mode, icon: Icon, label }) => (
+              <button
+                key={mode}
+                onClick={() => setViewMode(mode)}
+                title={label}
+                className={`p-2 rounded-lg transition-all ${viewMode === mode ? "bg-white shadow-sm text-primary" : "text-muted-foreground hover:text-foreground"}`}
+              >
+                <Icon className="h-4 w-4" />
+              </button>
+            ))}
+          </div>
+
+          <Button variant="outline" size="sm" className="gap-1.5 h-9" onClick={() => navigate("/import")}>
             <Upload className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Import</span>
           </Button>
           <Button
-            variant="outline"
-            size="sm"
-            className="gap-1.5 h-9 shrink-0"
-            onClick={() => displayList.length && exportCSV(displayList)}
-            disabled={!displayList.length}
-            data-testid="button-export-csv"
+            variant="outline" size="sm" className="gap-1.5 h-9"
+            onClick={() => filtered.length && exportCSV(filtered)}
+            disabled={!filtered.length}
           >
             <Download className="h-3.5 w-3.5" />
             <span className="hidden sm:inline">Export</span>
           </Button>
           <Link
             to="/customers/new"
-            className="inline-flex items-center gap-1.5 bg-primary text-white text-sm font-medium px-3 py-2 rounded-xl hover:opacity-90 transition-opacity shadow-sm h-9 shrink-0"
+            className="inline-flex items-center gap-1.5 bg-primary text-white text-sm font-medium px-3 py-2 rounded-xl hover:opacity-90 transition-opacity shadow-sm h-9"
           >
             + Tambah
           </Link>
         </div>
       </div>
 
-      <ImportModal open={showImport} onClose={() => setShowImport(false)} />
+      {/* ── Business Tabs ── */}
+      <div className="flex gap-1.5 overflow-x-auto pb-0.5 scrollbar-none">
+        {bizTabs.map(({ key, label, color }: any) => {
+          const count = bizCounts[key] || 0;
+          const active = activeBiz === key;
+          return (
+            <button
+              key={key}
+              onClick={() => { setActiveBiz(key); setSelectedIds(new Set()); }}
+              className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-sm font-medium whitespace-nowrap transition-all shrink-0 border ${
+                active
+                  ? "bg-primary text-white border-primary shadow-sm"
+                  : "bg-white text-muted-foreground border-border hover:border-primary/30 hover:text-foreground"
+              }`}
+            >
+              {key === "all"
+                ? <Users className="h-3.5 w-3.5" />
+                : <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+              }
+              {label}
+              <span className={`text-xs px-1.5 py-0.5 rounded-md font-semibold ${active ? "bg-white/20 text-white" : "bg-muted text-muted-foreground"}`}>
+                {count}
+              </span>
+            </button>
+          );
+        })}
+      </div>
 
-      {/* Bulk delete toolbar */}
+      {/* ── Bulk delete toolbar ── */}
       {selectedIds.size > 0 && (
         <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-2xl px-4 py-2.5">
-          <p className="text-sm font-medium text-primary">
-            {selectedIds.size} customer dipilih
-          </p>
+          <p className="text-sm font-medium text-primary">{selectedIds.size} customer dipilih</p>
           <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="h-8 text-sm" onClick={() => setSelectedIds(new Set())}>
-              Batalkan
-            </Button>
+            <Button variant="ghost" size="sm" className="h-8 text-sm" onClick={() => setSelectedIds(new Set())}>Batalkan</Button>
             {!confirmDelete ? (
-              <Button
-                variant="destructive"
-                size="sm"
-                className="h-8 gap-1.5 text-sm"
-                onClick={() => setConfirmDelete(true)}
-              >
-                <Trash2 className="h-3.5 w-3.5" />
-                Hapus {selectedIds.size} customer
+              <Button variant="destructive" size="sm" className="h-8 gap-1.5 text-sm" onClick={() => setConfirmDelete(true)}>
+                <Trash2 className="h-3.5 w-3.5" /> Hapus {selectedIds.size}
               </Button>
             ) : (
               <div className="flex items-center gap-2">
                 <span className="text-xs text-destructive font-medium">Yakin hapus permanen?</span>
-                <Button
-                  variant="destructive"
-                  size="sm"
-                  className="h-8 text-sm"
-                  disabled={bulkDeleteMutation.isPending}
-                  onClick={() => bulkDeleteMutation.mutate(Array.from(selectedIds))}
+                <Button variant="destructive" size="sm" className="h-8 text-sm"
+                  disabled={bulkDelete.isPending}
+                  onClick={() => bulkDelete.mutate(Array.from(selectedIds))}
                 >
-                  {bulkDeleteMutation.isPending ? "Menghapus..." : "Ya, Hapus"}
+                  {bulkDelete.isPending ? "Menghapus..." : "Ya, Hapus"}
                 </Button>
-                <Button variant="ghost" size="sm" className="h-8 text-sm" onClick={() => setConfirmDelete(false)}>
-                  Batal
-                </Button>
+                <Button variant="ghost" size="sm" className="h-8 text-sm" onClick={() => setConfirmDelete(false)}>Batal</Button>
               </div>
             )}
           </div>
         </div>
       )}
 
-      {/* Filters */}
-      <div className="space-y-2">
-        {/* Search — full width */}
-        <div className="relative">
+      {/* ── Filters ── */}
+      <div className="flex gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-48">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
           <Input
-            placeholder="Cari nama customer..."
+            placeholder="Cari nama, telepon, email..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-8 h-9 bg-white text-sm"
-            data-testid="input-search-customers"
           />
         </div>
-        {/* Dropdowns — horizontal scroll on mobile */}
-        <div className="flex gap-2 overflow-x-auto pb-0.5 scrollbar-none">
         <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-36 h-9 bg-white text-sm" data-testid="select-status-filter">
+          <SelectTrigger className="w-36 h-9 bg-white text-sm shrink-0">
             <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
@@ -507,38 +562,27 @@ export default function CustomerList() {
             <SelectItem value="lost">Gagal</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={bizFilter} onValueChange={setBizFilter}>
-          <SelectTrigger className="w-36 h-9 bg-white text-sm" data-testid="select-biz-filter">
-            <SelectValue placeholder="Bisnis" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua Bisnis</SelectItem>
-            {businesses?.map((b: any) => (
-              <SelectItem key={b.id} value={b.id}>{b.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
         {allTags.length > 0 && (
           <Select value={tagFilter} onValueChange={setTagFilter}>
-            <SelectTrigger className="w-36 h-9 bg-white text-sm gap-1" data-testid="select-tag-filter">
+            <SelectTrigger className="w-36 h-9 bg-white text-sm gap-1 shrink-0">
               <Tag className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
               <SelectValue placeholder="Kategori" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="all">Semua Kategori</SelectItem>
-              {allTags.map((tag) => (
-                <SelectItem key={tag} value={tag}>{tag}</SelectItem>
-              ))}
+              <SelectItem value="all">Semua Tag</SelectItem>
+              {allTags.map((tag) => <SelectItem key={tag} value={tag}>{tag}</SelectItem>)}
             </SelectContent>
           </Select>
         )}
         <Select value={`${sortKey}-${sortDir}`} onValueChange={(v) => {
-          const [k, d] = v.split("-") as [SortKey, SortDir];
-          setSortKey(k); setSortDir(d);
+          const parts = v.split("-");
+          const dir = parts.pop() as SortDir;
+          const key = parts.join("-") as SortKey;
+          setSortKey(key); setSortDir(dir);
         }}>
-          <SelectTrigger className="w-44 h-9 bg-white text-sm gap-1" data-testid="select-sort">
+          <SelectTrigger className="w-44 h-9 bg-white text-sm gap-1 shrink-0">
             <ArrowUpDown className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-            <SelectValue placeholder="Urutkan" />
+            <SelectValue />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="updatedAt-desc">Terbaru Diupdate</SelectItem>
@@ -547,122 +591,66 @@ export default function CustomerList() {
             <SelectItem value="name-desc">Nama Z–A</SelectItem>
             <SelectItem value="status-asc">Status</SelectItem>
             <SelectItem value="estimatedValue-desc">Nilai Terbesar</SelectItem>
-            <SelectItem value="estimatedValue-asc">Nilai Terkecil</SelectItem>
           </SelectContent>
         </Select>
-        </div>
       </div>
 
-      {/* List */}
+      {/* ── Content ── */}
       {isLoading ? (
-        <div className="bg-white border border-border rounded-2xl card-shadow divide-y divide-border overflow-hidden">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="flex items-center justify-between px-5 py-4">
-              <div className="space-y-2">
-                <Skeleton className="h-4 w-32" />
-                <Skeleton className="h-3 w-20" />
-              </div>
-              <Skeleton className="h-5 w-16 rounded-full" />
-            </div>
+        viewMode === "grid" ? <GridSkeleton /> : <ListSkeleton />
+      ) : filtered.length === 0 ? (
+        <EmptyState
+          icon={<Users className="h-10 w-10 text-muted-foreground/30" />}
+          title={search || statusFilter !== "all" || tagFilter !== "all" ? "Tidak ada customer yang cocok" : "Belum ada customer"}
+          description={search || statusFilter !== "all" || tagFilter !== "all" ? "Coba ubah filter atau kata kunci pencarian" : "Tambah customer pertama kamu atau import dari CSV"}
+          action={!search && statusFilter === "all" && tagFilter === "all" ? (
+            <Link to="/customers/new" className="inline-flex items-center gap-1.5 bg-primary text-white text-sm font-medium px-4 py-2 rounded-xl hover:opacity-90">
+              + Tambah Customer
+            </Link>
+          ) : undefined}
+        />
+      ) : viewMode === "grid" ? (
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 gap-3">
+          {filtered.map((c: any) => (
+            <CustomerCard
+              key={c.id}
+              customer={c}
+              selected={selectedIds.has(c.id)}
+              onSelect={(e) => toggleSelect(c.id, e)}
+              onNavigate={() => navigate(`/customers/${c.id}`)}
+            />
           ))}
         </div>
-      ) : !displayList.length ? (
-        <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
-          <EmptyState
-            icon={Users}
-            title="Belum ada customer"
-            description={
-              search || statusFilter !== "all" || bizFilter !== "all" || tagFilter !== "all"
-                ? "Tidak ada customer yang cocok dengan filter yang dipilih."
-                : "Tambahkan customer pertama kamu untuk mulai melacak lead."
-            }
-            actionLabel={(!search && statusFilter === "all" && bizFilter === "all" && tagFilter === "all") ? "+ Tambah Customer" : undefined}
-            actionHref={(!search && statusFilter === "all" && bizFilter === "all" && tagFilter === "all") ? "/customers/new" : undefined}
-          />
+      ) : viewMode === "list" ? (
+        <div className="space-y-1.5">
+          {filtered.map((c: any) => (
+            <CustomerRow
+              key={c.id}
+              customer={c}
+              selected={selectedIds.has(c.id)}
+              onSelect={(e) => toggleSelect(c.id, e)}
+              onNavigate={() => navigate(`/customers/${c.id}`)}
+            />
+          ))}
         </div>
       ) : (
-        <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
-          {/* Select All header row */}
-          <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border bg-muted/20">
-            <button
-              onClick={toggleSelectAll}
-              className="h-4 w-4 rounded border border-border flex items-center justify-center shrink-0 hover:border-primary transition-colors"
-              title={allSelected ? "Batalkan semua" : "Pilih semua"}
-            >
-              {allSelected ? (
-                <CheckCircle className="h-4 w-4 text-primary" />
-              ) : someSelected ? (
-                <div className="h-2.5 w-2.5 rounded-sm bg-primary/60" />
-              ) : null}
-            </button>
-            <span className="text-xs text-muted-foreground">
-              {selectedIds.size > 0 ? `${selectedIds.size} dipilih dari ${displayList.length}` : `${displayList.length} customer`}
-            </span>
-          </div>
-          {displayList.map((c: any) => {
-            const isSelected = selectedIds.has(c.id);
-            return (
-              <div
-                key={c.id}
-                className={`flex items-center gap-3 px-4 py-3.5 border-b border-border last:border-b-0 group hover:bg-muted/20 transition-colors ${isSelected ? "bg-primary/5" : ""}`}
-              >
-                {/* Checkbox */}
-                <button
-                  onClick={(e) => toggleSelect(c.id, e)}
-                  className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 transition-colors ${isSelected ? "border-primary bg-primary/10" : "border-border group-hover:border-muted-foreground/40"}`}
-                  title={isSelected ? "Hapus dari pilihan" : "Pilih customer ini"}
-                >
-                  {isSelected && <CheckCircle className="h-4 w-4 text-primary" />}
-                </button>
-                {/* Row content as link */}
-                <Link
-                  to={`/customers/${c.id}`}
-                  className="flex items-center justify-between flex-1 min-w-0"
-                  data-testid={`row-customer-${c.id}`}
-                >
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2.5">
-                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                        <span className="text-xs font-bold text-primary">{c.name.slice(0, 2).toUpperCase()}</span>
-                      </div>
-                      <div className="min-w-0">
-                        <p className="font-semibold text-sm text-foreground truncate">{c.name}</p>
-                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                          {c.customer_businesses?.map((cb: any) => (
-                            <BusinessBadge key={cb.business_id} name={cb.businesses?.name} />
-                          ))}
-                          {(c.tags || []).map((tag: string) => (
-                            <span
-                              key={tag}
-                              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-violet-100 text-violet-700 text-[10px] font-medium cursor-pointer hover:bg-violet-200 transition-colors"
-                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setTagFilter(tag); }}
-                            >
-                              <Tag className="h-2.5 w-2.5" />{tag}
-                            </span>
-                          ))}
-                          {c.source && <span className="text-xs text-muted-foreground">via {c.source}</span>}
-                          {c.phone && <span className="text-xs text-muted-foreground font-mono">{c.phone}</span>}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 shrink-0 ml-3">
-                    {c.estimatedValue && (
-                      <span className="text-xs font-mono text-emerald-600 font-semibold hidden sm:block">
-                        {formatIDR(c.estimatedValue)}
-                      </span>
-                    )}
-                    <StatusBadge status={c.status} />
-                    <span className="text-xs text-muted-foreground font-mono hidden xs:block">
-                      {format(parseISO(c.updatedAt), "d MMM", { locale: idLocale })}
-                    </span>
-                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-muted-foreground transition-colors" />
-                  </div>
-                </Link>
-              </div>
-            );
-          })}
-        </div>
+        <CustomerTable
+          customers={filtered}
+          selectedIds={selectedIds}
+          onSelect={toggleSelect}
+          onNavigate={(id) => navigate(`/customers/${id}`)}
+          onSort={handleSort}
+          sortKey={sortKey}
+          sortDir={sortDir}
+        />
+      )}
+
+      {/* ── Footer count ── */}
+      {filtered.length > 0 && (
+        <p className="text-xs text-muted-foreground text-center pb-4">
+          Menampilkan {filtered.length} customer
+          {selectedIds.size > 0 && ` · ${selectedIds.size} dipilih`}
+        </p>
       )}
     </div>
   );
