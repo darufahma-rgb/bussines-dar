@@ -4,7 +4,7 @@ import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
 import helmet from "helmet";
 import rateLimit from "express-rate-limit";
-import { pool } from "./db.js";
+import { sessionPool } from "./db.js";
 import authRoutes from "./routes/auth.js";
 import businessRoutes from "./routes/businesses.js";
 import customerRoutes from "./routes/customers.js";
@@ -41,7 +41,7 @@ const aiLimiter = rateLimit({
 app.use(express.json({ limit: "5mb" }));
 
 app.use(session({
-  store: new PgSession({ pool, createTableIfMissing: true }),
+  store: new PgSession({ pool: sessionPool, createTableIfMissing: true }),
   secret: process.env.SESSION_SECRET || "crm-hub-secret-change-in-prod",
   resave: false,
   saveUninitialized: false,

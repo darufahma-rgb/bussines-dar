@@ -61,13 +61,15 @@ function cleanNumber(val: string | number): number | undefined {
 /* ─── AI Column Mapping ─────────────────────────── */
 router.post("/ai-map", async (req, res) => {
   try {
-    const { headers, samples } = req.body as {
+    const { headers, samples, sample } = req.body as {
       headers: string[];
-      samples: Record<string, string>[];
+      samples?: Record<string, string>[];
+      sample?: Record<string, string>[];
     };
     if (!headers?.length) return res.status(400).json({ error: "Tidak ada kolom" });
 
-    const sampleText = samples.slice(0, 3).map((row, i) =>
+    const sampleData = samples || sample || [];
+    const sampleText = sampleData.slice(0, 3).map((row, i) =>
       `Baris ${i + 1}: ${headers.map(h => `${h}="${row[h] || ""}"`).join(", ")}`
     ).join("\n");
 

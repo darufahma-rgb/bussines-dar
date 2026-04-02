@@ -4,18 +4,15 @@ import * as schema from "../shared/schema.js";
 
 const { Pool } = pg;
 
-let connectionString = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL;
+// Data queries → Supabase Transaction pooler (port 6543, unlimited concurrency)
+const dataUrl = process.env.SUPABASE_DB_URL || process.env.DATABASE_URL;
+if (!dataUrl) throw new Error("SUPABASE_DB_URL or DATABASE_URL must be set.");
 
-if (!connectionString) {
-  throw new Error("SUPABASE_DB_URL or DATABASE_URL must be set.");
-}
-
-// Supabase Transaction pooler (port 6543) doesn't support session-level operations
-// (used by connect-pg-simple for sessions, Drizzle sql templates, etc).
-// Automatically switch to Session pooler (port 5432) on the same host.
-if (connectionString.includes(".pooler.supabase.com:6543")) {
-  connectionString = connectionString.replace(".pooler.supabase.com:6543", ".pooler.supabase.com:5432");
-}
-
-export const pool = new Pool({ connectionString });
+export const pool = new Pool({ connectionString: dataUrl, max: 10 });
 export const db = drizzle(pool, { schema });
+
+// Session store → Replit's built-in PostgreSQL (avoids Supabase client limits)
+const sessionUrl = process.env.DATABASE_URL;
+export const sessionPool = sessionUrl
+  ? new Pool({ connectionString: sessionUrl, max: 5 })
+  : pool; // fallback to same pool if no separate DB
