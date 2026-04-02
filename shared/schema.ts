@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, pgEnum, boolean, numeric, date, unique, index } from "drizzle-orm/pg-core";
+import { pgTable, uuid, text, timestamp, pgEnum, boolean, numeric, date, unique, index, jsonb } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 
 export const customerStatusEnum = pgEnum("customer_status", ["new", "warm", "hot", "negotiation", "closed", "lost"]);
@@ -31,6 +31,7 @@ export const customers = pgTable("customers", {
   estimatedValue: numeric("estimated_value"),
   lostReason: text("lost_reason"),
   memory: text("memory"),
+  customData: jsonb("custom_data").$type<Record<string, string>>(),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
 }, (t) => [

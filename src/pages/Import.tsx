@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 
 /* ─── Types ─────────────────────────────────────── */
 type Step = "upload" | "mapping" | "preview" | "done";
-type TargetField = "name" | "phone" | "email" | "status" | "estimatedValue" | "source" | "tags" | "notes" | "business" | "skip";
+type TargetField = "name" | "phone" | "email" | "status" | "estimatedValue" | "source" | "tags" | "notes" | "business" | "custom" | "skip";
 
 const TARGET_FIELDS: { value: TargetField; label: string; required?: boolean }[] = [
   { value: "name",           label: "Nama Customer",       required: true },
@@ -24,6 +24,7 @@ const TARGET_FIELDS: { value: TargetField; label: string; required?: boolean }[]
   { value: "tags",           label: "Kategori / Tags" },
   { value: "notes",          label: "Catatan / Notes" },
   { value: "business",       label: "Unit Bisnis" },
+  { value: "custom",         label: "✦ Buat Field Baru" },
   { value: "skip",           label: "— Abaikan kolom ini —" },
 ];
 
@@ -75,13 +76,6 @@ const AUTO_MAP: Record<string, TargetField> = {
   informasi: "notes", info: "notes", remarks: "notes", comment: "notes",
   komentar: "notes", "interest": "notes", minat: "notes", kebutuhan: "notes",
   paket: "notes", "yang diminati": "notes",
-  margin: "notes", profit: "notes", keuntungan: "notes", "harga modal": "notes",
-  maskapai: "notes", airline: "notes", penerbangan: "notes",
-  berangkat: "notes", keberangkatan: "notes", "tgl berangkat": "notes",
-  "tanggal berangkat": "notes", destinasi: "notes", tujuan: "notes",
-  rute: "notes", destination: "notes", route: "notes",
-  "check in": "notes", "check out": "notes", "tanggal": "notes",
-  "departure": "notes", arrival: "notes",
 };
 
 /* Columns that are clearly system/technical — truly skip these */
@@ -133,8 +127,8 @@ function guessMapping(headers: string[]): Record<string, TargetField> {
       return;
     }
 
-    // 4. No match at all — default to notes so data isn't lost
-    m[h] = "notes";
+    // 4. No match at all — default to custom field so data isn't lost
+    m[h] = "custom";
   });
   return m;
 }
@@ -288,18 +282,21 @@ export default function ImportPage() {
   /* ── Build mapped rows ── */
   const getMappedRows = () => {
     return rawRows.map((row) => {
-      const out: Record<string, string> = {};
+      const out: Record<string, any> = {};
       const noteParts: string[] = [];
+      const customData: Record<string, string> = {};
       Object.entries(mapping).forEach(([src, tgt]) => {
         if (tgt === "skip") return;
         if (tgt === "notes") {
           if (row[src]?.trim()) noteParts.push(`${src}: ${row[src]}`);
+        } else if (tgt === "custom") {
+          if (row[src]?.trim()) customData[src] = row[src];
         } else {
           out[tgt] = row[src] || "";
         }
       });
-      // Merge all "notes" fields into one
       if (noteParts.length) out["notes"] = [out["notes"], ...noteParts].filter(Boolean).join("\n");
+      if (Object.keys(customData).length) out["customData"] = customData;
       return out;
     });
   };
@@ -494,8 +491,9 @@ export default function ImportPage() {
               <div>
                 <p className="text-sm font-semibold text-foreground">Mapping Kolom</p>
                 <p className="text-xs text-muted-foreground mt-0.5">
-                  Kolom <span className="text-emerald-600 font-medium">hijau</span> terdeteksi otomatis.&nbsp;
-                  Kolom <span className="text-amber-600 font-medium">kuning</span> belum dikenali — klik "AI Auto-Map" untuk bantuan.
+                  <span className="text-emerald-600 font-medium">Hijau</span> terdeteksi otomatis.&nbsp;
+                  <span className="text-violet-600 font-medium">Ungu</span> = field baru dari file kamu.&nbsp;
+                  Klik "AI Auto-Map" untuk pemetaan cerdas.
                 </p>
               </div>
               <button
@@ -509,16 +507,27 @@ export default function ImportPage() {
             </div>
             <div className="divide-y divide-border">
               {headers.map((h) => {
-                const tgt = mapping[h] ?? "skip";
-                const isAuto = tgt !== "skip";
+                const tgt = mapping[h] ?? "custom";
+                const isKnown = tgt !== "skip" && tgt !== "custom";
+                const isCustom = tgt === "custom";
+                const isSkip = tgt === "skip";
                 return (
                   <div key={h} className={cn(
                     "flex items-center gap-3 px-5 py-3 transition-colors",
-                    isAuto ? "bg-emerald-50/30" : "bg-amber-50/20"
+                    isKnown ? "bg-emerald-50/30" : isCustom ? "bg-violet-50/30" : "bg-muted/10"
                   )}>
-                    <div className={cn("h-2 w-2 rounded-full shrink-0", isAuto ? "bg-emerald-400" : "bg-amber-400")} />
+                    <div className={cn("h-2 w-2 rounded-full shrink-0",
+                      isKnown ? "bg-emerald-400" : isCustom ? "bg-violet-400" : "bg-muted-foreground/30"
+                    )} />
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-mono font-medium text-foreground truncate">{h}</p>
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-mono font-medium text-foreground truncate">{h}</p>
+                        {isCustom && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded-md bg-violet-100 text-violet-700 font-medium shrink-0">
+                            field baru
+                          </span>
+                        )}
+                      </div>
                       {rawRows[0]?.[h] && (
                         <p className="text-xs text-muted-foreground truncate mt-0.5 italic">
                           "{rawRows[0][h]}"
@@ -530,10 +539,10 @@ export default function ImportPage() {
                       value={tgt}
                       onChange={e => setMapping(m => ({ ...m, [h]: e.target.value as TargetField }))}
                       className={cn(
-                        "w-44 text-xs border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors",
-                        isAuto
-                          ? "border-emerald-300 bg-emerald-50 text-emerald-800"
-                          : "border-amber-200 bg-amber-50/50 text-muted-foreground"
+                        "w-48 text-xs border rounded-lg px-2.5 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/30 transition-colors",
+                        isKnown ? "border-emerald-300 bg-emerald-50 text-emerald-800"
+                        : isCustom ? "border-violet-300 bg-violet-50 text-violet-800"
+                        : "border-border bg-muted/30 text-muted-foreground"
                       )}
                     >
                       {TARGET_FIELDS.map(f => (
@@ -546,11 +555,16 @@ export default function ImportPage() {
             </div>
 
             {/* Legend */}
-            <div className="px-5 py-3 border-t border-border bg-muted/20">
-              <p className="text-xs text-muted-foreground">
-                💡 Kolom yang dipetakan ke <strong>Catatan</strong> akan digabung menjadi satu field catatan per customer.
-                Kolom yang diabaikan tidak akan diimport.
-              </p>
+            <div className="px-5 py-3 border-t border-border bg-muted/20 flex flex-wrap gap-x-4 gap-y-1">
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="h-2 w-2 rounded-full bg-emerald-400 inline-block" /> Terdeteksi otomatis
+              </span>
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="h-2 w-2 rounded-full bg-violet-400 inline-block" /> <strong className="text-violet-700">Field Baru</strong> — disimpan sebagai field khusus di profil customer
+              </span>
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                <span className="h-2 w-2 rounded-full bg-muted-foreground/30 inline-block" /> Diabaikan
+              </span>
             </div>
           </div>
 

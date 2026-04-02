@@ -77,20 +77,20 @@ router.post("/ai-map", async (req, res) => {
         {
           role: "system",
           content: `Kamu memetakan kolom dari file ekspor ke field CRM customer.
-Field CRM yang tersedia: name, phone, email, status, estimatedValue, source, tags, notes, business, skip
+Field CRM yang tersedia: name, phone, email, status, estimatedValue, source, tags, notes, business, custom, skip
 - name: nama customer (WAJIB ada)
 - phone: nomor telepon/HP/WhatsApp
 - email: alamat email
 - status: status lead (new/warm/hot/negotiation/closed/lost)
-- estimatedValue: perkiraan nilai transaksi — harga bayar, harga jual, total, nominal, budget, bayar
-- source: sumber lead (referral, iklan, media sosial, dll)
-- tags: kategori/segmen/jenis customer atau produk — segmen customer, jenis produk, tipe, kategori
-- notes: catatan dan info tambahan apapun — maskapai, rute, tanggal berangkat, margin, profit, destinasi, kota, dll
+- estimatedValue: nilai transaksi utama — harga bayar, harga jual, total, nominal, budget
+- source: sumber lead (referral, iklan, media sosial)
+- tags: kategori/segmen/tipe — segmen customer, jenis produk, kategori
+- notes: catatan/komentar bebas dari user
 - business: nama unit bisnis / agen / brand
-- skip: HANYA untuk kolom sistem teknis (ID, timestamp, nomor urut, UUID) yang sama sekali tidak relevan
+- custom: kolom domain spesifik yang BUKAN catatan bebas, punya nama kolom yang bermakna — maskapai, airline, margin, profit, keberangkatan, destinasi, rute, kota, paket, nama produk spesifik, dll. Data ini akan disimpan sebagai field tersendiri dengan nama kolom aslinya.
+- skip: HANYA untuk kolom sistem teknis (ID, timestamp, nomor urut, UUID)
 
-PENTING: Jika kolom berisi data bisnis yang berguna tapi tidak cocok ke field spesifik manapun, petakan ke "notes" — JANGAN gunakan "skip". Gunakan "skip" HANYA untuk kolom teknis/sistem seperti ID dan timestamp.
-Kolom "notes" bisa menerima banyak sumber sekaligus.
+PENTING: Kolom dengan data bisnis spesifik yang tidak masuk ke field standard → gunakan "custom", BUKAN "notes" dan BUKAN "skip".
 
 Kembalikan JSON object: { "nama_kolom_asli": "field_target" }
 Kembalikan HANYA JSON, tanpa penjelasan.`,
@@ -109,7 +109,7 @@ Kembalikan HANYA JSON, tanpa penjelasan.`,
     if (!jsonMatch) return res.status(422).json({ error: "AI gagal memetakan kolom" });
 
     const mapping = JSON.parse(jsonMatch[0]);
-    const validFields = ["name", "phone", "email", "status", "estimatedValue", "source", "notes", "business", "skip"];
+    const validFields = ["name", "phone", "email", "status", "estimatedValue", "source", "tags", "notes", "business", "custom", "skip"];
     const cleaned: Record<string, string> = {};
     for (const [col, field] of Object.entries(mapping)) {
       cleaned[col] = validFields.includes(field as string) ? (field as string) : "skip";
@@ -179,6 +179,7 @@ router.post("/customers", async (req, res) => {
         notes?: string;
         business?: string;
         businessId?: string;
+        customData?: Record<string, string>;
       }>;
       defaultBusinessId?: string;
     };
@@ -225,6 +226,7 @@ router.post("/customers", async (req, res) => {
           estimatedValue: estimatedValue?.toString() || null,
           memory: row.notes?.trim() || null,
           tags: tagsArr.length ? tagsArr : [],
+          customData: row.customData && Object.keys(row.customData).length > 0 ? row.customData : null,
         })
         .onConflictDoNothing()
         .returning({ id: customers.id });

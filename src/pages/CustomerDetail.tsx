@@ -329,6 +329,10 @@ export default function CustomerDetail() {
   const [confirmDeleteInteraction, setConfirmDeleteInteraction] = useState<string | null>(null);
   const [confirmDeleteCustomer, setConfirmDeleteCustomer] = useState(false);
 
+  const [editingCustomKey, setEditingCustomKey] = useState<string | null>(null);
+  const [customEditValue, setCustomEditValue] = useState("");
+  const [savingCustomField, setSavingCustomField] = useState(false);
+
   const [summary, setSummary] = useState<string | null>(null);
   const [loadingSummary, setLoadingSummary] = useState(false);
   const [replyMessage, setReplyMessage] = useState("");
@@ -438,6 +442,27 @@ export default function CustomerDetail() {
       toast.success("Memori tersimpan");
     } catch { toast.error("Gagal menyimpan memori"); }
     setSavingMemory(false);
+  };
+
+  const handleSaveCustomField = async (key: string) => {
+    if (!id) return;
+    setSavingCustomField(true);
+    try {
+      await api.customers.update(id, { customDataKey: key, customDataValue: customEditValue } as any);
+      queryClient.invalidateQueries({ queryKey: ["customer", id] });
+      setEditingCustomKey(null);
+      toast.success("Field tersimpan");
+    } catch { toast.error("Gagal menyimpan field"); }
+    setSavingCustomField(false);
+  };
+
+  const handleDeleteCustomField = async (key: string) => {
+    if (!id) return;
+    try {
+      await api.customers.update(id, { customDataKey: key, customDataValue: "" } as any);
+      queryClient.invalidateQueries({ queryKey: ["customer", id] });
+      toast.success("Field dihapus");
+    } catch { toast.error("Gagal menghapus field"); }
   };
 
   const handleComplete = async (interactionId: string) => {
@@ -748,6 +773,76 @@ export default function CustomerDetail() {
           )}
         </div>
       </div>
+
+      {/* Data Tambahan (custom fields from import) */}
+      {customer.customData && Object.keys(customer.customData).length > 0 && (
+        <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
+          <div className="flex items-center justify-between px-5 py-4 border-b border-border">
+            <div className="flex items-center gap-2.5">
+              <div className="h-7 w-7 rounded-lg bg-violet-50 flex items-center justify-center">
+                <Sparkles className="h-3.5 w-3.5 text-violet-500" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-sm text-foreground">Data Tambahan</h3>
+                <p className="text-[11px] text-muted-foreground mt-0.5">Field khusus dari import</p>
+              </div>
+            </div>
+          </div>
+          <div className="divide-y divide-border">
+            {Object.entries(customer.customData).map(([key, val]) => (
+              <div key={key} className="flex items-start gap-3 px-5 py-3">
+                <div className="flex-1 min-w-0">
+                  <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-wide mb-1">{key}</p>
+                  {editingCustomKey === key ? (
+                    <div className="flex items-center gap-2">
+                      <Input
+                        value={customEditValue}
+                        onChange={e => setCustomEditValue(e.target.value)}
+                        className="h-7 text-sm flex-1"
+                        autoFocus
+                        onKeyDown={e => { if (e.key === "Enter") handleSaveCustomField(key); if (e.key === "Escape") setEditingCustomKey(null); }}
+                      />
+                      <button
+                        onClick={() => handleSaveCustomField(key)}
+                        disabled={savingCustomField}
+                        className="h-7 px-2.5 rounded-lg bg-primary text-white text-xs font-medium hover:opacity-90 disabled:opacity-60 transition"
+                      >
+                        {savingCustomField ? "..." : "Simpan"}
+                      </button>
+                      <button
+                        onClick={() => setEditingCustomKey(null)}
+                        className="h-7 px-2 rounded-lg border border-border text-xs text-muted-foreground hover:bg-muted/50 transition"
+                      >
+                        Batal
+                      </button>
+                    </div>
+                  ) : (
+                    <p className="text-sm text-foreground">{val || <span className="italic text-muted-foreground">—</span>}</p>
+                  )}
+                </div>
+                {editingCustomKey !== key && (
+                  <div className="flex items-center gap-1 shrink-0 mt-1">
+                    <button
+                      onClick={() => { setEditingCustomKey(key); setCustomEditValue(val ?? ""); }}
+                      className="h-6 w-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-muted/60 transition"
+                      title="Edit"
+                    >
+                      <Edit2 className="h-3 w-3" />
+                    </button>
+                    <button
+                      onClick={() => handleDeleteCustomField(key)}
+                      className="h-6 w-6 rounded-md flex items-center justify-center text-muted-foreground hover:text-destructive hover:bg-red-50 transition"
+                      title="Hapus field ini"
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Berkas & Foto */}
       <CustomerFilesSection customerId={id!} />

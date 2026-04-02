@@ -265,7 +265,7 @@ router.post("/", async (req, res) => {
 router.patch("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, lostReason, memory, estimatedValue, source, name, email, phone, tags, businessIds } = req.body;
+    const { status, lostReason, memory, estimatedValue, source, name, email, phone, tags, businessIds, customData, customDataKey, customDataValue } = req.body;
 
     const updateData: Record<string, any> = { updatedAt: new Date() };
     if (status !== undefined) updateData.status = status;
@@ -277,6 +277,14 @@ router.patch("/:id", async (req, res) => {
     if (email !== undefined) updateData.email = email;
     if (phone !== undefined) updateData.phone = phone;
     if (tags !== undefined) updateData.tags = tags;
+    if (customData !== undefined) updateData.customData = customData;
+    // Patch a single custom field key
+    if (customDataKey !== undefined) {
+      const [current] = await db.select({ customData: customers.customData }).from(customers).where(eq(customers.id, id)).limit(1);
+      const merged = { ...(current?.customData || {}), [customDataKey]: customDataValue ?? "" };
+      if (!customDataValue) delete merged[customDataKey];
+      updateData.customData = Object.keys(merged).length ? merged : null;
+    }
 
     await db.update(customers).set(updateData).where(eq(customers.id, id));
 
