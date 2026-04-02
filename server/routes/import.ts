@@ -63,6 +63,66 @@ function cleanNumber(val: string | number): number | undefined {
   return isNaN(n) || n === 0 ? undefined : n;
 }
 
+/* ─── AI Column Mapping ─────────────────────────── */
+router.post("/ai-map", async (req, res) => {
+  try {
+    const { headers, samples } = req.body as {
+      headers: string[];
+      samples: Record<string, string>[];
+    };
+    if (!headers?.length) return res.status(400).json({ error: "Tidak ada kolom" });
+
+    const sampleText = samples.slice(0, 3).map((row, i) =>
+      `Baris ${i + 1}: ${headers.map(h => `${h}="${row[h] || ""}"`).join(", ")}`
+    ).join("\n");
+
+    const completion = await openai.chat.completions.create({
+      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content: `Kamu memetakan kolom dari file ekspor ke field CRM customer.
+Field CRM yang tersedia: name, phone, email, status, estimatedValue, source, notes, business, skip
+- name: nama customer (WAJIB ada)
+- phone: nomor telepon/HP/WhatsApp
+- email: alamat email
+- status: status lead (new/warm/hot/negotiation/closed/lost)
+- estimatedValue: perkiraan nilai transaksi dalam angka
+- source: sumber lead (referral, iklan, dll)
+- notes: catatan bebas apapun
+- business: nama unit bisnis (Temantiket, SYMP, Darcia, AIGYPT, dll)
+- skip: kolom tidak relevan, abaikan
+
+Kembalikan JSON object: { "nama_kolom_asli": "field_target" }
+Kembalikan HANYA JSON, tanpa penjelasan.`,
+        },
+        {
+          role: "user",
+          content: `Kolom: ${headers.join(", ")}\n\nContoh data:\n${sampleText}\n\nPetakan setiap kolom ke field CRM yang paling sesuai.`,
+        },
+      ],
+      temperature: 0,
+      max_tokens: 500,
+    });
+
+    const content = completion.choices[0]?.message?.content || "{}";
+    const jsonMatch = content.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) return res.status(422).json({ error: "AI gagal memetakan kolom" });
+
+    const mapping = JSON.parse(jsonMatch[0]);
+    const validFields = ["name", "phone", "email", "status", "estimatedValue", "source", "notes", "business", "skip"];
+    const cleaned: Record<string, string> = {};
+    for (const [col, field] of Object.entries(mapping)) {
+      cleaned[col] = validFields.includes(field as string) ? (field as string) : "skip";
+    }
+
+    res.json({ mapping: cleaned });
+  } catch (err: any) {
+    console.error("AI map error:", err);
+    res.status(500).json({ error: err.message || "Gagal AI auto-map" });
+  }
+});
+
 /* ─── Parse PDF via AI ──────────────────────────── */
 router.post("/parse-pdf", upload.single("file"), async (req, res) => {
   try {
