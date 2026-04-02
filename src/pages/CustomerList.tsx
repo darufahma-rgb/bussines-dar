@@ -8,8 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import StatusBadge from "@/components/StatusBadge";
 import BusinessBadge from "@/components/BusinessBadge";
-import { Link } from "react-router-dom";
-import { Search, Download, Upload, X, CheckCircle, AlertCircle, ArrowUpDown, Users, ChevronRight } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Search, Download, Upload, X, CheckCircle, AlertCircle, ArrowUpDown, Users, ChevronRight, Trash2, Tag } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import { useToast } from "@/hooks/use-toast";
@@ -309,12 +309,19 @@ function ImportModal({ open, onClose }: { open: boolean; onClose: () => void }) 
 }
 
 export default function CustomerList() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [bizFilter, setBizFilter] = useState<string>("all");
+  const [tagFilter, setTagFilter] = useState<string>("all");
   const [sortKey, setSortKey] = useState<SortKey>("updatedAt");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [showImport, setShowImport] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
 
   const { data: businesses } = useQuery({
     queryKey: ["businesses"],
@@ -338,6 +345,55 @@ export default function CustomerList() {
     });
   }, [customers, sortKey, sortDir]);
 
+  // Collect all unique tags from all customers
+  const allTags = useMemo(() => {
+    const tagSet = new Set<string>();
+    (customers || []).forEach((c: any) => {
+      (c.tags || []).forEach((t: string) => tagSet.add(t));
+    });
+    return Array.from(tagSet).sort();
+  }, [customers]);
+
+  // Filter by tag
+  const displayList = useMemo(() => {
+    if (tagFilter === "all") return sorted;
+    return sorted.filter((c: any) => (c.tags || []).includes(tagFilter));
+  }, [sorted, tagFilter]);
+
+  const bulkDeleteMutation = useMutation({
+    mutationFn: (ids: string[]) => api.customers.bulkDelete(ids),
+    onSuccess: (data: any) => {
+      toast({ title: `${data.deleted} customer dihapus` });
+      setSelectedIds(new Set());
+      setConfirmDelete(false);
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["stats"] });
+    },
+    onError: () => toast({ title: "Gagal menghapus", variant: "destructive" }),
+  });
+
+  function toggleSelect(id: string, e: React.MouseEvent) {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+
+  function toggleSelectAll() {
+    if (selectedIds.size === displayList.length) {
+      setSelectedIds(new Set());
+    } else {
+      setSelectedIds(new Set(displayList.map((c: any) => c.id)));
+    }
+  }
+
+  const allSelected = displayList.length > 0 && selectedIds.size === displayList.length;
+  const someSelected = selectedIds.size > 0 && selectedIds.size < displayList.length;
+
   return (
     <div className="space-y-5 max-w-5xl">
       {/* Header */}
@@ -353,7 +409,7 @@ export default function CustomerList() {
             variant="outline"
             size="sm"
             className="gap-1.5 h-9 shrink-0"
-            onClick={() => setShowImport(true)}
+            onClick={() => navigate("/import")}
             data-testid="button-import-csv"
           >
             <Upload className="h-3.5 w-3.5" />
@@ -363,8 +419,8 @@ export default function CustomerList() {
             variant="outline"
             size="sm"
             className="gap-1.5 h-9 shrink-0"
-            onClick={() => sorted.length && exportCSV(sorted)}
-            disabled={!sorted.length}
+            onClick={() => displayList.length && exportCSV(displayList)}
+            disabled={!displayList.length}
             data-testid="button-export-csv"
           >
             <Download className="h-3.5 w-3.5" />
@@ -380,6 +436,47 @@ export default function CustomerList() {
       </div>
 
       <ImportModal open={showImport} onClose={() => setShowImport(false)} />
+
+      {/* Bulk delete toolbar */}
+      {selectedIds.size > 0 && (
+        <div className="flex items-center justify-between bg-primary/5 border border-primary/20 rounded-2xl px-4 py-2.5">
+          <p className="text-sm font-medium text-primary">
+            {selectedIds.size} customer dipilih
+          </p>
+          <div className="flex items-center gap-2">
+            <Button variant="ghost" size="sm" className="h-8 text-sm" onClick={() => setSelectedIds(new Set())}>
+              Batalkan
+            </Button>
+            {!confirmDelete ? (
+              <Button
+                variant="destructive"
+                size="sm"
+                className="h-8 gap-1.5 text-sm"
+                onClick={() => setConfirmDelete(true)}
+              >
+                <Trash2 className="h-3.5 w-3.5" />
+                Hapus {selectedIds.size} customer
+              </Button>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-destructive font-medium">Yakin hapus permanen?</span>
+                <Button
+                  variant="destructive"
+                  size="sm"
+                  className="h-8 text-sm"
+                  disabled={bulkDeleteMutation.isPending}
+                  onClick={() => bulkDeleteMutation.mutate(Array.from(selectedIds))}
+                >
+                  {bulkDeleteMutation.isPending ? "Menghapus..." : "Ya, Hapus"}
+                </Button>
+                <Button variant="ghost" size="sm" className="h-8 text-sm" onClick={() => setConfirmDelete(false)}>
+                  Batal
+                </Button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Filters */}
       <div className="flex flex-wrap gap-2">
@@ -418,6 +515,20 @@ export default function CustomerList() {
             ))}
           </SelectContent>
         </Select>
+        {allTags.length > 0 && (
+          <Select value={tagFilter} onValueChange={setTagFilter}>
+            <SelectTrigger className="w-36 h-9 bg-white text-sm gap-1" data-testid="select-tag-filter">
+              <Tag className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+              <SelectValue placeholder="Kategori" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Kategori</SelectItem>
+              {allTags.map((tag) => (
+                <SelectItem key={tag} value={tag}>{tag}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
         <Select value={`${sortKey}-${sortDir}`} onValueChange={(v) => {
           const [k, d] = v.split("-") as [SortKey, SortDir];
           setSortKey(k); setSortDir(d);
@@ -451,60 +562,102 @@ export default function CustomerList() {
             </div>
           ))}
         </div>
-      ) : !sorted.length ? (
+      ) : !displayList.length ? (
         <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
           <EmptyState
             icon={Users}
             title="Belum ada customer"
             description={
-              search || statusFilter !== "all" || bizFilter !== "all"
+              search || statusFilter !== "all" || bizFilter !== "all" || tagFilter !== "all"
                 ? "Tidak ada customer yang cocok dengan filter yang dipilih."
                 : "Tambahkan customer pertama kamu untuk mulai melacak lead."
             }
-            actionLabel={(!search && statusFilter === "all" && bizFilter === "all") ? "+ Tambah Customer" : undefined}
-            actionHref={(!search && statusFilter === "all" && bizFilter === "all") ? "/customers/new" : undefined}
+            actionLabel={(!search && statusFilter === "all" && bizFilter === "all" && tagFilter === "all") ? "+ Tambah Customer" : undefined}
+            actionHref={(!search && statusFilter === "all" && bizFilter === "all" && tagFilter === "all") ? "/customers/new" : undefined}
           />
         </div>
       ) : (
         <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
-          {sorted.map((c: any) => (
-            <Link
-              key={c.id}
-              to={`/customers/${c.id}`}
-              className="flex items-center justify-between px-5 py-4 hover:bg-muted/30 transition-colors border-b border-border last:border-b-0 group"
-              data-testid={`row-customer-${c.id}`}
+          {/* Select All header row */}
+          <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border bg-muted/20">
+            <button
+              onClick={toggleSelectAll}
+              className="h-4 w-4 rounded border border-border flex items-center justify-center shrink-0 hover:border-primary transition-colors"
+              title={allSelected ? "Batalkan semua" : "Pilih semua"}
             >
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2.5">
-                  <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                    <span className="text-xs font-bold text-primary">{c.name.slice(0, 2).toUpperCase()}</span>
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-semibold text-sm text-foreground truncate">{c.name}</p>
-                    <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                      {c.customer_businesses?.map((cb: any) => (
-                        <BusinessBadge key={cb.business_id} name={cb.businesses?.name} />
-                      ))}
-                      {c.source && <span className="text-xs text-muted-foreground">via {c.source}</span>}
-                      {c.phone && <span className="text-xs text-muted-foreground font-mono">{c.phone}</span>}
+              {allSelected ? (
+                <CheckCircle className="h-4 w-4 text-primary" />
+              ) : someSelected ? (
+                <div className="h-2.5 w-2.5 rounded-sm bg-primary/60" />
+              ) : null}
+            </button>
+            <span className="text-xs text-muted-foreground">
+              {selectedIds.size > 0 ? `${selectedIds.size} dipilih dari ${displayList.length}` : `${displayList.length} customer`}
+            </span>
+          </div>
+          {displayList.map((c: any) => {
+            const isSelected = selectedIds.has(c.id);
+            return (
+              <div
+                key={c.id}
+                className={`flex items-center gap-3 px-4 py-3.5 border-b border-border last:border-b-0 group hover:bg-muted/20 transition-colors ${isSelected ? "bg-primary/5" : ""}`}
+              >
+                {/* Checkbox */}
+                <button
+                  onClick={(e) => toggleSelect(c.id, e)}
+                  className={`h-4 w-4 rounded border flex items-center justify-center shrink-0 transition-colors ${isSelected ? "border-primary bg-primary/10" : "border-border group-hover:border-muted-foreground/40"}`}
+                  title={isSelected ? "Hapus dari pilihan" : "Pilih customer ini"}
+                >
+                  {isSelected && <CheckCircle className="h-4 w-4 text-primary" />}
+                </button>
+                {/* Row content as link */}
+                <Link
+                  to={`/customers/${c.id}`}
+                  className="flex items-center justify-between flex-1 min-w-0"
+                  data-testid={`row-customer-${c.id}`}
+                >
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2.5">
+                      <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                        <span className="text-xs font-bold text-primary">{c.name.slice(0, 2).toUpperCase()}</span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="font-semibold text-sm text-foreground truncate">{c.name}</p>
+                        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                          {c.customer_businesses?.map((cb: any) => (
+                            <BusinessBadge key={cb.business_id} name={cb.businesses?.name} />
+                          ))}
+                          {(c.tags || []).map((tag: string) => (
+                            <span
+                              key={tag}
+                              className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-violet-100 text-violet-700 text-[10px] font-medium cursor-pointer hover:bg-violet-200 transition-colors"
+                              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setTagFilter(tag); }}
+                            >
+                              <Tag className="h-2.5 w-2.5" />{tag}
+                            </span>
+                          ))}
+                          {c.source && <span className="text-xs text-muted-foreground">via {c.source}</span>}
+                          {c.phone && <span className="text-xs text-muted-foreground font-mono">{c.phone}</span>}
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
+                  <div className="flex items-center gap-3 shrink-0 ml-3">
+                    {c.estimatedValue && (
+                      <span className="text-xs font-mono text-emerald-600 font-semibold hidden sm:block">
+                        {formatIDR(c.estimatedValue)}
+                      </span>
+                    )}
+                    <StatusBadge status={c.status} />
+                    <span className="text-xs text-muted-foreground font-mono hidden xs:block">
+                      {format(parseISO(c.updatedAt), "d MMM", { locale: idLocale })}
+                    </span>
+                    <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-muted-foreground transition-colors" />
+                  </div>
+                </Link>
               </div>
-              <div className="flex items-center gap-3 shrink-0 ml-3">
-                {c.estimatedValue && (
-                  <span className="text-xs font-mono text-emerald-600 font-semibold hidden sm:block">
-                    {formatIDR(c.estimatedValue)}
-                  </span>
-                )}
-                <StatusBadge status={c.status} />
-                <span className="text-xs text-muted-foreground font-mono hidden xs:block">
-                  {format(parseISO(c.updatedAt), "d MMM", { locale: idLocale })}
-                </span>
-                <ChevronRight className="h-3.5 w-3.5 text-muted-foreground/30 group-hover:text-muted-foreground transition-colors" />
-              </div>
-            </Link>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

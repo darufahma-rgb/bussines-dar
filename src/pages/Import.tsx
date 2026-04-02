@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 
 /* ─── Types ─────────────────────────────────────── */
 type Step = "upload" | "mapping" | "preview" | "done";
-type TargetField = "name" | "phone" | "email" | "status" | "estimatedValue" | "source" | "notes" | "business" | "skip";
+type TargetField = "name" | "phone" | "email" | "status" | "estimatedValue" | "source" | "tags" | "notes" | "business" | "skip";
 
 const TARGET_FIELDS: { value: TargetField; label: string; required?: boolean }[] = [
   { value: "name",           label: "Nama Customer",       required: true },
@@ -21,6 +21,7 @@ const TARGET_FIELDS: { value: TargetField; label: string; required?: boolean }[]
   { value: "status",         label: "Status Lead" },
   { value: "estimatedValue", label: "Estimasi Nilai (Rp)" },
   { value: "source",         label: "Sumber / Source" },
+  { value: "tags",           label: "Kategori / Tags" },
   { value: "notes",          label: "Catatan / Notes" },
   { value: "business",       label: "Unit Bisnis" },
   { value: "skip",           label: "— Abaikan kolom ini —" },
@@ -60,6 +61,10 @@ const AUTO_MAP: Record<string, TargetField> = {
   informasi: "notes", info: "notes", remarks: "notes", comment: "notes",
   komentar: "notes", "interest": "notes", minat: "notes", kebutuhan: "notes",
   "produk": "notes", paket: "notes", "yang diminati": "notes",
+  // Tags / Kategori
+  tags: "tags", kategori: "tags", category: "tags", "tag": "tags",
+  "kategori customer": "tags", label: "tags", "tipe": "tags", type: "tags",
+  "jenis": "tags", segment: "tags", segmen: "tags", grup: "tags", group: "tags",
   // Business
   business: "business", bisnis: "business", "unit bisnis": "business",
   brand: "business", perusahaan: "business", company: "business",

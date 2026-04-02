@@ -265,7 +265,7 @@ router.post("/", async (req, res) => {
 router.patch("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, lostReason, memory, estimatedValue, source, name, email, phone } = req.body;
+    const { status, lostReason, memory, estimatedValue, source, name, email, phone, tags } = req.body;
 
     const updateData: Record<string, any> = { updatedAt: new Date() };
     if (status !== undefined) updateData.status = status;
@@ -276,9 +276,24 @@ router.patch("/:id", async (req, res) => {
     if (name !== undefined) updateData.name = name;
     if (email !== undefined) updateData.email = email;
     if (phone !== undefined) updateData.phone = phone;
+    if (tags !== undefined) updateData.tags = tags;
 
     await db.update(customers).set(updateData).where(eq(customers.id, id));
     return res.json({ ok: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.delete("/bulk", async (req, res) => {
+  try {
+    const { ids } = req.body as { ids: string[] };
+    if (!Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ error: "ids required" });
+    }
+    await db.delete(customers).where(inArray(customers.id, ids));
+    return res.json({ deleted: ids.length });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Server error" });

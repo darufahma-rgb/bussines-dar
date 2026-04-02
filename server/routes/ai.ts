@@ -3,7 +3,7 @@ import OpenAI from "openai";
 import { db } from "../db.js";
 import { customers, interactions, businesses } from "../../shared/schema.js";
 import { requireAuth } from "../middleware/auth.js";
-import { eq, desc, inArray } from "drizzle-orm";
+import { eq, desc, inArray, and } from "drizzle-orm";
 
 const router = Router();
 router.use(requireAuth);

@@ -211,6 +211,10 @@ router.post("/customers", async (req, res) => {
       const estimatedValue = row.estimatedValue ? cleanNumber(row.estimatedValue) : undefined;
       const bizId = row.businessId || findBizId(row.business);
 
+      // Parse tags from comma-separated string
+      const tagsRaw = row.tags?.trim() || row.kategori?.trim() || row.category?.trim() || "";
+      const tagsArr = tagsRaw ? tagsRaw.split(/[,;|]/).map((t: string) => t.trim()).filter(Boolean) : [];
+
       const [inserted] = await db
         .insert(customers)
         .values({
@@ -221,6 +225,7 @@ router.post("/customers", async (req, res) => {
           source: row.source?.trim() || "import",
           estimatedValue: estimatedValue?.toString() || null,
           memory: row.notes?.trim() || null,
+          tags: tagsArr.length ? tagsArr : [],
         })
         .onConflictDoNothing()
         .returning({ id: customers.id });

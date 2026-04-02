@@ -63,6 +63,7 @@ export const api = {
     updateStatus: (id: string, status: string) =>
       request(`/customers/${id}`, { method: "PATCH", body: JSON.stringify({ status }) }),
     delete: (id: string) => request(`/customers/${id}`, { method: "DELETE" }),
+    bulkDelete: (ids: string[]) => request("/customers/bulk", { method: "DELETE", body: JSON.stringify({ ids }) }),
   },
   interactions: {
     list: (params?: { customerId?: string; type?: string; limit?: number; includeCustomer?: boolean }) => {
@@ -105,10 +106,10 @@ export const api = {
     yearly: () => request("/stats/yearly"),
   },
   import: {
-    customers: (rows: object[], businessName?: string) =>
+    customers: (rows: object[], defaultBusinessId?: string) =>
       request("/import/customers", {
         method: "POST",
-        body: JSON.stringify({ rows, businessName }),
+        body: JSON.stringify({ rows, defaultBusinessId }),
       }),
   },
 };
