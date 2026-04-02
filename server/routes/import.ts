@@ -19,7 +19,7 @@ import { db } from "../db.js";
 import { customers, customerBusinesses, businesses, interactions } from "../../shared/schema.js";
 import { requireAuth } from "../middleware/auth.js";
 import { ilike } from "drizzle-orm";
-import OpenAI from "openai";
+import { getOpenAI, getAIModel } from "../lib/aiClient.js";
 import type { CustomerStatus } from "../../shared/schema.js";
 
 const router = Router();
@@ -36,11 +36,6 @@ const upload = multer({
       cb(new Error("Format tidak didukung. Gunakan PDF, CSV, atau HTML."));
     }
   },
-});
-
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY || "",
-  baseURL: process.env.OPENAI_BASE_URL || undefined,
 });
 
 const VALID_STATUSES: CustomerStatus[] = ["new", "warm", "hot", "negotiation", "closed", "lost"];
@@ -76,8 +71,8 @@ router.post("/ai-map", async (req, res) => {
       `Baris ${i + 1}: ${headers.map(h => `${h}="${row[h] || ""}"`).join(", ")}`
     ).join("\n");
 
-    const completion = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+    const completion = await getOpenAI().chat.completions.create({
+      model: getAIModel(),
       messages: [
         {
           role: "system",
@@ -135,8 +130,8 @@ router.post("/parse-pdf", upload.single("file"), async (req, res) => {
       return res.status(422).json({ error: "PDF tidak bisa dibaca. Mungkin file scan/gambar?" });
     }
 
-    const completion = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+    const completion = await getOpenAI().chat.completions.create({
+      model: getAIModel(),
       messages: [
         {
           role: "system",

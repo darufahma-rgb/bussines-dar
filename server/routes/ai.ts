@@ -1,32 +1,12 @@
 import { Router } from "express";
-import OpenAI from "openai";
 import { db } from "../db.js";
 import { customers, interactions, businesses } from "../../shared/schema.js";
 import { requireAuth } from "../middleware/auth.js";
 import { eq, desc, inArray, and } from "drizzle-orm";
+import { getOpenAI, getAIModel } from "../lib/aiClient.js";
 
 const router = Router();
 router.use(requireAuth);
-
-function getOpenAI() {
-  const apiKey = process.env.OPENROUTER_API_KEY || process.env.AI_INTEGRATIONS_OPENAI_API_KEY || process.env.OPENAI_API_KEY;
-  if (!apiKey) throw new Error("No AI API key configured");
-  return new OpenAI({
-    apiKey,
-    baseURL: process.env.OPENROUTER_API_KEY
-      ? "https://openrouter.ai/api/v1"
-      : (process.env.AI_INTEGRATIONS_OPENAI_BASE_URL || "https://api.openai.com/v1"),
-    defaultHeaders: process.env.OPENROUTER_API_KEY
-      ? { "HTTP-Referer": "https://darciabusinesshub.app", "X-Title": "Darcia Business Hub" }
-      : {},
-  });
-}
-
-function getAIModel() {
-  return process.env.OPENROUTER_API_KEY
-    ? (process.env.OPENROUTER_MODEL || "google/gemini-2.0-flash-001")
-    : "gpt-4o-mini";
-}
 
 router.post("/parse-capture", async (req, res) => {
   try {
