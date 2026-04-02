@@ -2,24 +2,22 @@ import { Router } from "express";
 import bcrypt from "bcryptjs";
 import multer from "multer";
 import path from "path";
-import fs from "fs";
+import { createClient } from "@supabase/supabase-js";
 import { db } from "../db.js";
 import { users } from "../../shared/schema.js";
 import { eq } from "drizzle-orm";
 
-const UPLOADS_DIR = path.join(process.cwd(), "uploads");
-if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+function getSupabase() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY harus diset");
+  return createClient(url, key);
+}
 
-const avatarStorage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
-  filename: (_req, file, cb) => {
-    const ext = path.extname(file.originalname);
-    cb(null, `avatar-${Date.now()}${ext}`);
-  },
-});
+const BUCKET = "customer-files";
 
 const avatarUpload = multer({
-  storage: avatarStorage,
+  storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     if (file.mimetype.startsWith("image/")) cb(null, true);
@@ -126,22 +124,48 @@ router.post("/avatar", avatarUpload.single("avatar"), async (req, res) => {
   if (!file) return res.status(400).json({ error: "File diperlukan" });
 
   try {
+    const supabase = getSupabase();
+
+    // Delete old avatar from storage if it exists
     const [current] = await db.select({ avatar: users.avatar }).from(users).where(eq(users.id, req.session.userId)).limit(1);
     if (current?.avatar) {
-      const oldPath = path.join(UPLOADS_DIR, current.avatar);
-      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+      // Extract storage path from full URL if needed
+      const oldUrl = current.avatar;
+      const storagePrefix = `/storage/v1/object/public/${BUCKET}/`;
+      const idx = oldUrl.indexOf(storagePrefix);
+      if (idx !== -1) {
+        const oldPath = oldUrl.slice(idx + storagePrefix.length);
+        await supabase.storage.from(BUCKET).remove([oldPath]);
+      }
     }
+
+    const ext = path.extname(file.originalname);
+    const storagePath = `avatars/${req.session.userId}-${Date.now()}${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from(BUCKET)
+      .upload(storagePath, file.buffer, {
+        contentType: file.mimetype,
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error("Supabase avatar upload error:", uploadError);
+      return res.status(500).json({ error: "Upload avatar gagal: " + uploadError.message });
+    }
+
+    const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
 
     const [updated] = await db
       .update(users)
-      .set({ avatar: file.filename })
+      .set({ avatar: publicUrl })
       .where(eq(users.id, req.session.userId))
       .returning();
 
     return res.json({ user: { id: updated.id, email: updated.email, name: updated.name, avatar: updated.avatar } });
-  } catch (err) {
+  } catch (err: any) {
     console.error(err);
-    return res.status(500).json({ error: "Server error" });
+    return res.status(500).json({ error: err.message || "Server error" });
   }
 });
 
