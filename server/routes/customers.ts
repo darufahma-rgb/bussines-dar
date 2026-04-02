@@ -276,7 +276,12 @@ router.patch("/:id", async (req, res) => {
     if (name !== undefined) updateData.name = name;
     if (email !== undefined) updateData.email = email;
     if (phone !== undefined) updateData.phone = phone;
-    if (tags !== undefined) updateData.tags = tags;
+    if (tags !== undefined) {
+      const pgArr = Array.isArray(tags)
+        ? "{" + tags.map((s: string) => '"' + String(s).replace(/\\/g, "\\\\").replace(/"/g, '\\"') + '"').join(",") + "}"
+        : "{}";
+      updateData.tags = sql`${pgArr}::text[]`;
+    }
     if (customData !== undefined) {
       updateData.customData = customData
         ? sql`${JSON.stringify(customData)}::jsonb`
