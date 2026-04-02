@@ -18,6 +18,7 @@ import Monthly from "@/pages/Monthly";
 import Yearly from "@/pages/Yearly";
 import Profile from "@/pages/Profile";
 import AiChat from "@/pages/AiChat";
+import Import from "@/pages/Import";
 import NotFound from "@/pages/NotFound";
 import { Menu, PanelLeftClose, PanelLeftOpen, TrendingUp } from "lucide-react";
 import { format } from "date-fns";
@@ -35,6 +36,7 @@ const PAGE_TITLES: Record<string, string> = {
   "/monthly": "Laporan Bulanan",
   "/yearly": "Tinjauan Tahunan",
   "/chat": "Chat AI",
+  "/import": "Import Customer",
   "/profile": "Profil Saya",
 };
 
@@ -161,6 +163,7 @@ function AppLayout() {
               <Route path="/monthly" element={<Monthly />} />
               <Route path="/yearly" element={<Yearly />} />
               <Route path="/chat" element={<AiChat />} />
+              <Route path="/import" element={<Import />} />
               <Route path="/profile" element={<Profile />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

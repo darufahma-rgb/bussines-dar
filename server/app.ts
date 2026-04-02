@@ -37,7 +37,7 @@ const aiLimiter = rateLimit({
   legacyHeaders: false,
 });
 
-app.use(express.json({ limit: "50kb" }));
+app.use(express.json({ limit: "5mb" }));
 
 app.use(session({
   store: new PgSession({ pool, createTableIfMissing: true }),

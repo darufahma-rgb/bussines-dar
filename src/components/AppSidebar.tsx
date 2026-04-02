@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Users, CalendarCheck, LogOut, Plus,
-  BarChart2, CalendarDays, Kanban, X, CalendarRange, Sparkles, UserCircle,
+  BarChart2, CalendarDays, Kanban, X, CalendarRange, Sparkles, UserCircle, FileUp,
 } from "lucide-react";
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
@@ -30,6 +30,7 @@ const navSections = [
       { to: "/pipeline", icon: Kanban, label: "Pipeline", end: true, hasBadge: false },
       { to: "/follow-ups", icon: CalendarCheck, label: "Follow-ups", end: true, hasBadge: true },
       { to: "/customers/new", icon: Plus, label: "Tambah Customer", end: true, hasBadge: false },
+      { to: "/import", icon: FileUp, label: "Import Customer", end: true, hasBadge: false },
     ],
   },
   {
