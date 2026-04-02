@@ -8,7 +8,7 @@ import QuickCapture from "@/components/QuickCapture";
 import StatusBadge from "@/components/StatusBadge";
 import EmptyState from "@/components/EmptyState";
 import { Link } from "react-router-dom";
-import { format, isToday, isPast, parseISO } from "date-fns";
+import { isToday, isPast, parseISO } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import BusinessBadge from "@/components/BusinessBadge";
 import { useAuth } from "@/hooks/useAuth";
@@ -282,7 +282,7 @@ export default function Dashboard() {
                     <div className="flex items-center justify-between gap-2 mb-0.5">
                       <p className="text-sm font-semibold text-foreground truncate">{n.customers?.name}</p>
                       <span className="text-[11px] text-muted-foreground font-mono shrink-0">
-                        {format(parseISO(n.createdAt), "d MMM", { locale: idLocale })}
+                        {formatDateShort(n.createdAt)}
                       </span>
                     </div>
                     <p className="text-xs text-muted-foreground line-clamp-1">{n.content}</p>

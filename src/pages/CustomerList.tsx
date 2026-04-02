@@ -11,12 +11,11 @@ import {
   Search, Download, Upload, Trash2, Tag, LayoutGrid, List, Table2,
   ArrowUpDown, Users, ChevronRight, Building2, Phone, Mail, TrendingUp,
 } from "lucide-react";
-import { format, parseISO } from "date-fns";
-import { id as idLocale } from "date-fns/locale";
+import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
 import { Skeleton } from "@/components/ui/skeleton";
 import EmptyState from "@/components/EmptyState";
-import { formatIDR } from "@/lib/format";
+import { formatIDR, formatDateShort } from "@/lib/format";
 
 type SortKey = "name" | "updatedAt" | "status" | "estimatedValue";
 type SortDir = "asc" | "desc";
@@ -31,7 +30,7 @@ function exportCSV(customers: any[]) {
     c.customer_businesses?.map((cb: any) => cb.businesses?.name).filter(Boolean).join("; ") || "",
     c.source || "", c.estimatedValue || "",
     (c.tags || []).join("; "),
-    format(parseISO(c.updatedAt), "yyyy-MM-dd"),
+    c.updatedAt ? (() => { try { return format(new Date(c.updatedAt), "yyyy-MM-dd"); } catch { return ""; } })() : "",
   ]);
   const csv = [headers, ...rows]
     .map((row) => row.map((v) => `"${String(v).replace(/"/g, '""')}"`).join(","))
@@ -128,7 +127,7 @@ function CustomerCard({ customer, selected, onSelect, onNavigate }: {
             </span>
           ) : <span />}
           <span className="text-[11px] text-muted-foreground">
-            {format(parseISO(customer.updatedAt), "d MMM", { locale: idLocale })}
+            {formatDateShort(customer.updatedAt)}
           </span>
         </div>
       </div>
@@ -189,7 +188,7 @@ function CustomerRow({ customer, selected, onSelect, onNavigate }: {
 
       {/* Date */}
       <div className="text-xs text-muted-foreground shrink-0 hidden md:block w-16 text-right">
-        {format(parseISO(customer.updatedAt), "d MMM", { locale: idLocale })}
+        {formatDateShort(customer.updatedAt)}
       </div>
 
       <ChevronRight className="h-4 w-4 text-muted-foreground/40 shrink-0" />
@@ -278,7 +277,7 @@ function CustomerTable({ customers, selectedIds, onSelect, onNavigate, onSort, s
                     {c.estimatedValue ? formatIDR(Number(c.estimatedValue)) : "—"}
                   </td>
                   <td className="px-4 py-3 text-right text-xs text-muted-foreground">
-                    {format(parseISO(c.updatedAt), "d MMM yy", { locale: idLocale })}
+                    {formatDateShort(c.updatedAt)}
                   </td>
                 </tr>
               );

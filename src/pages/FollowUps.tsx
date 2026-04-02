@@ -4,9 +4,9 @@ import { Link } from "react-router-dom";
 import StatusBadge from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Check, CalendarCheck, Clock, AlarmClock, CalendarDays } from "lucide-react";
-import { format, parseISO, isToday, isPast, isFuture } from "date-fns";
-import { id as idLocale } from "date-fns/locale";
+import { parseISO, isToday, isPast, isFuture } from "date-fns";
 import { toast } from "sonner";
+import { formatDateShort } from "@/lib/format";
 
 export default function FollowUps() {
   const queryClient = useQueryClient();
@@ -58,7 +58,7 @@ export default function FollowUps() {
         <StatusBadge status={f.customers?.status} />
         {f.followUpDate && (
           <span className={`text-xs font-mono font-semibold tabular-nums ${urgency ? "text-red-500" : "text-muted-foreground"}`}>
-            {format(parseISO(f.followUpDate), "d MMM", { locale: idLocale })}
+            {formatDateShort(f.followUpDate)}
           </span>
         )}
         <Button

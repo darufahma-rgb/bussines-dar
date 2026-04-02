@@ -6,6 +6,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useAuth } from "@/hooks/useAuth";
 import AppSidebar from "@/components/AppSidebar";
+import ErrorBoundary from "@/components/ErrorBoundary";
 import Login from "@/pages/Login";
 import Dashboard from "@/pages/Dashboard";
 import CustomerList from "@/pages/CustomerList";
@@ -152,21 +153,23 @@ function AppLayout() {
         />
         <main className="flex-1 overflow-y-auto">
           <div className="p-4 sm:p-6 max-w-screen-xl mx-auto">
-            <Routes>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/customers" element={<CustomerList />} />
-              <Route path="/customers/new" element={<NewCustomer />} />
-              <Route path="/customers/:id" element={<CustomerDetail />} />
-              <Route path="/follow-ups" element={<FollowUps />} />
-              <Route path="/pipeline" element={<Pipeline />} />
-              <Route path="/weekly" element={<Weekly />} />
-              <Route path="/monthly" element={<Monthly />} />
-              <Route path="/yearly" element={<Yearly />} />
-              <Route path="/chat" element={<AiChat />} />
-              <Route path="/import" element={<Import />} />
-              <Route path="/profile" element={<Profile />} />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
+            <ErrorBoundary>
+              <Routes>
+                <Route path="/" element={<ErrorBoundary><Dashboard /></ErrorBoundary>} />
+                <Route path="/customers" element={<ErrorBoundary><CustomerList /></ErrorBoundary>} />
+                <Route path="/customers/new" element={<ErrorBoundary><NewCustomer /></ErrorBoundary>} />
+                <Route path="/customers/:id" element={<ErrorBoundary><CustomerDetail /></ErrorBoundary>} />
+                <Route path="/follow-ups" element={<ErrorBoundary><FollowUps /></ErrorBoundary>} />
+                <Route path="/pipeline" element={<ErrorBoundary><Pipeline /></ErrorBoundary>} />
+                <Route path="/weekly" element={<ErrorBoundary><Weekly /></ErrorBoundary>} />
+                <Route path="/monthly" element={<ErrorBoundary><Monthly /></ErrorBoundary>} />
+                <Route path="/yearly" element={<ErrorBoundary><Yearly /></ErrorBoundary>} />
+                <Route path="/chat" element={<ErrorBoundary><AiChat /></ErrorBoundary>} />
+                <Route path="/import" element={<ErrorBoundary><Import /></ErrorBoundary>} />
+                <Route path="/profile" element={<ErrorBoundary><Profile /></ErrorBoundary>} />
+                <Route path="*" element={<NotFound />} />
+              </Routes>
+            </ErrorBoundary>
           </div>
         </main>
       </div>

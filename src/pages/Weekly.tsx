@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import StatCard from "@/components/StatCard";
 import SectionHeading from "@/components/SectionHeading";
-import { format, parseISO, startOfWeek, endOfWeek } from "date-fns";
+import { format, startOfWeek, endOfWeek } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
 import { Link } from "react-router-dom";
 import { Skeleton } from "@/components/ui/skeleton";
+import { formatDateShort } from "@/lib/format";
 
 const typeLabels: Record<string, string> = {
   note:          "Catatan",
@@ -118,7 +119,7 @@ export default function Weekly() {
                             {i.customerName}
                           </Link>
                           <span className="text-xs text-muted-foreground font-mono shrink-0">
-                            {format(parseISO(i.createdAt), "EEE, d MMM", { locale: idLocale })}
+                            {formatDateShort(i.createdAt)}
                           </span>
                         </div>
                         <p className="text-xs text-muted-foreground line-clamp-1 mt-0.5">{i.content}</p>

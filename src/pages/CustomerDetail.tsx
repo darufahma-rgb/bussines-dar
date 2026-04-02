@@ -11,8 +11,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { format, parseISO } from "date-fns";
-import { id as idLocale } from "date-fns/locale";
+import { formatDateTime, formatDate, formatIDR } from "@/lib/format";
 import {
   ArrowLeft, MessageSquare, DollarSign, CalendarCheck, Zap,
   Check, Trash2, Sparkles, Loader2, Copy, RefreshCw, ChevronDown, ChevronUp,
@@ -20,7 +19,6 @@ import {
 } from "lucide-react";
 import { useRef } from "react";
 import { cn } from "@/lib/utils";
-import { formatIDR } from "@/lib/format";
 
 type InteractionType = "note" | "transaction" | "follow_up" | "quick_capture";
 type CustomerStatus = "new" | "warm" | "hot" | "negotiation" | "closed" | "lost";
@@ -1072,7 +1070,7 @@ export default function CustomerDetail() {
                             {cfg.label}
                           </span>
                           <span className="text-xs text-muted-foreground font-mono">
-                            {format(parseISO(item.createdAt), "d MMM, HH:mm", { locale: idLocale })}
+                            {formatDateTime(item.createdAt)}
                           </span>
                           {item.type === "follow_up" && !item.isCompleted && (
                             <button
@@ -1122,7 +1120,7 @@ export default function CustomerDetail() {
                       {item.followUpDate && !item.isCompleted && (
                         <p className="text-xs text-amber-600 font-medium mt-1.5 flex items-center gap-1">
                           <CalendarCheck className="h-3 w-3" />
-                          Follow-up: {format(parseISO(item.followUpDate), "d MMMM yyyy", { locale: idLocale })}
+                          Follow-up: {formatDate(item.followUpDate)}
                         </p>
                       )}
                     </div>
