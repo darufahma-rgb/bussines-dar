@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { format, parseISO } from "date-fns";
 import { id as idLocale } from "date-fns/locale";
@@ -313,6 +314,15 @@ export default function CustomerDetail() {
   const [memoryText, setMemoryText] = useState("");
   const [savingMemory, setSavingMemory] = useState(false);
 
+  const [editingInfo, setEditingInfo] = useState(false);
+  const [infoName, setInfoName] = useState("");
+  const [infoEmail, setInfoEmail] = useState("");
+  const [infoPhone, setInfoPhone] = useState("");
+  const [infoValue, setInfoValue] = useState("");
+  const [infoSource, setInfoSource] = useState("");
+  const [infoBiz, setInfoBiz] = useState<string[]>([]);
+  const [savingInfo, setSavingInfo] = useState(false);
+
   const [pendingStatus, setPendingStatus] = useState<CustomerStatus | null>(null);
   const [statusChanging, setStatusChanging] = useState(false);
   const [completingId, setCompletingId] = useState<string | null>(null);
@@ -340,6 +350,11 @@ export default function CustomerDetail() {
     enabled: !!id,
   });
 
+  const { data: allBusinesses } = useQuery({
+    queryKey: ["businesses"],
+    queryFn: () => api.businesses.list(),
+  });
+
   const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: ["customer", id] });
     queryClient.invalidateQueries({ queryKey: ["customers"] });
@@ -363,6 +378,37 @@ export default function CustomerDetail() {
       toast.success("Berhasil ditambahkan!");
     } catch { toast.error("Gagal menambahkan interaksi"); }
     setSaving(false);
+  };
+
+  const openEditInfo = (c: any) => {
+    setInfoName(c.name ?? "");
+    setInfoEmail(c.email ?? "");
+    setInfoPhone(c.phone ?? "");
+    setInfoValue(c.estimatedValue ?? "");
+    setInfoSource(c.source ?? "");
+    setInfoBiz(c.customer_businesses?.map((cb: any) => cb.business_id) ?? []);
+    setEditingInfo(true);
+  };
+
+  const handleSaveInfo = async () => {
+    if (!id || !infoName.trim()) { toast.error("Nama tidak boleh kosong"); return; }
+    setSavingInfo(true);
+    try {
+      await api.customers.update(id, {
+        name: infoName.trim(),
+        email: infoEmail.trim() || undefined,
+        phone: infoPhone.trim() || undefined,
+        estimatedValue: infoValue ? Number(infoValue.replace(/[^0-9]/g, "")) : null,
+        source: infoSource || undefined,
+        businessIds: infoBiz,
+      });
+      queryClient.invalidateQueries({ queryKey: ["customer", id] });
+      queryClient.invalidateQueries({ queryKey: ["customers"] });
+      queryClient.invalidateQueries({ queryKey: ["dashboard-stats"] });
+      setEditingInfo(false);
+      toast.success("Info customer diperbarui");
+    } catch { toast.error("Gagal menyimpan"); }
+    setSavingInfo(false);
   };
 
   const handleStatusChange = async (status: CustomerStatus, lostReason?: string) => {
@@ -507,10 +553,23 @@ export default function CustomerDetail() {
                 {(customer.email || customer.phone) && (
                   <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                     {customer.email && (
-                      <span className="text-xs text-muted-foreground">{customer.email}</span>
+                      <a href={`mailto:${customer.email}`} className="text-xs text-muted-foreground hover:text-primary transition-colors">
+                        {customer.email}
+                      </a>
                     )}
                     {customer.phone && (
-                      <span className="text-xs text-muted-foreground font-mono">{customer.phone}</span>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs text-muted-foreground font-mono">{customer.phone}</span>
+                        <a
+                          href={`https://wa.me/${customer.phone.replace(/[^0-9]/g, "").replace(/^0/, "62")}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          title="Buka WhatsApp"
+                          className="inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors border border-emerald-200"
+                        >
+                          <MessageSquare className="h-2.5 w-2.5" /> WA
+                        </a>
+                      </div>
                     )}
                   </div>
                 )}
@@ -523,6 +582,15 @@ export default function CustomerDetail() {
             </div>
 
             <div className="flex items-center gap-2 shrink-0">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => openEditInfo(customer)}
+                className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground hover:bg-muted/80"
+                title="Edit info customer"
+              >
+                <Edit2 className="h-3.5 w-3.5" />
+              </Button>
               <Select value={customer.status} onValueChange={handleStatusSelect} disabled={statusChanging}>
                 <SelectTrigger className="w-32 h-8 text-xs bg-white">
                   {statusChanging
@@ -568,6 +636,64 @@ export default function CustomerDetail() {
             <div className="flex items-center gap-2 mt-4 px-3 py-2 bg-red-50 rounded-xl border border-red-100">
               <AlertTriangle className="h-3.5 w-3.5 text-red-500 shrink-0" />
               <p className="text-xs text-red-600">Alasan gagal: <strong>{customer.lostReason}</strong></p>
+            </div>
+          )}
+
+          {/* Inline edit form */}
+          {editingInfo && (
+            <div className="mt-4 pt-4 border-t border-border space-y-3">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Edit Info Customer</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Nama *</label>
+                  <Input value={infoName} onChange={e => setInfoName(e.target.value)} placeholder="Nama customer" className="h-8 text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Estimated Value (Rp)</label>
+                  <Input value={infoValue} onChange={e => setInfoValue(e.target.value)} placeholder="Contoh: 5000000" className="h-8 text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Email</label>
+                  <Input value={infoEmail} onChange={e => setInfoEmail(e.target.value)} type="email" placeholder="email@contoh.com" className="h-8 text-sm" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Nomor HP / WhatsApp</label>
+                  <Input value={infoPhone} onChange={e => setInfoPhone(e.target.value)} placeholder="08xxxxxxxx" className="h-8 text-sm" />
+                </div>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-muted-foreground">Lead Source</label>
+                <Select value={infoSource} onValueChange={setInfoSource}>
+                  <SelectTrigger className="h-8 text-sm bg-white"><SelectValue placeholder="Pilih sumber..." /></SelectTrigger>
+                  <SelectContent>
+                    {["Instagram", "WhatsApp", "Referral", "Website", "TikTok", "Email", "Cold Outreach", "Event", "Other"].map(s => (
+                      <SelectItem key={s} value={s}>{s}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              {allBusinesses && allBusinesses.length > 0 && (
+                <div className="space-y-1.5">
+                  <label className="text-xs text-muted-foreground">Bisnis</label>
+                  <div className="flex flex-wrap gap-3">
+                    {allBusinesses.map((b: any) => (
+                      <label key={b.id} className="flex items-center gap-2 cursor-pointer">
+                        <Checkbox
+                          checked={infoBiz.includes(b.id)}
+                          onCheckedChange={checked => setInfoBiz(prev => checked ? [...prev, b.id] : prev.filter(x => x !== b.id))}
+                        />
+                        <span className="text-sm text-foreground">{b.name}</span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <div className="flex gap-2 pt-1">
+                <Button variant="outline" size="sm" onClick={() => setEditingInfo(false)} className="h-8">Batal</Button>
+                <Button size="sm" onClick={handleSaveInfo} disabled={savingInfo} className="h-8">
+                  {savingInfo ? <><Loader2 className="h-3 w-3 animate-spin mr-1.5" />Menyimpan...</> : "Simpan Perubahan"}
+                </Button>
+              </div>
             </div>
           )}
         </div>

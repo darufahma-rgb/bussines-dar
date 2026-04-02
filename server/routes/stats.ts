@@ -140,12 +140,20 @@ router.get("/yearly", async (_req, res) => {
     const yearStart = startOfYear();
     const now = new Date();
 
-    const [totalCustomers, closedDeals, totalRevenue, bizRows] = await Promise.all([
+    const [totalCustomers, closedDeals, totalRevenueTx, totalRevenueEst, bizRows] = await Promise.all([
       db.select({ count: sql<number>`count(*)` }).from(customers).where(gte(customers.createdAt, yearStart)),
       db.select({ count: sql<number>`count(*)` }).from(customers).where(and(eq(customers.status, "closed"), gte(customers.updatedAt, yearStart))),
       db.select({ total: sql<string>`coalesce(sum(amount), 0)` }).from(interactions).where(and(eq(interactions.type, "transaction"), gte(interactions.createdAt, yearStart))),
+      db.select({ total: sql<string>`coalesce(sum(estimated_value), 0)` }).from(customers).where(
+        and(
+          eq(customers.status, "closed"),
+          gte(customers.updatedAt, yearStart),
+          sql`id not in (select customer_id from interactions where type = 'transaction' and created_at >= ${yearStart})`
+        )
+      ),
       db.select().from(businesses),
     ]);
+    const totalRevenue = [{ total: String(Number(totalRevenueTx[0].total) + Number(totalRevenueEst[0].total)) }];
 
     const [activeLeads, lostLeads, sourceRows, lostReasonRows] = await Promise.all([
       db.select({ count: sql<number>`count(*)` }).from(customers).where(
@@ -176,15 +184,23 @@ router.get("/yearly", async (_req, res) => {
 
         let newCustomers = 0, closedThisYear = 0, revenue = "0", totalInteractions = 0;
         if (customerIds.length) {
-          const [nc, cl, rev, ti] = await Promise.all([
+          const [nc, cl, rev, ti, estRev] = await Promise.all([
             db.select({ count: sql<number>`count(*)` }).from(customers).where(and(inArray(customers.id, customerIds), gte(customers.createdAt, yearStart))),
             db.select({ count: sql<number>`count(*)` }).from(customers).where(and(inArray(customers.id, customerIds), eq(customers.status, "closed"), gte(customers.updatedAt, yearStart))),
             db.select({ total: sql<string>`coalesce(sum(amount), 0)` }).from(interactions).where(and(inArray(interactions.customerId, customerIds), eq(interactions.type, "transaction"), gte(interactions.createdAt, yearStart))),
             db.select({ count: sql<number>`count(*)` }).from(interactions).where(and(inArray(interactions.customerId, customerIds), gte(interactions.createdAt, yearStart))),
+            db.select({ total: sql<string>`coalesce(sum(estimated_value), 0)` }).from(customers).where(
+              and(
+                inArray(customers.id, customerIds),
+                eq(customers.status, "closed"),
+                gte(customers.updatedAt, yearStart),
+                sql`id not in (select customer_id from interactions where type = 'transaction' and created_at >= ${yearStart})`
+              )
+            ),
           ]);
           newCustomers = Number(nc[0].count);
           closedThisYear = Number(cl[0].count);
-          revenue = rev[0].total;
+          revenue = String(Number(rev[0].total) + Number(estRev[0].total));
           totalInteractions = Number(ti[0].count);
         }
 
@@ -211,12 +227,21 @@ router.get("/yearly", async (_req, res) => {
 
         if (monthEnd > now) return { month: label, newCustomers: 0, closedDeals: 0, revenue: "0" };
 
-        const [nc, cd, rev] = await Promise.all([
+        const [nc, cd, rev, estRev] = await Promise.all([
           db.select({ count: sql<number>`count(*)` }).from(customers).where(and(gte(customers.createdAt, monthStart), lt(customers.createdAt, monthEnd))),
           db.select({ count: sql<number>`count(*)` }).from(customers).where(and(eq(customers.status, "closed"), gte(customers.updatedAt, monthStart), lt(customers.updatedAt, monthEnd))),
           db.select({ total: sql<string>`coalesce(sum(amount), 0)` }).from(interactions).where(and(eq(interactions.type, "transaction"), gte(interactions.createdAt, monthStart), lt(interactions.createdAt, monthEnd))),
+          db.select({ total: sql<string>`coalesce(sum(estimated_value), 0)` }).from(customers).where(
+            and(
+              eq(customers.status, "closed"),
+              gte(customers.updatedAt, monthStart),
+              lt(customers.updatedAt, monthEnd),
+              sql`id not in (select customer_id from interactions where type = 'transaction' and created_at >= ${monthStart} and created_at < ${monthEnd})`
+            )
+          ),
         ]);
-        return { month: label, newCustomers: Number(nc[0].count), closedDeals: Number(cd[0].count), revenue: rev[0].total };
+        const monthRevenue = String(Number(rev[0].total) + Number(estRev[0].total));
+        return { month: label, newCustomers: Number(nc[0].count), closedDeals: Number(cd[0].count), revenue: monthRevenue };
       })
     );
 

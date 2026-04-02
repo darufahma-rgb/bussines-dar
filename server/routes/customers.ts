@@ -265,7 +265,7 @@ router.post("/", async (req, res) => {
 router.patch("/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { status, lostReason, memory, estimatedValue, source, name, email, phone, tags } = req.body;
+    const { status, lostReason, memory, estimatedValue, source, name, email, phone, tags, businessIds } = req.body;
 
     const updateData: Record<string, any> = { updatedAt: new Date() };
     if (status !== undefined) updateData.status = status;
@@ -279,6 +279,16 @@ router.patch("/:id", async (req, res) => {
     if (tags !== undefined) updateData.tags = tags;
 
     await db.update(customers).set(updateData).where(eq(customers.id, id));
+
+    if (Array.isArray(businessIds)) {
+      await db.delete(customerBusinesses).where(eq(customerBusinesses.customerId, id));
+      if (businessIds.length > 0) {
+        await db.insert(customerBusinesses).values(
+          businessIds.map((bizId: string) => ({ customerId: id, businessId: bizId }))
+        );
+      }
+    }
+
     return res.json({ ok: true });
   } catch (err) {
     console.error(err);
