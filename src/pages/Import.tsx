@@ -525,12 +525,29 @@ export default function ImportPage() {
   /* ════════════════════════════════════════
       STEP: Preview
      ════════════════════════════════════════ */
-  if (step === "preview") return (
+  if (step === "preview") {
+    // Build dynamic columns from actual mapping — only mapped (non-skip) fields, name first
+    const mappedTargets = Array.from(
+      new Set(Object.values(mapping).filter(v => v !== "skip"))
+    ).sort((a, b) => (a === "name" ? -1 : b === "name" ? 1 : 0));
+
+    // Map each target field → which source columns feed it
+    const targetToSources: Record<string, string[]> = {};
+    for (const [src, tgt] of Object.entries(mapping)) {
+      if (tgt === "skip") continue;
+      if (!targetToSources[tgt]) targetToSources[tgt] = [];
+      targetToSources[tgt].push(src);
+    }
+
+    const fieldLabel = (f: string) => TARGET_FIELDS.find(t => t.value === f)?.label ?? f;
+    const monoFields = new Set(["phone", "estimatedValue"]);
+
+    return (
     <div className="max-w-5xl mx-auto space-y-5">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-bold text-foreground">Preview Import</h1>
-          <p className="text-sm text-muted-foreground mt-0.5">{mappedRows.length} customer siap diimport. Periksa sebelum konfirmasi.</p>
+          <p className="text-sm text-muted-foreground mt-0.5">{mappedRows.length} baris · {mappedTargets.length} kolom terdeteksi</p>
         </div>
         <button
           onClick={() => setStep("mapping")}
@@ -545,26 +562,40 @@ export default function ImportPage() {
           <table className="w-full text-sm">
             <thead>
               <tr className="border-b border-border bg-muted/40">
-                {["Nama", "No. HP", "Email", "Status", "Unit Bisnis", "Estimasi (Rp)", "Sumber", "Catatan"].map(h => (
-                  <th key={h} className="text-left text-xs font-semibold text-muted-foreground px-4 py-3 whitespace-nowrap">{h}</th>
+                {mappedTargets.map(tgt => (
+                  <th key={tgt} className="text-left px-4 py-3 whitespace-nowrap">
+                    <p className="text-xs font-semibold text-foreground">{fieldLabel(tgt)}</p>
+                    <p className="text-[10px] text-muted-foreground font-normal mt-0.5 font-mono">
+                      {targetToSources[tgt]?.join(", ")}
+                    </p>
+                  </th>
                 ))}
               </tr>
             </thead>
             <tbody className="divide-y divide-border">
               {mappedRows.slice(0, 25).map((row, i) => (
                 <tr key={i} className={cn("hover:bg-muted/20 transition-colors", !row.name && "opacity-50")}>
-                  <td className="px-4 py-2.5 font-semibold text-foreground whitespace-nowrap max-w-[180px] truncate">
-                    {row.name || <span className="text-red-400 italic text-xs">kosong — dilewati</span>}
-                  </td>
-                  <td className="px-4 py-2.5 text-muted-foreground font-mono text-xs whitespace-nowrap">{row.phone || "—"}</td>
-                  <td className="px-4 py-2.5 text-muted-foreground text-xs max-w-[140px] truncate">{row.email || "—"}</td>
-                  <td className="px-4 py-2.5">
-                    {row.status ? <span className="text-xs px-2 py-0.5 rounded-full bg-muted/60 font-medium">{row.status}</span> : "—"}
-                  </td>
-                  <td className="px-4 py-2.5 text-muted-foreground text-xs whitespace-nowrap">{row.business || "—"}</td>
-                  <td className="px-4 py-2.5 text-muted-foreground font-mono text-xs whitespace-nowrap">{row.estimatedValue || "—"}</td>
-                  <td className="px-4 py-2.5 text-muted-foreground text-xs whitespace-nowrap">{row.source || "—"}</td>
-                  <td className="px-4 py-2.5 text-muted-foreground text-xs max-w-[200px] truncate">{row.notes || "—"}</td>
+                  {mappedTargets.map(tgt => {
+                    const val = row[tgt];
+                    if (tgt === "name") return (
+                      <td key={tgt} className="px-4 py-2.5 font-semibold text-foreground whitespace-nowrap max-w-[180px] truncate">
+                        {val || <span className="text-red-400 italic text-xs">kosong — dilewati</span>}
+                      </td>
+                    );
+                    if (tgt === "status") return (
+                      <td key={tgt} className="px-4 py-2.5">
+                        {val ? <span className="text-xs px-2 py-0.5 rounded-full bg-muted/60 font-medium">{val}</span> : <span className="text-muted-foreground">—</span>}
+                      </td>
+                    );
+                    return (
+                      <td key={tgt} className={cn(
+                        "px-4 py-2.5 text-muted-foreground text-xs max-w-[200px] truncate",
+                        monoFields.has(tgt) ? "font-mono whitespace-nowrap" : ""
+                      )}>
+                        {val || "—"}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))}
             </tbody>
@@ -601,6 +632,7 @@ export default function ImportPage() {
       </div>
     </div>
   );
+  } // end preview
 
   /* ════════════════════════════════════════
       STEP: Done
