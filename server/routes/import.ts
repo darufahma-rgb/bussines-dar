@@ -18,7 +18,7 @@ const pdfParse: (buffer: Buffer) => Promise<{ text: string }> = require("pdf-par
 import { db } from "../db.js";
 import { customers, customerBusinesses, businesses, interactions } from "../../shared/schema.js";
 import { requireAuth } from "../middleware/auth.js";
-import { ilike } from "drizzle-orm";
+import { ilike, sql } from "drizzle-orm";
 import { getOpenAI, getAIModel } from "../lib/aiClient.js";
 import type { CustomerStatus } from "../../shared/schema.js";
 
@@ -215,6 +215,8 @@ router.post("/customers", async (req, res) => {
       const tagsRaw = row.tags?.trim() || row.kategori?.trim() || row.category?.trim() || "";
       const tagsArr = tagsRaw ? tagsRaw.split(/[,;|]/).map((t: string) => t.trim()).filter(Boolean) : [];
 
+      const hasCustomData = row.customData && Object.keys(row.customData).length > 0;
+
       const [inserted] = await db
         .insert(customers)
         .values({
@@ -225,8 +227,9 @@ router.post("/customers", async (req, res) => {
           source: row.source?.trim() || "import",
           estimatedValue: estimatedValue?.toString() || null,
           memory: row.notes?.trim() || null,
-          tags: tagsArr.length ? tagsArr : [],
-          customData: row.customData && Object.keys(row.customData).length > 0 ? row.customData : null,
+          tags: tagsArr,
+          // Use explicit cast to avoid node-postgres JSONB type mismatch
+          customData: hasCustomData ? (sql`${JSON.stringify(row.customData)}::jsonb` as any) : null,
         })
         .onConflictDoNothing()
         .returning({ id: customers.id });
