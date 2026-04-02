@@ -1,5 +1,4 @@
 import "dotenv/config";
-import path from "path";
 import express from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
@@ -62,10 +61,6 @@ app.use("/api/ai", aiLimiter, aiRoutes);
 app.use("/api/stats", statsRoutes);
 app.use("/api/import", importRoutes);
 app.use("/api/customers", filesRoutes);
-const uploadsDir = process.env.NODE_ENV === "production"
-  ? path.join("/tmp", "uploads")
-  : path.join(process.cwd(), "uploads");
-app.use("/uploads", express.static(uploadsDir));
 
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 

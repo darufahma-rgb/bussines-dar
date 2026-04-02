@@ -12,7 +12,6 @@ if (!isProd) {
 
 if (isProd) {
   const distPath = path.join(process.cwd(), "dist");
-  app.use("/uploads", express.static(path.join("/tmp", "uploads")));
   app.use(express.static(distPath));
   app.get("/{*path}", (_req, res) => {
     res.sendFile(path.join(distPath, "index.html"));

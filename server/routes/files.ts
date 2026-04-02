@@ -1,7 +1,7 @@
 import { Router } from "express";
 import multer from "multer";
 import path from "path";
-import fs from "fs";
+import { createClient } from "@supabase/supabase-js";
 import { db } from "../db.js";
 import { customerFiles, customers } from "../../shared/schema.js";
 import { requireAuth } from "../middleware/auth.js";
@@ -10,28 +10,18 @@ import { eq, desc } from "drizzle-orm";
 const router = Router();
 router.use(requireAuth);
 
-const UPLOADS_DIR = process.env.NODE_ENV === "production"
-  ? path.join("/tmp", "uploads")
-  : path.join(process.cwd(), "uploads");
+const BUCKET = "customer-files";
 
-try {
-  if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-} catch (e) {
-  console.warn("Could not create uploads directory:", e);
+function getSupabase() {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("SUPABASE_URL dan SUPABASE_SERVICE_ROLE_KEY harus diset");
+  return createClient(url, key);
 }
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
-  filename: (_req, file, cb) => {
-    const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-    const ext = path.extname(file.originalname);
-    cb(null, `${unique}${ext}`);
-  },
-});
-
 const upload = multer({
-  storage,
-  limits: { fileSize: 20 * 1024 * 1024 }, // 20MB
+  storage: multer.memoryStorage(),
+  limits: { fileSize: 20 * 1024 * 1024 },
   fileFilter: (_req, file, cb) => {
     const allowed = [
       "image/jpeg", "image/png", "image/webp", "image/heic",
@@ -52,7 +42,14 @@ router.get("/:customerId/files", async (req, res) => {
       .from(customerFiles)
       .where(eq(customerFiles.customerId, customerId))
       .orderBy(desc(customerFiles.uploadedAt));
-    return res.json(files);
+
+    const supabase = getSupabase();
+    const filesWithUrls = await Promise.all(files.map(async (f) => {
+      const { data } = supabase.storage.from(BUCKET).getPublicUrl(f.fileName);
+      return { ...f, url: data.publicUrl };
+    }));
+
+    return res.json(filesWithUrls);
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Server error" });
@@ -70,16 +67,36 @@ router.post("/:customerId/files", upload.single("file"), async (req, res) => {
     const [exists] = await db.select({ id: customers.id }).from(customers).where(eq(customers.id, customerId)).limit(1);
     if (!exists) return res.status(404).json({ error: "Customer tidak ditemukan" });
 
+    const supabase = getSupabase();
+
+    const unique = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const ext = path.extname(file.originalname);
+    const storagePath = `${customerId}/${unique}${ext}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from(BUCKET)
+      .upload(storagePath, file.buffer, {
+        contentType: file.mimetype,
+        upsert: false,
+      });
+
+    if (uploadError) {
+      console.error("Supabase upload error:", uploadError);
+      return res.status(500).json({ error: "Upload ke storage gagal: " + uploadError.message });
+    }
+
+    const { data: { publicUrl } } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
+
     const [inserted] = await db.insert(customerFiles).values({
       customerId,
-      fileName: file.filename,
+      fileName: storagePath,
       originalName: file.originalname,
       mimeType: file.mimetype,
       fileSize: String(file.size),
       category: category || "berkas",
     }).returning();
 
-    return res.json(inserted);
+    return res.json({ ...inserted, url: publicUrl });
   } catch (err: any) {
     console.error(err);
     return res.status(500).json({ error: err.message || "Upload gagal" });
@@ -99,8 +116,9 @@ router.delete("/:customerId/files/:fileId", async (req, res) => {
       return res.status(404).json({ error: "File tidak ditemukan" });
     }
 
-    const filePath = path.join(UPLOADS_DIR, record.fileName);
-    if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+    const supabase = getSupabase();
+    const { error: deleteError } = await supabase.storage.from(BUCKET).remove([record.fileName]);
+    if (deleteError) console.warn("Storage delete warning:", deleteError.message);
 
     await db.delete(customerFiles).where(eq(customerFiles.id, fileId));
     return res.json({ ok: true });
