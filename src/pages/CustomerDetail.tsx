@@ -15,8 +15,9 @@ import { id as idLocale } from "date-fns/locale";
 import {
   ArrowLeft, MessageSquare, DollarSign, CalendarCheck, Zap,
   Check, Trash2, Sparkles, Loader2, Copy, RefreshCw, ChevronDown, ChevronUp,
-  Brain, Edit2, X, AlertTriangle,
+  Brain, Edit2, X, AlertTriangle, Upload, FileText, Image, File, Download, FolderOpen,
 } from "lucide-react";
+import { useRef } from "react";
 import { cn } from "@/lib/utils";
 import { formatIDR } from "@/lib/format";
 
@@ -35,6 +36,205 @@ const urgencyConfig: Record<string, { label: string; className: string }> = {
   medium: { label: "Prioritas Sedang",  className: "bg-amber-50 text-amber-700 ring-1 ring-amber-200" },
   low:    { label: "Prioritas Rendah",  className: "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200" },
 };
+
+const FILE_CATEGORIES = [
+  { value: "paspor",  label: "Paspor",          color: "bg-blue-100 text-blue-700" },
+  { value: "visa",    label: "Visa",             color: "bg-purple-100 text-purple-700" },
+  { value: "ktp",     label: "KTP",              color: "bg-orange-100 text-orange-700" },
+  { value: "foto",    label: "Foto",             color: "bg-pink-100 text-pink-700" },
+  { value: "berkas",  label: "Berkas Lainnya",   color: "bg-gray-100 text-gray-700" },
+];
+
+function getCategoryStyle(cat: string) {
+  return FILE_CATEGORIES.find((c) => c.value === cat) || FILE_CATEGORIES[FILE_CATEGORIES.length - 1];
+}
+
+function formatBytes(bytes: string | number) {
+  const n = Number(bytes);
+  if (n < 1024) return `${n} B`;
+  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`;
+  return `${(n / 1024 / 1024).toFixed(1)} MB`;
+}
+
+function FileCard({ file, customerId, onDelete }: { file: any; customerId: string; onDelete: () => void }) {
+  const isImage = file.mimeType.startsWith("image/");
+  const catStyle = getCategoryStyle(file.category);
+  const fileUrl = `/uploads/${file.fileName}`;
+
+  const handleDelete = async () => {
+    if (!confirm(`Hapus file "${file.originalName}"?`)) return;
+    try {
+      await api.files.delete(customerId, file.id);
+      onDelete();
+      toast.success("File dihapus");
+    } catch { toast.error("Gagal menghapus file"); }
+  };
+
+  return (
+    <div className="group relative flex flex-col bg-white border border-border rounded-xl overflow-hidden hover:border-primary/30 transition-colors">
+      {/* Preview */}
+      {isImage ? (
+        <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="block">
+          <div className="h-32 bg-muted/30 overflow-hidden">
+            <img src={fileUrl} alt={file.originalName} className="w-full h-full object-cover" />
+          </div>
+        </a>
+      ) : (
+        <a href={fileUrl} target="_blank" rel="noopener noreferrer" className="flex items-center justify-center h-32 bg-muted/20 hover:bg-muted/40 transition-colors">
+          {file.mimeType === "application/pdf" ? (
+            <FileText className="h-10 w-10 text-red-400" />
+          ) : (
+            <File className="h-10 w-10 text-blue-400" />
+          )}
+        </a>
+      )}
+
+      {/* Info */}
+      <div className="p-2.5 space-y-1.5">
+        <p className="text-xs font-medium text-foreground truncate" title={file.originalName}>
+          {file.originalName}
+        </p>
+        <div className="flex items-center justify-between gap-1">
+          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-md ${catStyle.color}`}>
+            {catStyle.label}
+          </span>
+          <span className="text-[10px] text-muted-foreground">{formatBytes(file.fileSize)}</span>
+        </div>
+      </div>
+
+      {/* Actions overlay */}
+      <div className="absolute top-1.5 right-1.5 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+        <a
+          href={fileUrl}
+          download={file.originalName}
+          className="h-6 w-6 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center shadow-sm hover:bg-white transition-colors"
+          title="Download"
+        >
+          <Download className="h-3 w-3 text-foreground" />
+        </a>
+        <button
+          onClick={handleDelete}
+          className="h-6 w-6 bg-white/90 backdrop-blur-sm rounded-lg flex items-center justify-center shadow-sm hover:bg-red-50 transition-colors"
+          title="Hapus"
+        >
+          <X className="h-3 w-3 text-red-500" />
+        </button>
+      </div>
+    </div>
+  );
+}
+
+function CustomerFilesSection({ customerId }: { customerId: string }) {
+  const queryClient = useQueryClient();
+  const fileRef = useRef<HTMLInputElement>(null);
+  const [uploading, setUploading] = useState(false);
+  const [category, setCategory] = useState("berkas");
+  const [open, setOpen] = useState(false);
+
+  const { data: files = [], isLoading } = useQuery({
+    queryKey: ["customer-files", customerId],
+    queryFn: () => api.files.list(customerId),
+  });
+
+  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      await api.files.upload(customerId, file, category);
+      queryClient.invalidateQueries({ queryKey: ["customer-files", customerId] });
+      toast.success(`${file.name} berhasil diupload`);
+    } catch (err: any) {
+      toast.error(err.message || "Upload gagal");
+    }
+    setUploading(false);
+    if (fileRef.current) fileRef.current.value = "";
+  };
+
+  const invalidateFiles = () => queryClient.invalidateQueries({ queryKey: ["customer-files", customerId] });
+
+  return (
+    <div className="bg-white border border-border rounded-2xl card-shadow overflow-hidden">
+      <button
+        type="button"
+        className="w-full flex items-center justify-between px-5 py-4 text-sm font-semibold hover:bg-muted/30 transition-colors text-left"
+        onClick={() => setOpen(!open)}
+      >
+        <span className="flex items-center gap-2.5">
+          <div className="h-7 w-7 rounded-lg bg-sky-50 flex items-center justify-center">
+            <FolderOpen className="h-3.5 w-3.5 text-sky-500" />
+          </div>
+          Berkas & Foto
+          {files.length > 0 && (
+            <span className="text-xs text-muted-foreground font-normal">({files.length} file)</span>
+          )}
+        </span>
+        {open
+          ? <ChevronUp className="h-4 w-4 text-muted-foreground" />
+          : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+      </button>
+
+      {open && (
+        <div className="px-5 pb-5 pt-1 space-y-4">
+          {/* Upload controls */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <Select value={category} onValueChange={setCategory}>
+              <SelectTrigger className="w-36 h-8 text-xs">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {FILE_CATEGORIES.map((c) => (
+                  <SelectItem key={c.value} value={c.value}>{c.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*,.pdf,.doc,.docx"
+              onChange={handleUpload}
+              className="hidden"
+            />
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-8 text-xs gap-1.5"
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading}
+            >
+              {uploading
+                ? <Loader2 className="h-3 w-3 animate-spin" />
+                : <Upload className="h-3 w-3" />}
+              {uploading ? "Mengupload..." : "Upload File"}
+            </Button>
+            <span className="text-xs text-muted-foreground">JPG, PNG, PDF, DOCX · maks 20MB</span>
+          </div>
+
+          {/* File grid */}
+          {isLoading ? (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="h-[160px] rounded-xl bg-muted/30 animate-pulse" />
+              ))}
+            </div>
+          ) : files.length === 0 ? (
+            <div className="flex flex-col items-center justify-center py-8 text-center">
+              <Image className="h-8 w-8 text-muted-foreground/30 mb-2" />
+              <p className="text-sm text-muted-foreground">Belum ada berkas yang diupload.</p>
+              <p className="text-xs text-muted-foreground/60 mt-0.5">Upload foto paspor, visa, KTP, atau berkas lainnya.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3">
+              {(files as any[]).map((f) => (
+                <FileCard key={f.id} file={f} customerId={customerId} onDelete={invalidateFiles} />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
 
 function AISection({
   title,
@@ -371,6 +571,9 @@ export default function CustomerDetail() {
           )}
         </div>
       </div>
+
+      {/* Berkas & Foto */}
+      <CustomerFilesSection customerId={id!} />
 
       {/* AI Panels */}
       <AISection title="Ringkasan Customer" defaultOpen={!!summary}>

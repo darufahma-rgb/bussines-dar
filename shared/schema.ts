@@ -65,10 +65,24 @@ export const interactions = pgTable("interactions", {
   index("idx_interactions_is_completed").on(t.isCompleted),
 ]);
 
+export const customerFiles = pgTable("customer_files", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  customerId: uuid("customer_id").notNull().references(() => customers.id, { onDelete: "cascade" }),
+  fileName: text("file_name").notNull(),
+  originalName: text("original_name").notNull(),
+  mimeType: text("mime_type").notNull(),
+  fileSize: text("file_size").notNull(),
+  category: text("category").notNull().default("berkas"),
+  uploadedAt: timestamp("uploaded_at", { withTimezone: true }).notNull().defaultNow(),
+}, (t) => [
+  index("idx_customer_files_customer").on(t.customerId),
+]);
+
 export type User = typeof users.$inferSelect;
 export type Business = typeof businesses.$inferSelect;
 export type Customer = typeof customers.$inferSelect;
 export type CustomerBusiness = typeof customerBusinesses.$inferSelect;
 export type Interaction = typeof interactions.$inferSelect;
+export type CustomerFile = typeof customerFiles.$inferSelect;
 export type CustomerStatus = "new" | "warm" | "hot" | "negotiation" | "closed" | "lost";
 export type InteractionType = "note" | "transaction" | "follow_up" | "quick_capture";

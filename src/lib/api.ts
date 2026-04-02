@@ -112,4 +112,24 @@ export const api = {
         body: JSON.stringify({ rows, defaultBusinessId }),
       }),
   },
+  files: {
+    list: (customerId: string) => request(`/customers/${customerId}/files`),
+    delete: (customerId: string, fileId: string) =>
+      request(`/customers/${customerId}/files/${fileId}`, { method: "DELETE" }),
+    upload: async (customerId: string, file: File, category: string) => {
+      const form = new FormData();
+      form.append("file", file);
+      form.append("category", category);
+      const res = await fetch(`/api/customers/${customerId}/files`, {
+        method: "POST",
+        credentials: "include",
+        body: form,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Upload gagal" }));
+        throw new Error(err.error || "Upload gagal");
+      }
+      return res.json();
+    },
+  },
 };

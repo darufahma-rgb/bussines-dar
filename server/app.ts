@@ -1,4 +1,5 @@
 import "dotenv/config";
+import path from "path";
 import express from "express";
 import session from "express-session";
 import connectPgSimple from "connect-pg-simple";
@@ -12,6 +13,7 @@ import interactionRoutes from "./routes/interactions.js";
 import aiRoutes from "./routes/ai.js";
 import statsRoutes from "./routes/stats.js";
 import importRoutes from "./routes/import.js";
+import filesRoutes from "./routes/files.js";
 
 const app = express();
 const PgSession = connectPgSimple(session);
@@ -59,6 +61,8 @@ app.use("/api/interactions", interactionRoutes);
 app.use("/api/ai", aiLimiter, aiRoutes);
 app.use("/api/stats", statsRoutes);
 app.use("/api/import", importRoutes);
+app.use("/api/customers", filesRoutes);
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
 
