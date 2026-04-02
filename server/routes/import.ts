@@ -1,6 +1,18 @@
 import { Router } from "express";
 import multer from "multer";
 import { createRequire } from "module";
+
+// pdf-parse uses pdfjs-dist which needs DOMMatrix (browser API) — polyfill for Node.js
+if (typeof (globalThis as any).DOMMatrix === "undefined") {
+  (globalThis as any).DOMMatrix = class DOMMatrix {
+    constructor() { return this; }
+    static fromMatrix() { return new (globalThis as any).DOMMatrix(); }
+  };
+}
+if (typeof (globalThis as any).DOMPoint === "undefined") {
+  (globalThis as any).DOMPoint = class DOMPoint { constructor() {} };
+}
+
 const require = createRequire(import.meta.url);
 const pdfParse: (buffer: Buffer) => Promise<{ text: string }> = require("pdf-parse");
 import { db } from "../db.js";
