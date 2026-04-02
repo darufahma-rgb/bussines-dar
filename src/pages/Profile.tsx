@@ -1,12 +1,12 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { api } from "@/lib/api";
 import { toast } from "sonner";
-import { User, Lock, Mail, Save, Eye, EyeOff, ShieldCheck } from "lucide-react";
+import { User, Lock, Mail, Save, Eye, EyeOff, ShieldCheck, Camera, Loader2 } from "lucide-react";
 import SectionHeading from "@/components/SectionHeading";
 
 export default function Profile() {
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
 
   const [name, setName] = useState(user?.name ?? "");
   const [savingProfile, setSavingProfile] = useState(false);
@@ -18,11 +18,15 @@ export default function Profile() {
   const [showNew, setShowNew] = useState(false);
   const [savingPassword, setSavingPassword] = useState(false);
 
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const avatarRef = useRef<HTMLInputElement>(null);
+
   const handleSaveProfile = async (e: React.FormEvent) => {
     e.preventDefault();
     setSavingProfile(true);
     try {
       await api.auth.updateProfile({ name: name.trim() || undefined });
+      await refreshUser();
       toast.success("Profil berhasil diperbarui!");
     } catch (err: any) {
       toast.error(err.message || "Gagal memperbarui profil");
@@ -55,15 +59,63 @@ export default function Profile() {
     }
   };
 
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadingAvatar(true);
+    try {
+      await api.auth.uploadAvatar(file);
+      await refreshUser();
+      toast.success("Foto profil berhasil diperbarui!");
+    } catch (err: any) {
+      toast.error(err.message || "Gagal upload foto");
+    } finally {
+      setUploadingAvatar(false);
+      if (avatarRef.current) avatarRef.current.value = "";
+    }
+  };
+
   const initials = (user?.name || user?.email || "CR").slice(0, 2).toUpperCase();
+  const avatarUrl = user?.avatar ? `/uploads/${user.avatar}` : null;
 
   return (
     <div className="max-w-2xl mx-auto space-y-6">
       {/* Avatar & identity */}
       <div className="bg-white border border-border rounded-2xl card-shadow p-6 flex items-center gap-5">
-        <div className="h-16 w-16 rounded-2xl bg-primary flex items-center justify-center shadow-md shrink-0">
-          <span className="text-xl font-bold text-white">{initials}</span>
+        {/* Avatar with upload button */}
+        <div className="relative shrink-0 group">
+          <div className="h-20 w-20 rounded-2xl overflow-hidden shadow-md bg-primary flex items-center justify-center">
+            {avatarUrl ? (
+              <img src={avatarUrl} alt="Foto profil" className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-2xl font-bold text-white">{initials}</span>
+            )}
+          </div>
+          {/* Upload overlay */}
+          <button
+            type="button"
+            onClick={() => avatarRef.current?.click()}
+            disabled={uploadingAvatar}
+            className="absolute inset-0 rounded-2xl bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer"
+            title="Ganti foto profil"
+          >
+            {uploadingAvatar
+              ? <Loader2 className="h-5 w-5 text-white animate-spin" />
+              : <Camera className="h-5 w-5 text-white" />}
+          </button>
+          <input
+            ref={avatarRef}
+            type="file"
+            accept="image/*"
+            onChange={handleAvatarChange}
+            className="hidden"
+          />
+          {/* Small camera badge */}
+          <div className="absolute -bottom-1 -right-1 h-6 w-6 rounded-full bg-primary border-2 border-white flex items-center justify-center shadow">
+            <Camera className="h-3 w-3 text-white" />
+          </div>
         </div>
+
         <div>
           <p className="font-semibold text-foreground text-base leading-tight">
             {user?.name || "Belum ada nama"}
@@ -72,6 +124,14 @@ export default function Profile() {
             <Mail className="h-3.5 w-3.5" />
             {user?.email}
           </p>
+          <button
+            type="button"
+            onClick={() => avatarRef.current?.click()}
+            disabled={uploadingAvatar}
+            className="mt-2 text-xs text-primary hover:underline disabled:opacity-50"
+          >
+            {uploadingAvatar ? "Mengupload..." : "Ganti foto profil"}
+          </button>
         </div>
       </div>
 

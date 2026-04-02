@@ -5,11 +5,21 @@ interface AuthUser {
   id: string;
   email: string;
   name?: string | null;
+  avatar?: string | null;
 }
 
 export function useAuth() {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const refreshUser = async () => {
+    try {
+      const { user } = await api.auth.me();
+      setUser(user);
+    } catch {
+      setUser(null);
+    }
+  };
 
   useEffect(() => {
     api.auth.me()
@@ -43,5 +53,5 @@ export function useAuth() {
     setUser(null);
   };
 
-  return { user, loading, signIn, signUp, signOut };
+  return { user, loading, signIn, signUp, signOut, setUser, refreshUser };
 }

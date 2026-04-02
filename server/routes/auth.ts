@@ -1,8 +1,31 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
+import multer from "multer";
+import path from "path";
+import fs from "fs";
 import { db } from "../db.js";
 import { users } from "../../shared/schema.js";
 import { eq } from "drizzle-orm";
+
+const UPLOADS_DIR = path.join(process.cwd(), "uploads");
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+const avatarStorage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname);
+    cb(null, `avatar-${Date.now()}${ext}`);
+  },
+});
+
+const avatarUpload = multer({
+  storage: avatarStorage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (_req, file, cb) => {
+    if (file.mimetype.startsWith("image/")) cb(null, true);
+    else cb(new Error("Hanya file gambar yang diperbolehkan"));
+  },
+});
 
 const router = Router();
 
@@ -63,9 +86,9 @@ router.get("/me", async (req, res) => {
   try {
     const [user] = await db.select().from(users).where(eq(users.id, req.session.userId)).limit(1);
     if (!user) return res.status(401).json({ error: "Not authenticated" });
-    return res.json({ user: { id: user.id, email: user.email, name: user.name } });
+    return res.json({ user: { id: user.id, email: user.email, name: user.name, avatar: user.avatar } });
   } catch {
-    return res.json({ user: { id: req.session.userId, email: req.session.userEmail, name: null } });
+    return res.json({ user: { id: req.session.userId, email: req.session.userEmail, name: null, avatar: null } });
   }
 });
 
@@ -90,7 +113,32 @@ router.put("/profile", async (req, res) => {
     if (Object.keys(updates).length === 0) return res.json({ ok: true });
 
     const [updated] = await db.update(users).set(updates).where(eq(users.id, req.session.userId)).returning();
-    return res.json({ user: { id: updated.id, email: updated.email, name: updated.name } });
+    return res.json({ user: { id: updated.id, email: updated.email, name: updated.name, avatar: updated.avatar } });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+
+router.post("/avatar", avatarUpload.single("avatar"), async (req, res) => {
+  if (!req.session.userId) return res.status(401).json({ error: "Not authenticated" });
+  const file = req.file;
+  if (!file) return res.status(400).json({ error: "File diperlukan" });
+
+  try {
+    const [current] = await db.select({ avatar: users.avatar }).from(users).where(eq(users.id, req.session.userId)).limit(1);
+    if (current?.avatar) {
+      const oldPath = path.join(UPLOADS_DIR, current.avatar);
+      if (fs.existsSync(oldPath)) fs.unlinkSync(oldPath);
+    }
+
+    const [updated] = await db
+      .update(users)
+      .set({ avatar: file.filename })
+      .where(eq(users.id, req.session.userId))
+      .returning();
+
+    return res.json({ user: { id: updated.id, email: updated.email, name: updated.name, avatar: updated.avatar } });
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: "Server error" });

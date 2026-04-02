@@ -26,6 +26,20 @@ export const api = {
     me: () => request("/auth/me"),
     updateProfile: (data: { name?: string; currentPassword?: string; newPassword?: string }) =>
       request("/auth/profile", { method: "PUT", body: JSON.stringify(data) }),
+    uploadAvatar: async (file: File) => {
+      const form = new FormData();
+      form.append("avatar", file);
+      const res = await fetch("/api/auth/avatar", {
+        method: "POST",
+        credentials: "include",
+        body: form,
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Upload gagal" }));
+        throw new Error(err.error || "Upload gagal");
+      }
+      return res.json();
+    },
   },
   businesses: {
     list: () => request("/businesses"),

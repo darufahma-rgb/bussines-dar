@@ -99,6 +99,7 @@ function SidebarContent({
 }) {
   const { signOut, user } = useAuth();
   const initials = (user?.name || user?.email || "CR").slice(0, 2).toUpperCase();
+  const avatarUrl = user?.avatar ? `/uploads/${user.avatar}` : null;
 
   return (
     <aside
@@ -188,10 +189,12 @@ function SidebarContent({
             <Tooltip delayDuration={0}>
               <TooltipTrigger asChild>
                 <NavLink to="/profile" className={({ isActive }) => cn(
-                  "h-8 w-8 rounded-xl flex items-center justify-center transition-colors",
+                  "h-8 w-8 rounded-xl flex items-center justify-center transition-colors overflow-hidden",
                   isActive ? "bg-primary text-white" : "bg-primary/10 text-primary hover:bg-primary/20"
                 )}>
-                  <span className="text-xs font-bold">{initials}</span>
+                  {avatarUrl
+                    ? <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                    : <span className="text-xs font-bold">{initials}</span>}
                 </NavLink>
               </TooltipTrigger>
               <TooltipContent side="right" className="text-xs">Profil · {user?.email}</TooltipContent>
@@ -220,7 +223,11 @@ function SidebarContent({
                   : "text-muted-foreground hover:bg-muted/80 hover:text-foreground"
               )}
             >
-              <UserCircle className="h-[16px] w-[16px] shrink-0" />
+              <div className="h-[18px] w-[18px] rounded-md overflow-hidden bg-primary/10 flex items-center justify-center shrink-0">
+                {avatarUrl
+                  ? <img src={avatarUrl} alt="Avatar" className="w-full h-full object-cover" />
+                  : <span className="text-[9px] font-bold text-primary">{initials}</span>}
+              </div>
               <span className="truncate">{user?.name || "Profil Saya"}</span>
             </NavLink>
             <button
