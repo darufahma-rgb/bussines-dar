@@ -6,7 +6,7 @@ Multi-bisnis CRM untuk mengelola customer dari Temantiket, SYMP, AIGYPT, dan Dar
 
 - **Frontend**: React 18 + Vite + TypeScript + Tailwind CSS + shadcn/ui
 - **Backend**: Express.js (TypeScript) REST API on port 3001 (dev), port 5000 (prod)
-- **Database**: PostgreSQL (Neon) via Drizzle ORM
+- **Database**: Supabase PostgreSQL via Drizzle ORM (connection pooler port 6543)
 - **Auth**: Session-based — express-session + connect-pg-simple + bcryptjs
 - **AI**: OpenRouter (google/gemini-2.0-flash-001) or OpenAI fallback
 - **Dev**: Frontend + backend start together via `concurrently`
